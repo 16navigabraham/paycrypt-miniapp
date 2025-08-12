@@ -1,12 +1,13 @@
-"use client"
+"use client";
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useAccount } from 'wagmi'
 import { MainLayout } from "@/components/layout/main-layout"
-import { PortfolioOverview } from "./portfolio-overview"
-import { QuickActions } from "./quick-actions"
-import RecentTransactions from "./recent-transactions"
-import { MarketData } from "./market-data"
+import { PortfolioOverview } from "@/components/dashboard/portfolio-overview"
+import { QuickActions } from "@/components/dashboard/quick-actions"
+import RecentTransactions from "@/components/dashboard/recent-transactions"
+import { MarketData } from "@/components/dashboard/market-data"
 import { Button } from "@/components/ui/button"
 import { Menu, User, LogOut, Copy, CheckCircle } from "lucide-react"
 import { Sidebar } from "@/components/layout/sidebar"
@@ -29,22 +30,29 @@ interface FarcasterWallet {
 // AuthGuard Component
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const { address, isConnected } = useAccount();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check wallet-based authentication
-    const walletAddress = localStorage.getItem('paycrypt_wallet_address');
+    // Check wallet-based authentication - either from wagmi or localStorage
+    const storedWalletAddress = localStorage.getItem('paycrypt_wallet_address');
     
-    if (!walletAddress) {
+    if (isConnected && address) {
+      // Wallet is connected via wagmi
+      localStorage.setItem('paycrypt_wallet_address', address);
+      setIsAuthenticated(true);
+      setIsLoading(false);
+    } else if (storedWalletAddress) {
+      // Previously connected wallet in localStorage
+      setIsAuthenticated(true);
+      setIsLoading(false);
+    } else {
       // Not authenticated, redirect to home
       router.replace('/');
       return;
     }
-    
-    setIsAuthenticated(true);
-    setIsLoading(false);
-  }, [router]);
+  }, [router, isConnected, address]);
 
   if (isLoading) {
     return (
@@ -64,39 +72,40 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Dashboard Component with Farcaster Integration
+// Dashboard Component with Wallet Integration
 function Dashboard() {
   const router = useRouter();
+  const { address, isConnected } = useAccount();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [connectedWallet, setConnectedWallet] = useState<FarcasterWallet | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    // Load user data from localStorage
-    const walletAddress = localStorage.getItem('paycrypt_wallet_address');
+    // Load user data from localStorage and wagmi
+    const currentWalletAddress = address || localStorage.getItem('paycrypt_wallet_address');
     const fid = localStorage.getItem('paycrypt_fid');
     const username = localStorage.getItem('paycrypt_username');
     const displayName = localStorage.getItem('paycrypt_display_name');
     const pfpUrl = localStorage.getItem('paycrypt_pfp');
     
-    if (walletAddress) {
+    if (currentWalletAddress) {
       setUserData({
         fid: fid || '',
         username: username || '',
         displayName: displayName || username || 'Base User',
-        walletAddress,
+        walletAddress: currentWalletAddress,
         pfpUrl: pfpUrl || ''
       });
       
       // Create wallet object compatible with existing components
       setConnectedWallet({
-        address: walletAddress,
+        address: currentWalletAddress,
         chainId: '8453', // Base chain ID
         connectedAt: new Date().toISOString()
       });
     }
-  }, []);
+  }, [address]);
 
   const handleLogout = () => {
     localStorage.removeItem('paycrypt_wallet_address');
@@ -120,7 +129,6 @@ function Dashboard() {
   };
 
   const authenticated = !!userData;
-  const ready = true;
 
   return (
     <MainLayout>
@@ -139,7 +147,7 @@ function Dashboard() {
       />
 
       <div className="space-y-6">
-        {/* Enhanced Header Section with Farcaster User Info */}
+        {/* Enhanced Header Section with Wallet User Info */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             {/* Toggle Button - Inline with header */}
@@ -156,8 +164,8 @@ function Dashboard() {
               <div className="flex items-center space-x-3">
                 <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
                 {userData && (
-                  <Badge className="bg-gradient-to-r from-purple-500 to-pink-600 text-white border-0">
-                    Farcaster Connected
+                  <Badge className="bg-gradient-to-r from-blue-500 to-green-600 text-white border-0">
+                    {isConnected ? 'Wallet Connected' : 'Previously Connected'}
                   </Badge>
                 )}
               </div>
@@ -187,7 +195,7 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Farcaster User Profile Section */}
+          {/* User Profile Section */}
           {userData && (
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
@@ -204,7 +212,11 @@ function Dashboard() {
                 )}
                 <div className="text-sm">
                   <div className="font-medium">{userData.displayName}</div>
-                  <div className="text-gray-500">@{userData.username} • FID: {userData.fid}</div>
+                  {userData.username && (
+                    <div className="text-gray-500">
+                      @{userData.username} {userData.fid && `• FID: ${userData.fid}`}
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -221,13 +233,13 @@ function Dashboard() {
           )}
         </div>
 
-        {/* Welcome Message for Farcaster User */}
+        {/* Welcome Message */}
         {userData && (
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
-            <h2 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-1">
+          <div className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950/30 dark:to-green-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <h2 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-1">
               Welcome back, {userData.displayName}! 👋
             </h2>
-            <p className="text-purple-700 dark:text-purple-200 text-sm">
+            <p className="text-blue-700 dark:text-blue-200 text-sm">
               Your Base wallet is connected and ready for transactions. Start paying your bills with crypto!
             </p>
           </div>
@@ -277,28 +289,38 @@ function Dashboard() {
           {/* Right Sidebar - Quick Actions */}
           <div className="lg:col-span-1">
             <div className="space-y-6">
-              {/* Farcaster Account Info Card */}
+              {/* Account Info Card */}
               {userData && (
                 <div className="bg-lightblue rounded-xl shadow-sm border border-lightblue-200 p-6">
                   <h2 className="text-xl font-semibold text-black-900 mb-4">
-                    Farcaster Account
+                    Account Info
                   </h2>
                   <div className="space-y-3">
                     <div>
                       <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Display Name</label>
                       <p className="font-medium">{userData.displayName}</p>
                     </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Username</label>
-                      <p className="font-medium">@{userData.username}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Farcaster ID</label>
-                      <p className="font-mono text-sm">{userData.fid}</p>
-                    </div>
+                    {userData.username && (
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Username</label>
+                        <p className="font-medium">@{userData.username}</p>
+                      </div>
+                    )}
+                    {userData.fid && (
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Farcaster ID</label>
+                        <p className="font-mono text-sm">{userData.fid}</p>
+                      </div>
+                    )}
                     <div>
                       <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Connected Network</label>
                       <Badge variant="outline" className="text-xs">Base Mainnet</Badge>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Connection Status</label>
+                      <Badge variant="outline" className={`text-xs ${isConnected ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}`}>
+                        {isConnected ? 'Live Connection' : 'Cached'}
+                      </Badge>
                     </div>
                   </div>
                 </div>
