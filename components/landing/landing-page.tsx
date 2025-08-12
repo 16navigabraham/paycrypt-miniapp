@@ -70,13 +70,19 @@ const testimonials = [
 
 export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
   const router = useRouter()
-  const { theme, setTheme } = useTheme()
   const [showTermsModal, setShowTermsModal] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false)
   const [isInFrame, setIsInFrame] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // 🔧 Safe theme hook usage - only after mount
+  const themeHook = useTheme()
+  const { theme, setTheme } = mounted ? themeHook : { theme: 'light', setTheme: () => {} }
 
   useEffect(() => {
+    setMounted(true)
+    
     // Check if we're running in a Farcaster frame
     setIsInFrame(window.parent !== window)
     
@@ -99,6 +105,18 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
   }
 
   const canProceed = acceptedTerms && acceptedPrivacy
+
+  // 🔧 Prevent hydration mismatch - show loading state until mounted
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Paycrypt...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">

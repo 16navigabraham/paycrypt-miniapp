@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: 'website',
       images: [
         {
-          url: '/Og-image.png',
+          url: 'https://miniapp.paycrypt.org/Og-image.png',
           width: 1200,
           height: 630,
           alt: 'paycrypt',
@@ -36,14 +36,14 @@ export async function generateMetadata(): Promise<Metadata> {
     other: {
       'fc:frame': JSON.stringify({
         version: 'next',
-        imageUrl: process.env.NEXT_PUBLIC_APP_HERO_IMAGE || '/Og-image.png',
+        imageUrl: process.env.NEXT_PUBLIC_APP_HERO_IMAGE_URL || 'https://miniapp.paycrypt.org/Og-image.png',
         button: {
           title: `Launch ${projectName}`,
           action: {
             type: 'launch_frame',
             name: projectName,
             url: URL,
-            splashImageUrl: process.env.NEXT_PUBLIC_SPLASH_IMAGE || '/paycrypt.png',
+            splashImageUrl: process.env.NEXT_PUBLIC_SPLASH_IMAGE_URL || 'https://miniapp.paycrypt.org/paycrypt.png',
             splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR || '#3B82F6',
           },
         },
