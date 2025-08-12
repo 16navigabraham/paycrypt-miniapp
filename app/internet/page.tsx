@@ -14,8 +14,7 @@ import { Loader2, AlertCircle } from "lucide-react"
 
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
 import { ERC20_ABI } from "@/config/erc20Abi";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
-import { usePrivy } from '@privy-io/react-auth';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useConnect } from 'wagmi';
 import { parseUnits, toBytes, toHex, Hex, fromHex, formatUnits } from 'viem';
 import { toast } from 'sonner';
 import { TransactionStatusModal } from "@/components/TransactionStatusModal";
@@ -111,8 +110,9 @@ export default function InternetPage() {
 
     const backendRequestSentRef = useRef<Hex | null>(null);
 
-    const { connectWallet, authenticated } = usePrivy();
-    const { address } = useAccount();
+    // REPLACED: usePrivy with wagmi hooks
+    const { address, isConnected } = useAccount();
+    const { connect, connectors } = useConnect();
     const { isOnBaseChain, isSwitchingChain, promptSwitchToBase } = useBaseNetworkEnforcer();
 
     // Load tokens and prices on initial mount
@@ -414,15 +414,24 @@ export default function InternetPage() {
         }
     }, [isWritePending, hash, isConfirming, isConfirmed, isWriteError, isConfirmError, writeError, confirmError, txStatus, handlePostTransaction, showTransactionModal]);
 
+    // REPLACED: Privy wallet connection with wagmi
     const ensureWalletConnected = async () => {
-        if (!authenticated) {
-            toast.error("Please log in to proceed.");
-            await connectWallet();
+        if (!isConnected) {
+            toast.error("Please connect your wallet to proceed.");
+            try {
+                // Try to connect with the first available connector (usually Farcaster in mini apps)
+                const farcasterConnector = connectors.find(c => c.name.includes('Farcaster'));
+                const connectorToUse = farcasterConnector || connectors[0];
+                if (connectorToUse) {
+                    connect({ connector: connectorToUse });
+                }
+            } catch (error) {
+                console.error('Error connecting wallet:', error);
+            }
             return false;
         }
         if (!address) {
-            toast.error("No wallet found. Please ensure a wallet is connected via Privy.");
-            await connectWallet();
+            toast.error("No wallet address found. Please ensure wallet is connected.");
             return false;
         }
         if (!isOnBaseChain) {
@@ -696,45 +705,41 @@ export default function InternetPage() {
                           </div>
                         )}
 
-                        <div className="border-t pt-4 space-y-2">
-                            {requestId && (
+                        {requestId && (
+                            <div className="border-t pt-4 space-y-2">
                                 <div className="flex justify-between text-sm">
-                                    <span>Request ID:</span>
-                                    <span className="text-muted-foreground font-mono text-xs">{requestId}</span>
+                                    <span>Conversion Rate:</span>
+                                    <span>
+                                        {selectedCrypto && priceNGN
+                                            ? `₦${priceNGN.toLocaleString()} / 1 ${selectedCrypto.symbol}`
+                                            : "--"}
+                                    </span>
                                 </div>
-                            )}
-                            <div className="flex justify-between text-sm">
-                                <span>Conversion Rate:</span>
-                                <span>
-                                    {selectedCrypto && priceNGN
-                                        ? `₦${priceNGN.toLocaleString()} / 1 ${selectedCrypto.symbol}`
-                                        : "--"}
-                                </span>
+                                <div className="flex justify-between text-sm">
+                                    <span>Plan Amount:</span>
+                                    <span>
+                                        {selectedPlan ? `₦${Number(selectedPlan.variation_amount).toLocaleString()}` : "--"}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span>You will pay:</span>
+                                    <span>
+                                        {cryptoNeeded > 0 && selectedCrypto ? (
+                                            <Badge variant="outline">
+                                                {cryptoNeeded.toFixed(selectedCrypto.decimals)}{" "} {selectedCrypto.symbol}
+                                            </Badge>
+                                        ) : (
+                                            "--"
+                                        )}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="flex justify-between text-sm">
-                                <span>Plan Amount:</span>
-                                <span>
-                                    {selectedPlan ? `₦${Number(selectedPlan.variation_amount).toLocaleString()}` : "--"}
-                                </span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span>You will pay:</span>
-                                <span>
-                                    {cryptoNeeded > 0 && selectedCrypto ? (
-                                        <Badge variant="outline">
-                                            {cryptoNeeded.toFixed(selectedCrypto.decimals)}{" "} {selectedCrypto.symbol}
-                                        </Badge>
-                                    ) : (
-                                        "--"
-                                    )}
-                                </span>
-                            </div>
-                        </div>
+                        )}
                         
                         <Button
                             className="w-full"
                             onClick={handlePurchase}
-                            // disabled={isButtonDisabled}
+                            disabled={isButtonDisabled}
                         >
                             {isSwitchingChain ? "Switching Network..." :
                             !isOnBaseChain ? "Switch to Base Network" :
@@ -770,6 +775,7 @@ export default function InternetPage() {
                     </CardContent>
                 </Card>
             </div>
+            
             <TransactionStatusModal
                 isOpen={showTransactionModal}
                 onClose={handleCloseModal}
@@ -780,5 +786,5 @@ export default function InternetPage() {
                 requestId={requestId}
             />
         </AuthGuard>
-    )
+    );
 }

@@ -13,8 +13,7 @@ import { Input } from "@/components/ui/input"
 
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
 import { ERC20_ABI } from "@/config/erc20Abi";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
-import { usePrivy } from '@privy-io/react-auth';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useConnect } from 'wagmi';
 import { parseUnits, toBytes, toHex, Hex, fromHex, formatUnits } from 'viem';
 import { toast } from 'sonner';
 import { TransactionStatusModal } from "@/components/TransactionStatusModal";
@@ -144,8 +143,9 @@ export default function TVPage() {
 
   const backendRequestSentRef = useRef<Hex | null>(null);
 
-  const { connectWallet, authenticated } = usePrivy();
-  const { address } = useAccount();
+  // REPLACED: usePrivy with wagmi hooks
+  const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
   const { isOnBaseChain, isSwitchingChain, promptSwitchToBase } = useBaseNetworkEnforcer();
 
   /* initial load */
@@ -529,15 +529,24 @@ export default function TVPage() {
     }
   }, [isWritePending, hash, isConfirming, isConfirmed, isWriteError, isConfirmError, writeError, confirmError, txStatus, handlePostTransaction, showTransactionModal]);
 
+  // REPLACED: Privy wallet connection with wagmi
   const ensureWalletConnected = async () => {
-    if (!authenticated) {
-      toast.error("Please log in to proceed.");
-      await connectWallet();
+    if (!isConnected) {
+      toast.error("Please connect your wallet to proceed.");
+      try {
+        // Try to connect with the first available connector (usually Farcaster in mini apps)
+        const farcasterConnector = connectors.find(c => c.name.includes('Farcaster'));
+        const connectorToUse = farcasterConnector || connectors[0];
+        if (connectorToUse) {
+          connect({ connector: connectorToUse });
+        }
+      } catch (error) {
+        console.error('Error connecting wallet:', error);
+      }
       return false;
     }
     if (!address) {
-      toast.error("No wallet found. Please ensure a wallet is connected via Privy.");
-      await connectWallet();
+      toast.error("No wallet address found. Please ensure wallet is connected.");
       return false;
     }
     if (!isOnBaseChain) {
@@ -892,7 +901,7 @@ export default function TVPage() {
             <Button
               className="w-full"
               onClick={handlePurchase}
-              // disabled={isButtonDisabled}
+              disabled={isButtonDisabled}
             >
               {isSwitchingChain ? "Switching Network..." :
               !isOnBaseChain ? "Switch to Base Network" :
