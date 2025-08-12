@@ -14,11 +14,9 @@ import { Input } from "@/components/ui/input"
 
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
 import { ERC20_ABI } from "@/config/erc20Abi";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useConnect } from 'wagmi';
 import { parseUnits, toBytes, toHex, Hex, fromHex, formatUnits } from 'viem';
 import { toast } from 'sonner';
 import { TransactionStatusModal } from "@/components/TransactionStatusModal";
-import { useBaseNetworkEnforcer } from '@/hooks/useBaseNetworkEnforcer';
 
 import { buyAirtime } from "@/lib/api";
 import { TokenConfig } from "@/lib/tokenlist";
@@ -48,8 +46,11 @@ async function fetchPrices(tokenList: TokenConfig[]): Promise<Record<string, any
   }
 }
 
-export default function AirtimePage() {
-  const [mounted, setMounted] = useState(false);
+// Client-side only component with wagmi hooks
+function AirtimePageClient() {
+  // Import wagmi hooks dynamically only on client side
+  const [wagmiHooks, setWagmiHooks] = useState<any>(null);
+  
   const [activeTokens, setActiveTokens] = useState<TokenConfig[]>([]);
   const [selectedToken, setSelectedToken] = useState<string>(""); // Stores the address of the selected token
   const [network, setNetwork] = useState("");
@@ -66,19 +67,45 @@ export default function AirtimePage() {
   const [transactionHashForModal, setTransactionHashForModal] = useState<Hex | undefined>(undefined);
   const backendRequestSentRef = useRef<Hex | null>(null);
 
-  // Wagmi hooks - only use after component mounts
-  const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
-  const { isOnBaseChain, isSwitchingChain, promptSwitchToBase } = useBaseNetworkEnforcer();
-
-  // Handle client-side mounting
+  // Load wagmi hooks dynamically on client side
   useEffect(() => {
-    setMounted(true);
+    async function loadWagmiHooks() {
+      try {
+        const { useAccount, useConnect, useWriteContract, useWaitForTransactionReceipt, useReadContract } = await import('wagmi');
+        const { useBaseNetworkEnforcer } = await import('@/hooks/useBaseNetworkEnforcer');
+        
+        setWagmiHooks({
+          useAccount,
+          useConnect,
+          useWriteContract,
+          useWaitForTransactionReceipt,
+          useReadContract,
+          useBaseNetworkEnforcer
+        });
+      } catch (error) {
+        console.error('Error loading wagmi hooks:', error);
+      }
+    }
+    
+    loadWagmiHooks();
   }, []);
+
+  // Only use wagmi hooks after they're loaded
+  const accountHook = wagmiHooks?.useAccount();
+  const connectHook = wagmiHooks?.useConnect();
+  const baseNetworkHook = wagmiHooks?.useBaseNetworkEnforcer();
+
+  const address = accountHook?.address;
+  const isConnected = accountHook?.isConnected;
+  const connect = connectHook?.connect;
+  const connectors = connectHook?.connectors;
+  const isOnBaseChain = baseNetworkHook?.isOnBaseChain;
+  const isSwitchingChain = baseNetworkHook?.isSwitchingChain;
+  const promptSwitchToBase = baseNetworkHook?.promptSwitchToBase;
 
   // Load tokens and prices on initial mount
   useEffect(() => {
-    if (!mounted) return; // Wait for client-side mount
+    if (!wagmiHooks) return; // Wait for wagmi hooks to load
     
     async function loadTokensAndPrices() {
       setLoading(true);
@@ -96,7 +123,7 @@ export default function AirtimePage() {
       }
     }
     loadTokensAndPrices();
-  }, [mounted]);
+  }, [wagmiHooks]);
 
   // Generate requestId when form has data
   useEffect(() => {
@@ -115,60 +142,35 @@ export default function AirtimePage() {
   const tokenAmountForOrder: bigint = selectedTokenObj ? parseUnits(cryptoNeeded.toFixed(selectedTokenObj.decimals), selectedTokenObj.decimals) : BigInt(0);
   const bytes32RequestId: Hex = requestId ? toHex(toBytes(requestId), { size: 32 }) : toHex(toBytes(""), { size: 32 });
 
-  // Check if requestId is already used
-  const { data: existingOrder } = useReadContract({
+  // Wagmi hooks - only use after wagmi is loaded
+  const readContractHook = wagmiHooks?.useReadContract({
     address: CONTRACT_ADDRESS,
     abi: CONTRACT_ABI,
     functionName: 'getOrder',
     args: [fromHex(bytes32RequestId, 'bigint')],
-    query: { enabled: Boolean(requestId && address && mounted) },
+    query: { enabled: Boolean(requestId && address && wagmiHooks) },
   });
 
-  // Wagmi Hooks for TOKEN APPROVAL Transaction
-  const { 
-    writeContract: writeApprove, 
-    data: approveHash, 
-    isPending: isApprovePending, 
-    isError: isApproveError, 
-    error: approveWriteError,
-    reset: resetApprove 
-  } = useWriteContract();
+  const writeContractApproveHook = wagmiHooks?.useWriteContract();
+  const writeContractMainHook = wagmiHooks?.useWriteContract();
 
-  const { 
-    isLoading: isApprovalConfirming, 
-    isSuccess: isApprovalTxConfirmed, 
-    isError: isApprovalConfirmError, 
-    error: approveConfirmError 
-  } = useWaitForTransactionReceipt({
-    hash: approveHash as Hex,
+  const waitForApprovalReceiptHook = wagmiHooks?.useWaitForTransactionReceipt({
+    hash: writeContractApproveHook?.data as Hex,
     query: {
-      enabled: Boolean(approveHash),
+      enabled: Boolean(writeContractApproveHook?.data),
       refetchInterval: 1000,
     },
   });
 
-  // Wagmi Hooks for MAIN PAYMENT Transaction
-  const { 
-    writeContract, 
-    data: hash, 
-    isPending: isWritePending, 
-    isError: isWriteError, 
-    error: writeError,
-    reset: resetWrite 
-  } = useWriteContract();
-
-  const { 
-    isLoading: isConfirming, 
-    isSuccess: isConfirmed, 
-    isError: isConfirmError, 
-    error: confirmError 
-  } = useWaitForTransactionReceipt({
-    hash: hash as Hex,
+  const waitForMainReceiptHook = wagmiHooks?.useWaitForTransactionReceipt({
+    hash: writeContractMainHook?.data as Hex,
     query: {
-      enabled: Boolean(hash),
+      enabled: Boolean(writeContractMainHook?.data),
       refetchInterval: 1000,
     },
   });
+
+  const existingOrder = readContractHook?.data;
 
   // Handle backend API call after successful transaction
   const handlePostTransaction = useCallback(async (transactionHash: Hex) => {
@@ -229,24 +231,24 @@ export default function AirtimePage() {
 
   // Effect to monitor approval transaction status
   useEffect(() => {
-    if (!showTransactionModal) return;
+    if (!showTransactionModal || !writeContractApproveHook || !waitForApprovalReceiptHook) return;
 
-    if (isApprovePending) {
+    if (writeContractApproveHook.isPending) {
       setTxStatus('waitingForApprovalSignature');
       setTransactionHashForModal(undefined);
       setTransactionError(null);
       setBackendMessage(null);
       toast.info("Awaiting token approval signature...");
       backendRequestSentRef.current = null;
-    } else if (approveHash && !isApprovalTxConfirmed && !isApprovalConfirming) {
+    } else if (writeContractApproveHook.data && !waitForApprovalReceiptHook.isSuccess && !waitForApprovalReceiptHook.isLoading) {
       setTxStatus('approving');
-      setTransactionHashForModal(approveHash);
+      setTransactionHashForModal(writeContractApproveHook.data);
       toast.loading("Token approval sent, waiting for confirmation...", { id: 'approval-status' });
-    } else if (isApprovalConfirming) {
+    } else if (waitForApprovalReceiptHook.isLoading) {
       setTxStatus('approving');
-      setTransactionHashForModal(approveHash);
+      setTransactionHashForModal(writeContractApproveHook.data);
       toast.loading("Token approval confirming on blockchain...", { id: 'approval-status' });
-    } else if (isApprovalTxConfirmed) {
+    } else if (waitForApprovalReceiptHook.isSuccess) {
       setTxStatus('approvalSuccess');
       toast.success("Token approved! Proceeding with payment...", { id: 'approval-status' });
       
@@ -262,7 +264,7 @@ export default function AirtimePage() {
         
         try {
           setTxStatus('waitingForSignature');
-          writeContract({
+          writeContractMainHook?.writeContract({
             address: CONTRACT_ADDRESS,
             abi: CONTRACT_ABI,
             functionName: 'createOrder',
@@ -282,57 +284,57 @@ export default function AirtimePage() {
         }
       }, 2000); // 2 second delay
       
-    } else if (isApproveError || isApprovalConfirmError) {
+    } else if (writeContractApproveHook.isError || waitForApprovalReceiptHook.isError) {
       setTxStatus('error');
-      const errorMsg = (approveWriteError?.message || approveConfirmError?.message || "Token approval failed").split('\n')[0];
+      const errorMsg = (writeContractApproveHook.error?.message || waitForApprovalReceiptHook.error?.message || "Token approval failed").split('\n')[0];
       setTransactionError(errorMsg);
       toast.error(`Approval failed: ${errorMsg}`, { id: 'approval-status' });
     }
-  }, [isApprovePending, approveHash, isApprovalTxConfirmed, isApprovalConfirming, isApproveError, isApprovalConfirmError, approveWriteError, approveConfirmError, showTransactionModal, bytes32RequestId, selectedTokenObj?.address, tokenAmountForOrder, writeContract]);
+  }, [showTransactionModal, writeContractApproveHook, waitForApprovalReceiptHook, bytes32RequestId, selectedTokenObj?.address, tokenAmountForOrder, writeContractMainHook]);
 
   // Effect to monitor main transaction status
   useEffect(() => {
-    if (!showTransactionModal) return;
+    if (!showTransactionModal || !writeContractMainHook || !waitForMainReceiptHook) return;
     
     // Skip if we're in approval phase
     if (['waitingForApprovalSignature', 'approving', 'approvalSuccess'].includes(txStatus)) {
       return;
     }
 
-    if (isWritePending) {
+    if (writeContractMainHook.isPending) {
       setTxStatus('waitingForSignature');
       setTransactionHashForModal(undefined);
       setTransactionError(null);
       setBackendMessage(null);
       toast.info("Awaiting wallet signature for payment...");
       backendRequestSentRef.current = null;
-    } else if (hash && !isConfirmed && !isConfirming) {
+    } else if (writeContractMainHook.data && !waitForMainReceiptHook.isSuccess && !waitForMainReceiptHook.isLoading) {
       setTxStatus('sending');
-      setTransactionHashForModal(hash);
+      setTransactionHashForModal(writeContractMainHook.data);
       toast.loading("Payment transaction sent, waiting for blockchain confirmation...", { id: 'tx-status' });
-    } else if (isConfirming) {
+    } else if (waitForMainReceiptHook.isLoading) {
       setTxStatus('confirming');
-      setTransactionHashForModal(hash);
+      setTransactionHashForModal(writeContractMainHook.data);
       toast.loading("Payment transaction confirming on blockchain...", { id: 'tx-status' });
-    } else if (isConfirmed) {
+    } else if (waitForMainReceiptHook.isSuccess) {
       if (txStatus !== 'backendProcessing' && txStatus !== 'backendSuccess' && txStatus !== 'backendError') {
         setTxStatus('success');
-        setTransactionHashForModal(hash);
+        setTransactionHashForModal(writeContractMainHook.data);
         toast.success("Blockchain transaction confirmed! Processing order...", { id: 'tx-status' });
         
         // Process backend transaction
-        if (hash) {
-          handlePostTransaction(hash);
+        if (writeContractMainHook.data) {
+          handlePostTransaction(writeContractMainHook.data);
         }
       }
-    } else if (isWriteError || isConfirmError) {
+    } else if (writeContractMainHook.isError || waitForMainReceiptHook.isError) {
       setTxStatus('error');
-      const errorMsg = (writeError?.message?.split('\n')[0] || confirmError?.message?.split('\n')[0] || "Transaction failed").split('\n')[0];
+      const errorMsg = (writeContractMainHook.error?.message?.split('\n')[0] || waitForMainReceiptHook.error?.message?.split('\n')[0] || "Transaction failed").split('\n')[0];
       setTransactionError(errorMsg);
-      setTransactionHashForModal(hash);
+      setTransactionHashForModal(writeContractMainHook.data);
       toast.error(`Transaction failed: ${errorMsg}`, { id: 'tx-status' });
     }
-  }, [isWritePending, hash, isConfirming, isConfirmed, isWriteError, isConfirmError, writeError, confirmError, txStatus, handlePostTransaction, showTransactionModal]);
+  }, [showTransactionModal, writeContractMainHook, waitForMainReceiptHook, txStatus, handlePostTransaction]);
 
   // Wagmi wallet connection
   const ensureWalletConnected = async () => {
@@ -340,9 +342,9 @@ export default function AirtimePage() {
       toast.error("Please connect your wallet to proceed.");
       try {
         // Try to connect with the first available connector (usually Farcaster in mini apps)
-        const farcasterConnector = connectors.find(c => c.name.includes('Farcaster'));
-        const connectorToUse = farcasterConnector || connectors[0];
-        if (connectorToUse) {
+        const farcasterConnector = connectors?.find((c: any) => c.name.includes('Farcaster'));
+        const connectorToUse = farcasterConnector || connectors?.[0];
+        if (connectorToUse && connect) {
           connect({ connector: connectorToUse });
         }
       } catch (error) {
@@ -355,7 +357,7 @@ export default function AirtimePage() {
       return false;
     }
     if (!isOnBaseChain) {
-      promptSwitchToBase();
+      promptSwitchToBase?.();
       return false;
     }
     return true;
@@ -428,8 +430,8 @@ export default function AirtimePage() {
     console.log("----------------------------------------");
 
     // Reset previous transaction states
-    resetApprove();
-    resetWrite();
+    writeContractApproveHook?.reset();
+    writeContractMainHook?.reset();
 
     if (!selectedTokenObj.address) {
       toast.error("Selected crypto has no contract address.");
@@ -447,7 +449,7 @@ export default function AirtimePage() {
       
       console.log("Approving unlimited amount for future transactions");
       
-      writeApprove({
+      writeContractApproveHook?.writeContract({
         address: selectedTokenObj.address as Hex,
         abi: ERC20_ABI,
         functionName: 'approve',
@@ -485,12 +487,12 @@ export default function AirtimePage() {
 
   const isButtonDisabled = loading || !canPay ||
                            ['waitingForApprovalSignature', 'approving', 'waitingForSignature', 'sending', 'confirming', 'backendProcessing'].includes(txStatus) ||
-                           isApprovePending || isApprovalConfirming || 
-                           isWritePending || isConfirming || 
+                           writeContractApproveHook?.isPending || waitForApprovalReceiptHook?.isLoading || 
+                           writeContractMainHook?.isPending || waitForMainReceiptHook?.isLoading || 
                            !isOnBaseChain || isSwitchingChain;
 
-  // Don't render until mounted on client
-  if (!mounted) {
+  // Don't render until wagmi hooks are loaded
+  if (!wagmiHooks) {
     return (
       <AuthGuard>
         <div className="container py-10 max-w-xl mx-auto">
@@ -734,3 +736,20 @@ export default function AirtimePage() {
     </AuthGuard>
   )
 }
+
+// Export dynamic component with no SSR
+const AirtimePage = dynamic(() => Promise.resolve(AirtimePageClient), {
+  ssr: false,
+  loading: () => (
+    <AuthGuard>
+      <div className="container py-10 max-w-xl mx-auto">
+        <div className="flex items-center justify-center p-10">
+          <Loader2 className="w-8 h-8 animate-spin mr-2" />
+          <span>Loading...</span>
+        </div>
+      </div>
+    </AuthGuard>
+  )
+});
+
+export default AirtimePage;
