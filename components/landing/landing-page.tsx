@@ -113,7 +113,7 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
               </span>
               {isInFrame && (
                 <Badge className="ml-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white border-0">
-                  Farcaster Mini App
+                  Onchain Mini App
                 </Badge>
               )}
             </div>
@@ -141,10 +141,10 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-blue-600" />
-              Welcome to Paycrypt on Farcaster
+              Welcome to Paycrypt
             </DialogTitle>
             <DialogDescription>
-              Before you get started with our Base mini app, please review and accept our terms and privacy policy.
+              Connect with your Farcaster account to access your Base wallet and start paying bills with crypto.
             </DialogDescription>
           </DialogHeader>
 
@@ -158,15 +158,15 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
               <ul className="space-y-2 text-sm text-purple-800 dark:text-purple-200">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 mt-0.5 text-purple-600" />
-                  <span>Seamlessly integrated with your Farcaster identity</span>
+                  <span>Login with your Farcaster account - no separate signup needed</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 mt-0.5 text-purple-600" />
-                  <span>Built on Base blockchain for fast, cheap transactions</span>
+                  <span>Uses your Base wallet connected to Farcaster for payments</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 mt-0.5 text-purple-600" />
-                  <span>Access your crypto payments directly from Farcaster</span>
+                  <span>Fast, cheap transactions on Base blockchain</span>
                 </li>
               </ul>
             </div>
@@ -191,7 +191,7 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 mt-0.5 text-blue-600" />
-                  <span>We only access your Farcaster profile for authentication</span>
+                  <span>Connect with your Farcaster account to access your Base wallet</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 mt-0.5 text-blue-600" />
@@ -268,7 +268,7 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
               disabled={!canProceed}
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
             >
-              {canProceed ? "Launch Paycrypt" : "Please Accept Terms"}
+              {canProceed ? "Connect Wallet & Launch" : "Please Accept Terms"}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </DialogFooter>
@@ -354,12 +354,12 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
                 <span className="text-white font-bold text-xl">1</span>
               </div>
               <h3 className="text-xl font-semibold mb-2">
-                {isInFrame ? "Connect from Farcaster" : "Launch App"}
+                {isInFrame ? "Login with Farcaster" : "Connect Your Account"}
               </h3>
               <p className="text-muted-foreground leading-relaxed">
                 {isInFrame 
-                  ? "Access Paycrypt directly from your Farcaster feed with seamless authentication."
-                  : "Click on the launch app to get started."
+                  ? "Use your Farcaster account to login and access your connected Base wallet."
+                  : "Connect with your Farcaster account to access your Base wallet."
                 }
               </p>
             </div>
@@ -378,9 +378,9 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
               <div className="h-16 w-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
                 <span className="text-white font-bold text-xl">3</span>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Pay with Crypto</h3>
+              <h3 className="text-xl font-semibold mb-2">Pay with Your Wallet</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Make a quick and secure payment using your smart wallet on Base. Services are delivered instantly.
+                Use your Base wallet connected to Farcaster to make payments. All transactions are secure and instant.
               </p>
             </div>
           </div>
@@ -459,7 +459,7 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
                 <span className="text-3xl font-bold">Wallet Friendly</span>
               </div>
               <p className="text-blue-100">
-                Connect any external wallet — MetaMask, Coinbase, WalletConnect, and more.
+                Login with your Farcaster account - your Base wallet is automatically connected.
               </p>
             </div>
           </div>

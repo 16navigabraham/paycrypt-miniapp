@@ -9,7 +9,7 @@ import { MiniKitContextProvider } from '@/providers/MiniKitProvider';
 const inter = Inter({ subsets: ["latin"] })
 
 export async function generateMetadata(): Promise<Metadata> {
-  const URL = process.env.NEXT_PUBLIC_URL || 'https://www.paycrypt.org';
+  const URL = process.env.NEXT_PUBLIC_URL || 'https://miniapp.paycrypt.org';
   const projectName = process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME || 'Paycrypt';
   
   return {
@@ -37,14 +37,14 @@ export async function generateMetadata(): Promise<Metadata> {
     other: {
       'fc:frame': JSON.stringify({
         version: 'next',
-        imageUrl: process.env.NEXT_PUBLIC_APP_HERO_IMAGE || '/Og-image.png',
+        imageUrl: process.env.NEXT_PUBLIC_APP_HERO_IMAGE_URL || 'https://miniapp.paycrypt.org/Og-image.png',
         button: {
           title: `Launch ${projectName}`,
           action: {
             type: 'launch_frame',
             name: projectName,
             url: URL,
-            splashImageUrl: process.env.NEXT_PUBLIC_SPLASH_IMAGE || '/paycrypt.png',
+            splashImageUrl: process.env.NEXT_PUBLIC_SPLASH_IMAGE_URL || 'https://miniapp.paycrypt.org/paycrypt.png',
             splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR || '#3B82F6',
           },
         },
@@ -62,8 +62,8 @@ export default function RootLayout({
     <html lang="en" className={inter.className}>
       <head>
         <meta name="google-site-verification" content="pCijtRPRcIw7lEvQNXnUtUE4WReAEAgiFl2FURDGrz0" />
-        <link rel="icon" href="/paycrypt.png" type="image/png" sizes="32x32" />
-        <link rel="shortcut icon" href="/paycrypt.png" type="image/png" />
+        <link rel="icon" href="https://miniapp.paycrypt.org/paycrypt.png" type="image/png" sizes="32x32" />
+        <link rel="shortcut icon" href="https://miniapp.paycrypt.org/paycrypt.png" type="image/png" />
       </head>
       <body>
         <MiniKitContextProvider>
