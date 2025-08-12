@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAccount } from 'wagmi'
+import dynamic from 'next/dynamic'
 import { MainLayout } from "@/components/layout/main-layout"
 import { PortfolioOverview } from "@/components/dashboard/portfolio-overview"
 import { QuickActions } from "@/components/dashboard/quick-actions"
@@ -27,14 +27,34 @@ interface FarcasterWallet {
   connectedAt: string;
 }
 
-// AuthGuard Component
+// AuthGuard Component with SSR Protection
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { address, isConnected } = useAccount();
+  const [wagmiHooks, setWagmiHooks] = useState<any>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Load wagmi hooks dynamically on client side
   useEffect(() => {
+    async function loadWagmiHooks() {
+      try {
+        const { useAccount } = await import('wagmi');
+        setWagmiHooks({ useAccount });
+      } catch (error) {
+        console.error('Error loading wagmi hooks:', error);
+        setWagmiHooks({});
+      }
+    }
+    loadWagmiHooks();
+  }, []);
+
+  const accountHook = wagmiHooks?.useAccount?.();
+  const address = accountHook?.address;
+  const isConnected = accountHook?.isConnected;
+
+  useEffect(() => {
+    if (!wagmiHooks) return; // Wait for wagmi to load
+
     // Check wallet-based authentication - either from wagmi or localStorage
     const storedWalletAddress = localStorage.getItem('paycrypt_wallet_address');
     
@@ -52,9 +72,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       router.replace('/');
       return;
     }
-  }, [router, isConnected, address]);
+  }, [router, isConnected, address, wagmiHooks]);
 
-  if (isLoading) {
+  if (!wagmiHooks || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -73,15 +93,35 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 // Dashboard Component with Wallet Integration
-function Dashboard() {
+function DashboardClient() {
   const router = useRouter();
-  const { address, isConnected } = useAccount();
+  const [wagmiHooks, setWagmiHooks] = useState<any>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [connectedWallet, setConnectedWallet] = useState<FarcasterWallet | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Load wagmi hooks dynamically on client side
   useEffect(() => {
+    async function loadWagmiHooks() {
+      try {
+        const { useAccount } = await import('wagmi');
+        setWagmiHooks({ useAccount });
+      } catch (error) {
+        console.error('Error loading wagmi hooks:', error);
+        setWagmiHooks({});
+      }
+    }
+    loadWagmiHooks();
+  }, []);
+
+  const accountHook = wagmiHooks?.useAccount?.();
+  const address = accountHook?.address;
+  const isConnected = accountHook?.isConnected;
+
+  useEffect(() => {
+    if (!wagmiHooks) return; // Wait for wagmi to load
+
     // Load user data from localStorage and wagmi
     const currentWalletAddress = address || localStorage.getItem('paycrypt_wallet_address');
     const fid = localStorage.getItem('paycrypt_fid');
@@ -105,7 +145,7 @@ function Dashboard() {
         connectedAt: new Date().toISOString()
       });
     }
-  }, [address]);
+  }, [address, wagmiHooks]);
 
   const handleLogout = () => {
     localStorage.removeItem('paycrypt_wallet_address');
@@ -129,6 +169,18 @@ function Dashboard() {
   };
 
   const authenticated = !!userData;
+
+  // Don't render until wagmi hooks are loaded
+  if (!wagmiHooks) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <MainLayout>
@@ -343,11 +395,26 @@ function Dashboard() {
   )
 }
 
-// Main Dashboard Page Component
-export default function DashboardPage() {
+// Dashboard Component wrapped with AuthGuard
+function Dashboard() {
   return (
     <AuthGuard>
-      <Dashboard />
+      <DashboardClient />
     </AuthGuard>
   );
 }
+
+// Export dynamic component with no SSR
+const DashboardPage = dynamic(() => Promise.resolve(Dashboard), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading Dashboard...</p>
+      </div>
+    </div>
+  )
+});
+
+export default DashboardPage;

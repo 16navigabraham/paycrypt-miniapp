@@ -1,6 +1,7 @@
 // app/electricity/page.tsx
 "use client"
 import { useState, useEffect, useCallback, useRef } from "react"
+import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {Button} from "@/components/ui/button"
@@ -12,11 +13,9 @@ import AuthGuard from "@/components/AuthGuard"
 import { Input } from "@/components/ui/input"
 
 import { ERC20_ABI } from "@/config/erc20Abi";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useConnect } from 'wagmi';
 import { parseUnits, toBytes, toHex, Hex, fromHex } from 'viem';
 import { toast } from 'sonner';
 import { TransactionStatusModal } from "@/components/TransactionStatusModal";
-import { useBaseNetworkEnforcer } from '@/hooks/useBaseNetworkEnforcer';
 
 import { payElectricityBill, verifyMeter } from "@/lib/api";
 import { TokenConfig } from "@/lib/tokenlist";
@@ -116,7 +115,11 @@ function getMeterLength(planCode: string): number[] {
   return METER_LENGTHS.default
 }
 
-export default function ElectricityPage() {
+// Client-side only component with wagmi hooks
+function ElectricityPageClient() {
+  // Import wagmi hooks dynamically only on client side
+  const [wagmiHooks, setWagmiHooks] = useState<any>(null);
+  
   const [activeTokens, setActiveTokens] = useState<TokenConfig[]>([]);
   const [selectedToken, setSelectedToken] = useState<string>("");
   const [provider, setProvider] = useState("");
@@ -144,13 +147,46 @@ export default function ElectricityPage() {
   const [approvalError, setApprovalError] = useState<string | null>(null);
   const backendRequestSentRef = useRef<Hex | null>(null);
 
-  // REPLACED: usePrivy with wagmi hooks
-  const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
-  const { isOnBaseChain, isSwitchingChain, promptSwitchToBase } = useBaseNetworkEnforcer();
+  // Load wagmi hooks dynamically on client side
+  useEffect(() => {
+    async function loadWagmiHooks() {
+      try {
+        const { useAccount, useConnect, useWriteContract, useWaitForTransactionReceipt } = await import('wagmi');
+        const { useBaseNetworkEnforcer } = await import('@/hooks/useBaseNetworkEnforcer');
+        
+        setWagmiHooks({
+          useAccount,
+          useConnect,
+          useWriteContract,
+          useWaitForTransactionReceipt,
+          useBaseNetworkEnforcer
+        });
+      } catch (error) {
+        console.error('Error loading wagmi hooks:', error);
+        setWagmiHooks({});
+      }
+    }
+    
+    loadWagmiHooks();
+  }, []);
+
+  // Only use wagmi hooks after they're loaded
+  const accountHook = wagmiHooks?.useAccount?.();
+  const connectHook = wagmiHooks?.useConnect?.();
+  const baseNetworkHook = wagmiHooks?.useBaseNetworkEnforcer?.();
+
+  const address = accountHook?.address;
+  const isConnected = accountHook?.isConnected;
+  const connect = connectHook?.connect;
+  const connectors = connectHook?.connectors;
+  const isOnBaseChain = baseNetworkHook?.isOnBaseChain;
+  const isSwitchingChain = baseNetworkHook?.isSwitchingChain;
+  const promptSwitchToBase = baseNetworkHook?.promptSwitchToBase;
 
   // Initial load: fetch active tokens and prices
   useEffect(() => {
+    if (!wagmiHooks) return; // Wait for wagmi hooks to load
+    
     async function loadTokensAndPrices() {
       setLoading(true);
       try {
@@ -168,7 +204,7 @@ export default function ElectricityPage() {
       }
     }
     loadTokensAndPrices();
-  }, []);
+  }, [wagmiHooks]);
 
   /* plans when provider changes */
   useEffect(() => {
@@ -288,18 +324,18 @@ export default function ElectricityPage() {
   // COMPULSORY UNLIMITED APPROVAL - No allowance checking
   const unlimitedApprovalAmount: bigint = parseUnits('115792089237316195423570985008687907853269984665640564039457584007913129639935', 0);
 
-  // Wagmi Hooks for TOKEN APPROVAL Transaction
-  const { writeContract: writeApprove, data: approveHash, isPending: isApprovePending, isError: isApproveError, error: approveWriteError, reset: resetApprove } = useWriteContract();
-  const { isLoading: isApprovalConfirming, isSuccess: isApprovalTxConfirmed, isError: isApprovalConfirmError, error: approveConfirmError } = useWaitForTransactionReceipt({
-    hash: approveHash as Hex,
-    query: { enabled: Boolean(approveHash), refetchInterval: 1000 },
+  // Wagmi hooks - only use after wagmi is loaded
+  const writeContractApproveHook = wagmiHooks?.useWriteContract?.();
+  const writeContractMainHook = wagmiHooks?.useWriteContract?.();
+
+  const waitForApprovalReceiptHook = wagmiHooks?.useWaitForTransactionReceipt?.({
+    hash: writeContractApproveHook?.data as Hex,
+    query: { enabled: Boolean(writeContractApproveHook?.data), refetchInterval: 1000 },
   });
 
-  // Wagmi Hooks for MAIN PAYMENT Transaction
-  const { writeContract, data: hash, isPending: isWritePending, isError: isWriteError, error: writeError, reset: resetWrite } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed, isError: isConfirmError, error: confirmError } = useWaitForTransactionReceipt({
-    hash: hash as Hex,
-    query: { enabled: Boolean(hash), refetchInterval: 1000 },
+  const waitForMainReceiptHook = wagmiHooks?.useWaitForTransactionReceipt?.({
+    hash: writeContractMainHook?.data as Hex,
+    query: { enabled: Boolean(writeContractMainHook?.data), refetchInterval: 1000 },
   });
 
   // Backend processing after blockchain confirmation
@@ -369,9 +405,9 @@ export default function ElectricityPage() {
 
   // Effect to monitor approval transaction status
   useEffect(() => {
-    if (!showTransactionModal) return;
+    if (!showTransactionModal || !writeContractApproveHook || !waitForApprovalReceiptHook) return;
 
-    if (isApprovePending) {
+    if (writeContractApproveHook.isPending) {
         setTxStatus('waitingForApprovalSignature');
         setTransactionHashForModal(undefined);
         setTransactionError(null);
@@ -379,15 +415,15 @@ export default function ElectricityPage() {
         setApprovalError(null);
         toast.info("Awaiting token approval signature...");
         backendRequestSentRef.current = null;
-    } else if (approveHash && !isApprovalTxConfirmed && !isApprovalConfirming) {
+    } else if (writeContractApproveHook.data && !waitForApprovalReceiptHook.isSuccess && !waitForApprovalReceiptHook.isLoading) {
         setTxStatus('sending');
-        setTransactionHashForModal(approveHash);
+        setTransactionHashForModal(writeContractApproveHook.data);
         toast.loading("Token approval sent, waiting for confirmation...", { id: 'approval-status' });
-    } else if (isApprovalConfirming) {
+    } else if (waitForApprovalReceiptHook.isLoading) {
         setTxStatus('approving');
-        setTransactionHashForModal(approveHash);
+        setTransactionHashForModal(writeContractApproveHook.data);
         toast.loading("Token approval confirming on blockchain...", { id: 'approval-status' });
-    } else if (isApprovalTxConfirmed) {
+    } else if (waitForApprovalReceiptHook.isSuccess) {
         setTxStatus('approvalSuccess');
         setApprovalError(null);
         toast.success("Token approved for unlimited spending! Proceeding with payment...", { id: 'approval-status' });
@@ -397,7 +433,7 @@ export default function ElectricityPage() {
             console.log("Approval confirmed! Initiating main transaction...");
             try {
                 setTxStatus('waitingForSignature');
-                writeContract({
+                writeContractMainHook?.writeContract?.({
                     address: CONTRACT_ADDRESS,
                     abi: CONTRACT_ABI,
                     functionName: 'createOrder',
@@ -416,59 +452,59 @@ export default function ElectricityPage() {
                 toast.error(errorMsg);
             }
         }, 2000);
-    } else if (isApproveError || isApprovalConfirmError) {
+    } else if (writeContractApproveHook.isError || waitForApprovalReceiptHook.isError) {
         setTxStatus('approvalError');
-        const errorMsg = (approveWriteError?.message || approveConfirmError?.message || "Token approval failed").split('\n')[0];
+        const errorMsg = (writeContractApproveHook.error?.message || waitForApprovalReceiptHook.error?.message || "Token approval failed").split('\n')[0];
         setApprovalError(errorMsg);
         setTransactionError(errorMsg);
         toast.error(`Approval failed: ${errorMsg}`, { id: 'approval-status' });
     }
-  }, [isApprovePending, approveHash, isApprovalTxConfirmed, isApprovalConfirming, isApproveError, isApprovalConfirmError, approveWriteError, approveConfirmError, showTransactionModal, selectedTokenObj, bytes32RequestId, tokenAmountForOrder, writeContract]);
+  }, [showTransactionModal, writeContractApproveHook, waitForApprovalReceiptHook, selectedTokenObj, bytes32RequestId, tokenAmountForOrder, writeContractMainHook]);
 
   // Effect to monitor main transaction status
   useEffect(() => {
-    if (!showTransactionModal) return;
+    if (!showTransactionModal || !writeContractMainHook || !waitForMainReceiptHook) return;
     if (['waitingForApprovalSignature', 'approving', 'approvalSuccess', 'approvalError'].includes(txStatus)) {
         return;
     }
 
-    if (isWriteError) {
+    if (writeContractMainHook.isError) {
         setTxStatus('error');
-        const errorMsg = writeError?.message?.split('\n')[0] || "Wallet transaction failed or was rejected.";
+        const errorMsg = writeContractMainHook.error?.message?.split('\n')[0] || "Wallet transaction failed or was rejected.";
         setTransactionError(errorMsg);
         toast.error(`Transaction failed: ${errorMsg}`, { id: 'tx-status' });
         return;
     }
 
-    if (isWritePending) {
+    if (writeContractMainHook.isPending) {
         setTxStatus('waitingForSignature');
         setTransactionHashForModal(undefined);
         setTransactionError(null);
         setBackendMessage(null);
         toast.info("Awaiting wallet signature...");
         backendRequestSentRef.current = null;
-    } else if (hash && !isConfirmed && !isConfirming) {
+    } else if (writeContractMainHook.data && !waitForMainReceiptHook.isSuccess && !waitForMainReceiptHook.isLoading) {
         setTxStatus('sending');
-        setTransactionHashForModal(hash);
+        setTransactionHashForModal(writeContractMainHook.data);
         toast.loading("Transaction sent, waiting for blockchain confirmation...", { id: 'tx-status' });
-    } else if (isConfirming) {
+    } else if (waitForMainReceiptHook.isLoading) {
         setTxStatus('confirming');
-        setTransactionHashForModal(hash);
+        setTransactionHashForModal(writeContractMainHook.data);
         toast.loading("Transaction confirming on blockchain...", { id: 'tx-status' });
-    } else if (isConfirmed) {
+    } else if (waitForMainReceiptHook.isSuccess) {
         if (txStatus !== 'backendProcessing' && txStatus !== 'backendSuccess' && txStatus !== 'backendError') {
             setTxStatus('success');
-            setTransactionHashForModal(hash);
+            setTransactionHashForModal(writeContractMainHook.data);
             toast.success("Blockchain transaction confirmed! Processing order...", { id: 'tx-status' });
-            if (hash) {
-                handlePostTransaction(hash);
+            if (writeContractMainHook.data) {
+                handlePostTransaction(writeContractMainHook.data);
             }
         }
-    } else if (isConfirmError) {
+    } else if (waitForMainReceiptHook.isError) {
         setTxStatus('error');
-        const errorMsg = confirmError?.message?.split('\n')[0] || "Blockchain transaction failed to confirm.";
+        const errorMsg = waitForMainReceiptHook.error?.message?.split('\n')[0] || "Blockchain transaction failed to confirm.";
         setTransactionError(errorMsg);
-        setTransactionHashForModal(hash);
+        setTransactionHashForModal(writeContractMainHook.data);
         toast.error(`Transaction failed: ${errorMsg}`, { id: 'tx-status' });
     } else {
         if (!['backendProcessing', 'backendSuccess', 'backendError'].includes(txStatus)) {
@@ -478,17 +514,17 @@ export default function ElectricityPage() {
             setTransactionHashForModal(undefined);
         }
     }
-  }, [isWritePending, hash, isConfirming, isConfirmed, isWriteError, isConfirmError, writeError, confirmError, txStatus, handlePostTransaction, showTransactionModal]);
+  }, [showTransactionModal, writeContractMainHook, waitForMainReceiptHook, txStatus, handlePostTransaction]);
 
-  // REPLACED: Privy wallet connection with wagmi
+  // Wagmi wallet connection
   const ensureWalletConnected = async () => {
     if (!isConnected) {
       toast.error("Please connect your wallet to proceed.");
       try {
         // Try to connect with the first available connector (usually Farcaster in mini apps)
-        const farcasterConnector = connectors.find(c => c.name.includes('Farcaster'));
-        const connectorToUse = farcasterConnector || connectors[0];
-        if (connectorToUse) {
+        const farcasterConnector = connectors?.find((c: any) => c.name.includes('Farcaster'));
+        const connectorToUse = farcasterConnector || connectors?.[0];
+        if (connectorToUse && connect) {
           connect({ connector: connectorToUse });
         }
       } catch (error) {
@@ -501,7 +537,7 @@ export default function ElectricityPage() {
       return false;
     }
     if (!isOnBaseChain) {
-        promptSwitchToBase();
+        promptSwitchToBase?.();
         return false;
     }
     return true;
@@ -569,7 +605,7 @@ export default function ElectricityPage() {
     setTxStatus('waitingForApprovalSignature');
     
     try {
-      writeApprove({
+      writeContractApproveHook?.writeContract?.({
         address: selectedTokenObj.address as Hex,
         abi: ERC20_ABI,
         functionName: 'approve',
@@ -619,9 +655,23 @@ export default function ElectricityPage() {
     verificationSuccess;
 
   const isButtonDisabled = loading || loadingPlans || verifyingMeter ||
-                           isWritePending || isConfirming || txStatus === 'backendProcessing' || !canPay ||
-                           isApprovePending || isApprovalConfirming ||
+                           writeContractMainHook?.isPending || waitForMainReceiptHook?.isLoading || txStatus === 'backendProcessing' || !canPay ||
+                           writeContractApproveHook?.isPending || waitForApprovalReceiptHook?.isLoading ||
                            !isOnBaseChain || isSwitchingChain;
+
+  // Don't render until wagmi hooks are loaded
+  if (!wagmiHooks) {
+    return (
+      <AuthGuard>
+        <div className="container py-10 max-w-xl mx-auto">
+          <div className="flex items-center justify-center p-10">
+            <Loader2 className="w-8 h-8 animate-spin mr-2" />
+            <span>Loading...</span>
+          </div>
+        </div>
+      </AuthGuard>
+    );
+  }
 
   if (loading) return (
     <AuthGuard>
@@ -849,8 +899,8 @@ export default function ElectricityPage() {
             >
                 {isSwitchingChain ? "Switching Network..." :
                 !isOnBaseChain ? "Switch to Base Network" :
-                isApprovePending ? "Awaiting Approval Signature..." :
-                isApprovalConfirming ? "Approving Token..." :
+                writeContractApproveHook?.isPending ? "Awaiting Approval Signature..." :
+                waitForApprovalReceiptHook?.isLoading ? "Approving Token..." :
                 txStatus === 'waitingForSignature' ? "Awaiting Payment Signature..." :
                 txStatus === 'sending' ? "Sending Transaction..." :
                 txStatus === 'confirming' ? "Confirming Blockchain..." :
@@ -877,3 +927,20 @@ export default function ElectricityPage() {
     </AuthGuard>
   )
 }
+
+// Export dynamic component with no SSR
+const ElectricityPage = dynamic(() => Promise.resolve(ElectricityPageClient), {
+  ssr: false,
+  loading: () => (
+    <AuthGuard>
+      <div className="container py-10 max-w-xl mx-auto">
+        <div className="flex items-center justify-center p-10">
+          <Loader2 className="w-8 h-8 animate-spin mr-2" />
+          <span>Loading...</span>
+        </div>
+      </div>
+    </AuthGuard>
+  )
+});
+
+export default ElectricityPage;
