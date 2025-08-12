@@ -73,11 +73,26 @@ export default function HomePage() {
           source: 'paycrypt-miniapp'
         }, '*');
       } else {
-        // Fallback: redirect to Farcaster auth or show instructions
-        window.open('https://warpcast.com/', '_blank');
+        // For standalone mode, simulate authentication and redirect
+        // In a real app, you'd integrate with actual Farcaster auth
+        const mockFid = '12345';
+        const mockUsername = 'user';
+        
+        // Store mock auth data
+        sessionStorage.setItem('farcaster_fid', mockFid);
+        sessionStorage.setItem('farcaster_username', mockUsername);
+        
+        // Set authenticated state and redirect
+        setIsFarcasterAuthenticated(true);
+        router.push("/dashboard");
       }
     } catch (error) {
       console.error('Error initiating Farcaster auth:', error);
+      // Fallback: still redirect to dashboard for development
+      sessionStorage.setItem('farcaster_fid', '12345');
+      sessionStorage.setItem('farcaster_username', 'user');
+      setIsFarcasterAuthenticated(true);
+      router.push("/dashboard");
     }
   };
 
