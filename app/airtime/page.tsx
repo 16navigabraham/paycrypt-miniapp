@@ -1,6 +1,7 @@
 // app/airtime/page.tsx
 "use client"
 import { useState, useEffect, useCallback, useRef } from "react"
+import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {Button} from "@/components/ui/button"
@@ -30,19 +31,25 @@ const NETWORKS = [
   { serviceID: "9mobile", name: "9mobile" },
 ]
 
-function generateRequestId() {
+function generateRequestId(): string {
   return `${Date.now().toString()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
 }
 
 // Fetch prices for dynamic tokens
-async function fetchPrices(tokenList: TokenConfig[]) {
+async function fetchPrices(tokenList: TokenConfig[]): Promise<Record<string, any>> {
   if (!tokenList || tokenList.length === 0) return {};
   const ids = tokenList.map(c => c.coingeckoId).join(",");
-  const res = await fetch(`https://paycrypt-margin-price.onrender.com/api/v3/simple/price?ids=${ids}&vs_currencies=ngn`);
-  return res.ok ? await res.json() : {};
+  try {
+    const res = await fetch(`https://paycrypt-margin-price.onrender.com/api/v3/simple/price?ids=${ids}&vs_currencies=ngn`);
+    return res.ok ? await res.json() : {};
+  } catch (error) {
+    console.error("Error fetching prices:", error);
+    return {};
+  }
 }
 
 export default function AirtimePage() {
+  const [mounted, setMounted] = useState(false);
   const [activeTokens, setActiveTokens] = useState<TokenConfig[]>([]);
   const [selectedToken, setSelectedToken] = useState<string>(""); // Stores the address of the selected token
   const [network, setNetwork] = useState("");
@@ -59,13 +66,20 @@ export default function AirtimePage() {
   const [transactionHashForModal, setTransactionHashForModal] = useState<Hex | undefined>(undefined);
   const backendRequestSentRef = useRef<Hex | null>(null);
 
-  // REPLACED: usePrivy with wagmi hooks
+  // Wagmi hooks - only use after component mounts
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { isOnBaseChain, isSwitchingChain, promptSwitchToBase } = useBaseNetworkEnforcer();
 
+  // Handle client-side mounting
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Load tokens and prices on initial mount
   useEffect(() => {
+    if (!mounted) return; // Wait for client-side mount
+    
     async function loadTokensAndPrices() {
       setLoading(true);
       try {
@@ -82,7 +96,7 @@ export default function AirtimePage() {
       }
     }
     loadTokensAndPrices();
-  }, []);
+  }, [mounted]);
 
   // Generate requestId when form has data
   useEffect(() => {
@@ -107,7 +121,7 @@ export default function AirtimePage() {
     abi: CONTRACT_ABI,
     functionName: 'getOrder',
     args: [fromHex(bytes32RequestId, 'bigint')],
-    query: { enabled: Boolean(requestId && address) },
+    query: { enabled: Boolean(requestId && address && mounted) },
   });
 
   // Wagmi Hooks for TOKEN APPROVAL Transaction
@@ -185,17 +199,17 @@ export default function AirtimePage() {
       setBackendMessage("Airtime delivered successfully!");
       toast.success("Airtime delivered successfully!", { id: 'backend-status' });
 
-    // Reset form for next transaction after a delay
-setTimeout(() => {
-  setSelectedToken("");
-  setNetwork("");
-  setAmount("");
-  setPhone("");
-  backendRequestSentRef.current = null;
-  
-  // Clear requestId slightly later to prevent immediate re-generation
-  setTimeout(() => setRequestId(undefined), 100);
-}, 3000); // 3 second delay to allow user to see success
+      // Reset form for next transaction after a delay
+      setTimeout(() => {
+        setSelectedToken("");
+        setNetwork("");
+        setAmount("");
+        setPhone("");
+        setRequestId(undefined);
+        backendRequestSentRef.current = null;
+        // Clear requestId slightly later to prevent immediate re-generation
+        setTimeout(() => setRequestId(undefined), 100);
+      }, 3000); // 3 second delay to allow user to see success
 
     } catch (error: any) {
       setTxStatus('backendError');
@@ -320,7 +334,7 @@ setTimeout(() => {
     }
   }, [isWritePending, hash, isConfirming, isConfirmed, isWriteError, isConfirmError, writeError, confirmError, txStatus, handlePostTransaction, showTransactionModal]);
 
-  // REPLACED: Privy wallet connection with wagmi
+  // Wagmi wallet connection
   const ensureWalletConnected = async () => {
     if (!isConnected) {
       toast.error("Please connect your wallet to proceed.");
@@ -474,6 +488,20 @@ setTimeout(() => {
                            isApprovePending || isApprovalConfirming || 
                            isWritePending || isConfirming || 
                            !isOnBaseChain || isSwitchingChain;
+
+  // Don't render until mounted on client
+  if (!mounted) {
+    return (
+      <AuthGuard>
+        <div className="container py-10 max-w-xl mx-auto">
+          <div className="flex items-center justify-center p-10">
+            <Loader2 className="w-8 h-8 animate-spin mr-2" />
+            <span>Loading...</span>
+          </div>
+        </div>
+      </AuthGuard>
+    );
+  }
 
   if (loading) return (
     <AuthGuard>
