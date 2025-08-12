@@ -4,33 +4,54 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ClientProviders } from "@/components/ClientProviders"
 import { Analytics } from "@vercel/analytics/next"
+import { MiniKitContextProvider } from '@/providers/MiniKitProvider';
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata: Metadata = {
-  title: "Crypto to Utilities",
-  description: "Convert cryptocurrency to pay for airtime, TV subscriptions, electricity bills, and more",
-  generator: 'TEAM MEMEVIBE',
-  applicationName: 'Paycrypt',
-  openGraph: {
-    title: 'Paycrypt - Crypto to Utilities',
-    description: 'Convert cryptocurrency to pay for airtime, TV subscriptions, electricity bills, and more',
-    url: 'https://www.paycrypt.org',
-    siteName: 'Paycrypt',
-    locale: 'en_US',
-    type: 'website',
-    images: [
-      {
-        url: '/Og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'paycrypt',
-        type: 'image/png',
-      },
-    ],
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const URL = process.env.NEXT_PUBLIC_URL || 'https://www.paycrypt.org';
+  const projectName = process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME || 'Paycrypt';
+  
+  return {
+    title: "Paycrypt - Crypto to Utilities",
+    description: "Convert cryptocurrency to pay for airtime, TV subscriptions, electricity bills, and more. Built by Team Memevibe.",
+    generator: 'TEAM MEMEVIBE',
+    applicationName: 'Paycrypt',
+    openGraph: {
+      title: 'Paycrypt - Crypto to Utilities',
+      description: 'Convert cryptocurrency to pay for airtime, TV subscriptions, electricity bills, and more',
+      url: URL,
+      siteName: 'Paycrypt',
+      locale: 'en_US',
+      type: 'website',
+      images: [
+        {
+          url: '/Og-image.png',
+          width: 1200,
+          height: 630,
+          alt: 'paycrypt',
+          type: 'image/png',
+        },
+      ],
+    },
+    other: {
+      'fc:frame': JSON.stringify({
+        version: 'next',
+        imageUrl: process.env.NEXT_PUBLIC_APP_HERO_IMAGE || '/Og-image.png',
+        button: {
+          title: `Launch ${projectName}`,
+          action: {
+            type: 'launch_frame',
+            name: projectName,
+            url: URL,
+            splashImageUrl: process.env.NEXT_PUBLIC_SPLASH_IMAGE || '/paycrypt.png',
+            splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR || '#3B82F6',
+          },
+        },
+      }),
+    },
+  };
 }
-
 
 export default function RootLayout({
   children,
@@ -45,9 +66,12 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/paycrypt.png" type="image/png" />
       </head>
       <body>
-        <ClientProviders>
-          {children}
-        </ClientProviders>
+        <MiniKitContextProvider>
+          <ClientProviders>
+            {children}
+          </ClientProviders>
+        </MiniKitContextProvider>
+        <Analytics />
       </body>
     </html>
   )
