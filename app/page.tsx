@@ -15,11 +15,62 @@ function HomePageClient() {
   const [miniKitHook, setMiniKitHook] = useState<any>(null);
   const [wagmiHooks, setWagmiHooks] = useState<any>(null);
   const [hooksLoaded, setHooksLoaded] = useState(false);
+  const [readyCalled, setReadyCalled] = useState(false);
 
   // 🔧 Mount check
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // 🔧 IMMEDIATE ready call using multiple methods
+  useEffect(() => {
+    if (!mounted) return;
+
+    // Method 1: Direct postMessage to parent
+    const callReadyDirect = () => {
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'ready' }, '*');
+          window.parent.postMessage({ type: 'frame_ready' }, '*');
+          window.parent.postMessage({ type: 'sdk_ready' }, '*');
+          console.log('Direct ready messages sent to parent');
+        }
+      } catch (error) {
+        console.warn('Direct ready call failed:', error);
+      }
+    };
+
+    // Method 2: Try global SDK objects
+    const callReadyGlobal = () => {
+      try {
+        // @ts-ignore
+        if (window.sdk?.actions?.ready) {
+          // @ts-ignore
+          window.sdk.actions.ready();
+          console.log('Global sdk.actions.ready() called');
+        }
+        // @ts-ignore
+        if (window.farcasterSDK?.actions?.ready) {
+          // @ts-ignore
+          window.farcasterSDK.actions.ready();
+          console.log('Global farcasterSDK.actions.ready() called');
+        }
+      } catch (error) {
+        console.warn('Global ready call failed:', error);
+      }
+    };
+
+    // Call immediately
+    callReadyDirect();
+    callReadyGlobal();
+
+    // Retry after short delays
+    setTimeout(callReadyDirect, 100);
+    setTimeout(callReadyGlobal, 200);
+    setTimeout(callReadyDirect, 500);
+    setTimeout(callReadyGlobal, 1000);
+
+  }, [mounted]);
 
   // 🔧 Load hooks dynamically only after mounting
   useEffect(() => {
@@ -75,13 +126,41 @@ function HomePageClient() {
   const { address, isConnected } = accountData;
   const { connect, connectors } = connectData;
 
-  // 🔧 CRITICAL: Call setFrameReady() when app is ready
+  // 🔧 MiniKit ready call with multiple attempts
   useEffect(() => {
-    if (mounted && hooksLoaded && miniKitHook && setFrameReady && !isFrameReady) {
-      console.log('Calling setFrameReady() - splash screen should dismiss');
-      setFrameReady();
+    if (mounted && hooksLoaded && miniKitHook && setFrameReady && !readyCalled) {
+      console.log('Attempting MiniKit setFrameReady() call...');
+      
+      const attemptReady = () => {
+        try {
+          setFrameReady();
+          setReadyCalled(true);
+          console.log('✅ MiniKit setFrameReady() called successfully');
+        } catch (error) {
+          console.error('❌ setFrameReady() failed:', error);
+        }
+      };
+
+      // Multiple attempts
+      attemptReady();
+      setTimeout(attemptReady, 100);
+      setTimeout(attemptReady, 500);
+      setTimeout(attemptReady, 1000);
     }
-  }, [mounted, hooksLoaded, miniKitHook, setFrameReady, isFrameReady]);
+  }, [mounted, hooksLoaded, miniKitHook, setFrameReady, readyCalled]);
+
+  // 🔧 Additional ready call when frame is ready
+  useEffect(() => {
+    if (isFrameReady && !readyCalled) {
+      console.log('Frame became ready, ensuring ready call...');
+      try {
+        setFrameReady();
+        setReadyCalled(true);
+      } catch (error) {
+        console.error('Frame ready call failed:', error);
+      }
+    }
+  }, [isFrameReady, setFrameReady, readyCalled]);
 
   // Check for existing wallet connection
   useEffect(() => {
@@ -124,7 +203,7 @@ function HomePageClient() {
     // Wait a moment for frame to be ready, then check authentication
     const timer = setTimeout(() => {
       checkAuthentication();
-    }, 1000);
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, [mounted, hooksLoaded, isConnected, address, context, router]);
@@ -145,7 +224,7 @@ function HomePageClient() {
       } else {
         // Need to connect wallet
         const farcasterConnector = connectors.find(
-          (          connector: { name: string; id: string; }) => connector.name === 'Farcaster Wallet' || connector.id === 'farcaster'
+          (connector: any) => connector.name === 'Farcaster Wallet' || connector.id === 'farcaster'
         );
         
         if (farcasterConnector) {
@@ -193,10 +272,12 @@ function HomePageClient() {
   // Show loading while hooks are loading
   if (!mounted || !hooksLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading MiniKit...</p>
+          <img src="/paycrypt.png" alt="Paycrypt" className="h-16 w-16 mx-auto mb-4 rounded-lg shadow-lg" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading Paycrypt...</p>
+          <p className="text-sm text-gray-500 mt-2">Initializing MiniKit</p>
         </div>
       </div>
     );
@@ -204,10 +285,11 @@ function HomePageClient() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">
+          <img src="/paycrypt.png" alt="Paycrypt" className="h-16 w-16 mx-auto mb-4 rounded-lg shadow-lg" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">
             {isConnected ? 'Setting up your account...' : 'Connect your wallet to continue...'}
           </p>
         </div>
@@ -222,10 +304,11 @@ function HomePageClient() {
 const HomePage = dynamic(() => Promise.resolve(HomePageClient), {
   ssr: false,
   loading: () => (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading Paycrypt...</p>
+        <img src="/paycrypt.png" alt="Paycrypt" className="h-16 w-16 mx-auto mb-4 rounded-lg shadow-lg" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600 font-medium">Loading Paycrypt...</p>
       </div>
     </div>
   )

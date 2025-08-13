@@ -64,6 +64,70 @@ export default function RootLayout({
         <meta name="google-site-verification" content="pCijtRPRcIw7lEvQNXnUtUE4WReAEAgiFl2FURDGrz0" />
         <link rel="icon" href="/paycrypt.png" type="image/png" sizes="32x32" />
         <link rel="shortcut icon" href="/paycrypt.png" type="image/png" />
+        {/* 🔧 Ultra-early ready call script for MiniKit */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Ultra-early ready call for Farcaster MiniKit
+              (function() {
+                if (typeof window !== 'undefined' && window.parent !== window) {
+                  console.log('🚀 Ultra-early ready calls starting...');
+                  
+                  const attempts = [
+                    () => {
+                      window.parent.postMessage({ type: 'ready' }, '*');
+                      console.log('📤 Sent ready message');
+                    },
+                    () => {
+                      window.parent.postMessage({ type: 'frame_ready' }, '*');
+                      console.log('📤 Sent frame_ready message');
+                    },
+                    () => {
+                      window.parent.postMessage({ type: 'sdk_ready' }, '*');
+                      console.log('📤 Sent sdk_ready message');
+                    },
+                    () => {
+                      if (window.sdk?.actions?.ready) {
+                        window.sdk.actions.ready();
+                        console.log('📤 Called window.sdk.actions.ready()');
+                      }
+                    },
+                    () => {
+                      if (window.farcasterSDK?.actions?.ready) {
+                        window.farcasterSDK.actions.ready();
+                        console.log('📤 Called window.farcasterSDK.actions.ready()');
+                      }
+                    }
+                  ];
+                  
+                  // Execute all attempts immediately
+                  attempts.forEach(attempt => {
+                    try { 
+                      attempt(); 
+                    } catch(e) {
+                      console.warn('⚠️ Ready attempt failed:', e);
+                    }
+                  });
+                  
+                  // Retry after short delays
+                  [100, 300, 500, 1000].forEach(delay => {
+                    setTimeout(() => {
+                      attempts.forEach(attempt => {
+                        try { 
+                          attempt(); 
+                        } catch(e) {
+                          console.warn('⚠️ Retry attempt failed:', e);
+                        }
+                      });
+                    }, delay);
+                  });
+                  
+                  console.log('✅ Ultra-early ready calls completed');
+                }
+              })();
+            `,
+          }}
+        />
       </head>
       <body>
         <ClientProviders>
