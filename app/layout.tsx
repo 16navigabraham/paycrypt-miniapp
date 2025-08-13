@@ -66,144 +66,166 @@ export default function RootLayout({
         <link rel="icon" href="/paycrypt.png" type="image/png" sizes="32x32" />
         <link rel="shortcut icon" href="/paycrypt.png" type="image/png" />
         
-        {/* 🔧 MiniApp SDK Script - Load from CDN */}
+        {/* 🔧 Universal MiniApp SDK Script */}
         <script
           type="module"
           dangerouslySetInnerHTML={{
             __html: `
-              // Load Farcaster MiniApp SDK from CDN and initialize
+              // Universal MiniApp initialization for both Farcaster and Base
               (async function() {
                 try {
-                  // Check if we're in a MiniApp environment
-                  const isMiniApp = window.parent !== window || 
-                                   window.location.href.includes('farcaster') ||
-                                   document.referrer.includes('farcaster');
+                  console.log('🚀 Universal MiniApp SDK initialization...');
                   
-                  if (!isMiniApp) {
-                    console.log('🌐 Regular web app mode');
+                  // Detect environment
+                  const userAgent = navigator.userAgent || '';
+                  const referrer = document.referrer || '';
+                  const hasParent = window.parent !== window;
+                  
+                  let miniAppType = 'web';
+                  
+                  if (userAgent.includes('Farcaster') || referrer.includes('farcaster') || referrer.includes('warpcast')) {
+                    miniAppType = 'farcaster';
+                    console.log('🟪 Detected Farcaster MiniApp environment');
+                  } else if (userAgent.includes('Base') || userAgent.includes('Coinbase') || referrer.includes('base.org') || referrer.includes('coinbase')) {
+                    miniAppType = 'base';
+                    console.log('🔵 Detected Base MiniApp environment');
+                  } else if (hasParent) {
+                    miniAppType = 'base'; // Default unknown iframes to base
+                    console.log('🔲 Unknown iframe detected, defaulting to Base');
+                  }
+
+                  if (miniAppType === 'web') {
+                    console.log('🌐 Regular web app, no SDK needed');
                     return;
                   }
 
-                  console.log('📱 MiniApp environment detected, loading SDK...');
+                  // Initialize based on detected type
+                  if (miniAppType === 'farcaster') {
+                    await initializeFarcasterSDK();
+                  } else if (miniAppType === 'base') {
+                    await initializeBaseSDK();
+                  }
+
+                } catch (error) {
+                  console.error('❌ Universal SDK initialization failed:', error);
+                  // Fallback ready calls
+                  sendFallbackReady();
+                }
+              })();
+
+              // Farcaster SDK initialization
+              async function initializeFarcasterSDK() {
+                try {
+                  console.log('🟪 Loading Farcaster MiniApp SDK...');
                   
-                  // Try to import Farcaster MiniApp SDK from CDN
-                  let sdk;
-                  try {
-                    // Use the latest stable version to avoid deprecation warnings
-                    const module = await import('https://esm.sh/@farcaster/miniapp-sdk@0.2.0');
-                    sdk = module.sdk;
-                    console.log('✅ Farcaster MiniApp SDK loaded from CDN');
-                  } catch (error) {
-                    console.warn('⚠️ CDN SDK load failed, using fallback:', error);
-                  }
-
-                  // Immediate ready call attempts
-                  const readyAttempts = [
-                    // Try SDK if loaded
-                    async () => {
-                      if (sdk?.actions?.ready) {
-                        await sdk.actions.ready();
-                        console.log('✅ SDK ready() called successfully');
-                        return true;
-                      }
-                      return false;
-                    },
-                    // Fallback to postMessage
-                    () => {
-                      if (window.parent && window.parent !== window) {
-                        const messages = [
-                          { type: 'ready' },
-                          { type: 'frame_ready' },
-                          { type: 'sdk_ready' },
-                          { type: 'miniapp_ready' },
-                          { action: 'ready' },
-                          { event: 'ready' }
-                        ];
-                        
-                        messages.forEach(msg => {
-                          try {
-                            window.parent.postMessage(msg, '*');
-                            console.log('📤 Sent ready message:', msg.type || msg.action);
-                          } catch (e) {
-                            console.warn('⚠️ PostMessage failed:', e);
-                          }
-                        });
-                        return true;
-                      }
-                      return false;
-                    },
-                    // Try global objects
-                    () => {
-                      const globalAttempts = [
-                        () => window.sdk?.actions?.ready?.(),
-                        () => window.farcasterSDK?.actions?.ready?.(),
-                        () => window.miniAppSDK?.actions?.ready?.()
-                      ];
-                      
-                      let success = false;
-                      globalAttempts.forEach((attempt, i) => {
-                        try {
-                          attempt();
-                          console.log(\`📤 Global ready attempt \${i + 1} executed\`);
-                          success = true;
-                        } catch (e) {
-                          console.warn(\`⚠️ Global attempt \${i + 1} failed:\`, e);
-                        }
-                      });
-                      return success;
-                    }
-                  ];
-
-                  // Execute all attempts
-                  let anySuccess = false;
-                  for (const attempt of readyAttempts) {
-                    try {
-                      const result = await attempt();
-                      if (result) anySuccess = true;
-                    } catch (error) {
-                      console.warn('⚠️ Ready attempt failed:', error);
-                    }
-                  }
-
-                  if (anySuccess) {
-                    console.log('✅ At least one ready call succeeded');
-                  } else {
-                    console.warn('⚠️ All ready attempts failed');
-                  }
-
-                  // Retry attempts after delays
-                  [100, 300, 500, 1000, 2000].forEach(delay => {
-                    setTimeout(async () => {
-                      for (const attempt of readyAttempts) {
-                        try {
-                          await attempt();
-                        } catch (error) {
-                          // Silent retry
-                        }
-                      }
-                    }, delay);
-                  });
-
-                  // Make SDK available globally for the React app
-                  if (sdk) {
-                    window.farcasterMiniAppSDK = sdk;
+                  // Try to load from CDN
+                  const module = await import('https://esm.sh/@farcaster/miniapp-sdk@0.2.0');
+                  const sdk = module.sdk;
+                  
+                  if (sdk?.actions?.ready) {
+                    await sdk.actions.ready();
+                    console.log('✅ Farcaster SDK ready() called successfully');
+                    window.farcasterMiniAppSDK = sdk; // Make available globally
                   }
                   
                 } catch (error) {
-                  console.error('❌ MiniApp SDK initialization failed:', error);
+                  console.warn('⚠️ Farcaster SDK load failed:', error);
+                  sendFarcasterFallbackReady();
+                }
+              }
+
+              // Base SDK initialization  
+              async function initializeBaseSDK() {
+                try {
+                  console.log('🔵 Loading Base MiniApp SDK...');
                   
-                  // Fallback ready calls even if SDK fails
-                  if (window.parent && window.parent !== window) {
+                  // Try multiple Base SDK options
+                  const sdkOptions = [
+                    '@coinbase/miniapp-sdk',
+                    '@base/miniapp-sdk'
+                  ];
+                  
+                  for (const sdkName of sdkOptions) {
                     try {
-                      window.parent.postMessage({ type: 'ready' }, '*');
-                      window.parent.postMessage({ type: 'frame_ready' }, '*');
-                      console.log('📤 Fallback ready messages sent');
+                      const module = await import(\`https://esm.sh/\${sdkName}@latest\`);
+                      if (module.sdk?.actions?.ready) {
+                        await module.sdk.actions.ready();
+                        console.log(\`✅ \${sdkName} ready() called successfully\`);
+                        window.baseMiniAppSDK = module.sdk;
+                        return;
+                      }
                     } catch (e) {
-                      console.warn('⚠️ Fallback messages failed:', e);
+                      console.log(\`⚠️ \${sdkName} not available\`);
                     }
                   }
+                  
+                  throw new Error('No Base SDK available');
+                  
+                } catch (error) {
+                  console.warn('⚠️ Base SDK load failed:', error);
+                  sendBaseFallbackReady();
                 }
-              })();
+              }
+
+              // Fallback ready calls for Farcaster
+              function sendFarcasterFallbackReady() {
+                if (window.parent && window.parent !== window) {
+                  const messages = [
+                    { type: 'ready' },
+                    { type: 'frame_ready' },
+                    { type: 'sdk_ready' },
+                    { type: 'miniapp_ready' },
+                    { action: 'ready' },
+                    { event: 'ready' }
+                  ];
+                  
+                  messages.forEach(msg => {
+                    try {
+                      window.parent.postMessage(msg, '*');
+                      console.log('📤 Farcaster fallback message sent:', msg.type || msg.action);
+                    } catch (e) {
+                      console.warn('⚠️ Farcaster fallback failed:', e);
+                    }
+                  });
+                }
+              }
+
+              // Fallback ready calls for Base
+              function sendBaseFallbackReady() {
+                if (window.parent && window.parent !== window) {
+                  const messages = [
+                    { type: 'ready' },
+                    { type: 'base_ready' },
+                    { type: 'miniapp_ready' },
+                    { type: 'wallet_ready' },
+                    { type: 'app_ready', platform: 'base' },
+                    { action: 'ready' },
+                    { event: 'ready' }
+                  ];
+                  
+                  messages.forEach(msg => {
+                    try {
+                      window.parent.postMessage(msg, '*');
+                      console.log('📤 Base fallback message sent:', msg.type || msg.action);
+                    } catch (e) {
+                      console.warn('⚠️ Base fallback failed:', e);
+                    }
+                  });
+                }
+              }
+
+              // Generic fallback
+              function sendFallbackReady() {
+                if (window.parent && window.parent !== window) {
+                  try {
+                    window.parent.postMessage({ type: 'ready' }, '*');
+                    window.parent.postMessage({ action: 'ready' }, '*');
+                    console.log('📤 Generic fallback ready messages sent');
+                  } catch (e) {
+                    console.warn('⚠️ Generic fallback failed:', e);
+                  }
+                }
+              }
             `,
           }}
         />
