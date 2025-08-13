@@ -1,80 +1,32 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
+import { useMiniKit } from '@coinbase/onchainkit/minikit';
+import { useAccount, useConnect } from 'wagmi';
 import { LandingPage } from "@/components/landing/landing-page";
 
-// 🔧 Client Component with Dynamic Wagmi Hooks
-function HomePageClient() {
+export default function HomePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🔧 Dynamic Hook Loading
-  const [miniKitHook, setMiniKitHook] = useState<any>(null);
-  const [wagmiHooks, setWagmiHooks] = useState<any>(null);
-  const [hooksLoading, setHooksLoading] = useState(true);
-
-  // Load hooks dynamically
-  useEffect(() => {
-    async function loadHooks() {
-      try {
-        const [miniKitModule, wagmiModule] = await Promise.all([
-          import('@coinbase/onchainkit/minikit'),
-          import('wagmi')
-        ]);
-
-        setMiniKitHook({
-          useMiniKit: miniKitModule.useMiniKit
-        });
-
-        setWagmiHooks({
-          useAccount: wagmiModule.useAccount,
-          useConnect: wagmiModule.useConnect,
-        });
-
-        setHooksLoading(false);
-      } catch (error) {
-        console.error('Failed to load hooks:', error);
-        setHooksLoading(false);
-      }
-    }
-
-    loadHooks();
-  }, []);
-
-  // 🔧 Conditional Hook Usage - Only call hooks after they're loaded
-  const miniKitData = miniKitHook?.useMiniKit?.() || { 
-    setFrameReady: () => {}, 
-    isFrameReady: false, 
-    context: null 
-  };
+  // 🔧 Use MiniKit hook directly (now safe with proper provider setup)
+  const { setFrameReady, isFrameReady, context } = useMiniKit();
   
-  const accountData = wagmiHooks?.useAccount?.() || { 
-    address: null, 
-    isConnected: false 
-  };
-  
-  const connectData = wagmiHooks?.useConnect?.() || { 
-    connect: () => {}, 
-    connectors: [] 
-  };
+  // 🔧 Use wagmi hooks directly (now safe with MiniKitProvider)
+  const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
 
-  const { setFrameReady, isFrameReady, context } = miniKitData;
-  const { address, isConnected } = accountData;
-  const { connect, connectors } = connectData;
-
-  // Initialize MiniKit frame
+  // 🔧 CRITICAL: Call setFrameReady() when app is ready - following docs exactly
   useEffect(() => {
-    if (!hooksLoading && miniKitHook && !isFrameReady) {
+    if (!isFrameReady) {
       setFrameReady();
+      console.log('MiniKit setFrameReady() called - splash screen should dismiss');
     }
-  }, [setFrameReady, isFrameReady, hooksLoading, miniKitHook]);
+  }, [setFrameReady, isFrameReady]);
 
   // Check for existing wallet connection
   useEffect(() => {
-    if (hooksLoading || !wagmiHooks) return;
-
     const checkAuthentication = async () => {
       try {
         // Check if wallet is already connected
@@ -109,17 +61,16 @@ function HomePageClient() {
       }
     };
 
+    // Wait a moment for frame to be ready, then check authentication
     if (isFrameReady) {
-      checkAuthentication();
+      const timer = setTimeout(() => {
+        checkAuthentication();
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [isFrameReady, isConnected, address, context, router, hooksLoading, wagmiHooks]);
+  }, [isFrameReady, isConnected, address, context, router]);
 
   const handleWalletAuth = async () => {
-    if (!wagmiHooks) {
-      console.error('Wallet functionality not loaded yet');
-      return;
-    }
-
     try {
       console.log('Initiating wallet authentication...');
       setIsLoading(true);
@@ -128,9 +79,9 @@ function HomePageClient() {
         // Already connected, just proceed
         handleAuthSuccess();
       } else {
-        // Need to connect wallet
+        // Need to connect wallet - MiniKitProvider automatically configures Farcaster connector
         const farcasterConnector = connectors.find(
-          (          connector: { name: string; id: string; }) => connector.name === 'Farcaster Wallet' || connector.id === 'farcaster'
+          connector => connector.name === 'Farcaster Wallet' || connector.id === 'farcaster'
         );
         
         if (farcasterConnector) {
@@ -170,22 +121,10 @@ function HomePageClient() {
 
   // Handle successful wallet connection
   useEffect(() => {
-    if (!hooksLoading && wagmiHooks && isConnected && address && !localStorage.getItem('paycrypt_wallet_address')) {
+    if (isConnected && address && !localStorage.getItem('paycrypt_wallet_address')) {
       handleAuthSuccess();
     }
-  }, [isConnected, address, hooksLoading, wagmiHooks]);
-
-  // 🔧 Show loading state while hooks are loading
-  if (hooksLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading wallet functionality...</p>
-        </div>
-      </div>
-    );
-  }
+  }, [isConnected, address]);
 
   if (isLoading) {
     return (
@@ -202,18 +141,3 @@ function HomePageClient() {
 
   return <LandingPage onGetStarted={handleWalletAuth} />;
 }
-
-// 🔧 Main component with dynamic loading to prevent SSR issues
-const HomePage = dynamic(() => Promise.resolve(HomePageClient), {
-  ssr: false,
-  loading: () => (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading application...</p>
-      </div>
-    </div>
-  )
-});
-
-export default HomePage;

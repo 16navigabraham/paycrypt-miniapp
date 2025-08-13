@@ -8,42 +8,43 @@ import { Analytics } from "@vercel/analytics/next"
 const inter = Inter({ subsets: ["latin"] })
 
 export async function generateMetadata(): Promise<Metadata> {
-  const URL = process.env.NEXT_PUBLIC_URL || 'https://www.paycrypt.org';
+  const URL = process.env.NEXT_PUBLIC_URL || 'https://miniapp.paycrypt.org';
   const projectName = process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME || 'Paycrypt';
   
   return {
-    title: "Paycrypt - Crypto to Utilities",
+    title: projectName,
     description: "Convert cryptocurrency to pay for airtime, TV subscriptions, electricity bills, and more. Built by Team Memevibe.",
     generator: 'TEAM MEMEVIBE',
-    applicationName: 'Paycrypt',
+    applicationName: projectName,
     openGraph: {
-      title: 'Paycrypt - Crypto to Utilities',
+      title: `${projectName} - Crypto to Utilities`,
       description: 'Convert cryptocurrency to pay for airtime, TV subscriptions, electricity bills, and more',
       url: URL,
-      siteName: 'Paycrypt',
+      siteName: projectName,
       locale: 'en_US',
       type: 'website',
       images: [
         {
-          url: 'https://miniapp.paycrypt.org/Og-image.png',
+          url: `${URL}/Og-image.png`,
           width: 1200,
           height: 630,
-          alt: 'paycrypt',
+          alt: projectName,
           type: 'image/png',
         },
       ],
     },
+    // 🔧 Proper Farcaster frame metadata following docs
     other: {
       'fc:frame': JSON.stringify({
         version: 'next',
-        imageUrl: process.env.NEXT_PUBLIC_APP_HERO_IMAGE_URL || 'https://miniapp.paycrypt.org/Og-image.png',
+        imageUrl: process.env.NEXT_PUBLIC_APP_HERO_IMAGE || `${URL}/Og-image.png`,
         button: {
           title: `Launch ${projectName}`,
           action: {
             type: 'launch_frame',
             name: projectName,
             url: URL,
-            splashImageUrl: process.env.NEXT_PUBLIC_SPLASH_IMAGE_URL || 'https://miniapp.paycrypt.org/paycrypt.png',
+            splashImageUrl: process.env.NEXT_PUBLIC_APP_SPLASH_IMAGE || `${URL}/paycrypt.png`,
             splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR || '#3B82F6',
           },
         },
