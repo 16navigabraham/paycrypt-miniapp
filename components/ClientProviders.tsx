@@ -1,38 +1,83 @@
-// components/ClientProviders.tsx
-"use client"
+'use client';
 
-import { ThemeProvider } from "@/components/theme-provider"
-import { MiniKitProvider } from '@coinbase/onchainkit/minikit'
-import { base } from 'wagmi/chains'
-import { Toaster } from 'sonner'
+import React, { ReactNode, useState, useEffect } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { WagmiProvider, createConfig, http } from 'wagmi';
+import { base, baseSepolia } from 'wagmi/chains';
+import { coinbaseWallet, injected } from 'wagmi/connectors';
+import { OnchainKitProvider } from '@coinbase/onchainkit';
 
-export function ClientProviders({ children }: { children: React.ReactNode }) {
-  // 🔧 Use API key if available, otherwise undefined for development
-  const apiKey = process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY || undefined;
-  
+// 🔧 Create wagmi config outside component to prevent recreation
+const wagmiConfig = createConfig({
+  chains: [base, baseSepolia],
+  connectors: [
+    coinbaseWallet({
+      appName: 'Paycrypt',
+      appLogoUrl: '/paycrypt.png',
+      preference: 'all',
+    }),
+    injected(),
+  ],
+  transports: {
+    [base.id]: http(),
+    [baseSepolia.id]: http(),
+  },
+  ssr: false, // Important for mini apps
+});
+
+// 🔧 Create query client outside component to prevent recreation
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute
+      retry: 3,
+      refetchOnWindowFocus: false, // Important for mini apps
+    },
+  },
+});
+
+export function ClientProviders({ children }: { children: ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+
+  // 🔧 Only render providers after mounting to prevent SSR issues
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // 🔧 Show loading state until mounted
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="text-center">
+          <img src="/paycrypt.png" alt="Paycrypt" className="h-16 w-16 mx-auto mb-4 rounded-lg shadow-lg" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Initializing Paycrypt...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <MiniKitProvider
-      apiKey={apiKey} // 🔧 Will work with undefined for basic functionality
-      chain={base}
-      config={{
-        appearance: {
-          mode: 'auto',
-          theme: 'base', 
-          name: 'Paycrypt',
-          logo: '/paycrypt.png',
-        },
-      }}
-    >
-      <ThemeProvider 
-        attribute="class" 
-        defaultTheme="system" 
-        enableSystem 
-        disableTransitionOnChange
-      >
-        {children}
-        {/* Sonner Toaster for displaying notifications */}
-        <Toaster richColors />
-      </ThemeProvider>
-    </MiniKitProvider>
-  )
+    <QueryClientProvider client={queryClient}>
+      <WagmiProvider config={wagmiConfig}>
+        <OnchainKitProvider
+          apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY || undefined}
+          chain={base}
+          config={{
+            appearance: {
+              name: 'Paycrypt',
+              logo: '/paycrypt.png',
+              mode: 'auto',
+              theme: 'default',
+            },
+            wallet: {
+              display: 'modal',
+            },
+          }}
+        >
+          {children}
+        </OnchainKitProvider>
+      </WagmiProvider>
+    </QueryClientProvider>
+  );
 }

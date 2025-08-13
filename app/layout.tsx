@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ClientProviders } from "@/components/ClientProviders"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { Analytics } from "@vercel/analytics/next"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -88,7 +89,8 @@ export default function RootLayout({
                   // Try to import Farcaster MiniApp SDK from CDN
                   let sdk;
                   try {
-                    const module = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
+                    // Use the latest stable version to avoid deprecation warnings
+                    const module = await import('https://esm.sh/@farcaster/miniapp-sdk@0.2.0');
                     sdk = module.sdk;
                     console.log('✅ Farcaster MiniApp SDK loaded from CDN');
                   } catch (error) {
@@ -207,9 +209,11 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <ClientProviders>
-          {children}
-        </ClientProviders>
+        <ErrorBoundary>
+          <ClientProviders>
+            {children}
+          </ClientProviders>
+        </ErrorBoundary>
         <Analytics />
       </body>
     </html>
