@@ -18,35 +18,94 @@ const supportedTokens = [
 ]
 
 async function fetchEthBalance(address: string) {
-	const apiKey = process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY
-	const res = await fetch(
-		`https://api.etherscan.io/v2/api?chainid=8453&module=account&action=balance&address=${address}&tag=latest&apikey=${apiKey}`
-	)
-	const data = await res.json()
-	if (data.status === "1") {
-		return Number(data.result) / 1e18
+	try {
+		const apiKey = process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY
+		if (!apiKey) {
+			console.warn('No Etherscan API key found, using fallback data')
+			return 0
+		}
+		
+		const res = await fetch(
+			`https://api.etherscan.io/v2/api?chainid=8453&module=account&action=balance&address=${address}&tag=latest&apikey=${apiKey}`
+		)
+		
+		if (!res.ok) {
+			console.error('Etherscan API error:', res.status, res.statusText)
+			return 0
+		}
+		
+		const data = await res.json()
+		console.log('ETH balance response:', data)
+		
+		if (data.status === "1" && data.result) {
+			return Number(data.result) / 1e18
+		}
+		
+		console.warn('Invalid ETH balance response:', data)
+		return 0
+	} catch (error) {
+		console.error('Error fetching ETH balance:', error)
+		return 0
 	}
-	return 0
 }
 
 async function fetchErc20Balance(address: string, contract: string, decimals: number) {
-	const apiKey = process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY
-	const res = await fetch(
-		`https://api.etherscan.io/v2/api?chainid=8453&module=account&action=tokenbalance&contractaddress=${contract}&address=${address}&tag=latest&apikey=${apiKey}`
-	)
-	const data = await res.json()
-	if (data.status === "1") {
-		return Number(data.result) / 10 ** decimals
+	try {
+		const apiKey = process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY
+		if (!apiKey) {
+			console.warn('No Etherscan API key found, using fallback data')
+			return 0
+		}
+		
+		const res = await fetch(
+			`https://api.etherscan.io/v2/api?chainid=8453&module=account&action=tokenbalance&contractaddress=${contract}&address=${address}&tag=latest&apikey=${apiKey}`
+		)
+		
+		if (!res.ok) {
+			console.error('Etherscan token API error:', res.status, res.statusText)
+			return 0
+		}
+		
+		const data = await res.json()
+		console.log(`Token balance response for ${contract}:`, data)
+		
+		if (data.status === "1" && data.result !== undefined) {
+			return Number(data.result) / 10 ** decimals
+		}
+		
+		console.warn('Invalid token balance response:', data)
+		return 0
+	} catch (error) {
+		console.error('Error fetching token balance:', error)
+		return 0
 	}
-	return 0
 }
 
 async function fetchPrices() {
-	const ids = supportedTokens.map((t) => t.coingeckoId).join(",")
-	const res = await fetch(
-		`https://paycrypt-margin-price.onrender.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd,ngn`
-	)
-	return await res.json()
+	try {
+		const ids = supportedTokens.map((t) => t.coingeckoId).join(",")
+		const res = await fetch(
+			`https://paycrypt-margin-price.onrender.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd,ngn`,
+			{
+				method: 'GET',
+				headers: {
+					'Accept': 'application/json',
+				},
+			}
+		)
+		
+		if (!res.ok) {
+			console.error('Price API error:', res.status, res.statusText)
+			return {}
+		}
+		
+		const data = await res.json()
+		console.log('Price data response:', data)
+		return data
+	} catch (error) {
+		console.error('Error fetching prices:', error)
+		return {}
+	}
 }
 
 export function PortfolioOverview({ wallet }: { wallet: any }) {
@@ -54,6 +113,7 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
 	const [balances, setBalances] = useState<any[]>([])
 	const [prices, setPrices] = useState<any>({})
 	const [loading, setLoading] = useState(false)
+	const [error, setError] = useState<string | null>(null)
     const [showBalance, setShowBalance] = useState(true)
     const [currencyDisplay, setCurrencyDisplay] = useState<'usd' | 'ngn'>('usd')
 
@@ -70,25 +130,35 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
 		
 		// Use address from mini app hook or wallet prop
 		const walletAddress = address || wallet?.address;
-		if (!walletAddress) return;
 		
+		if (!walletAddress) {
+			console.log('No wallet address available')
+			return;
+		}
+		
+		console.log('Loading portfolio for address:', walletAddress)
 		setLoading(true)
+		setError(null)
+		
 		Promise.all([
 			fetchEthBalance(walletAddress),
 			fetchErc20Balance(walletAddress, USDT_CONTRACT, 6),
 			fetchErc20Balance(walletAddress, USDC_CONTRACT, 6),
 			fetchPrices(),
 		]).then(([eth, usdt, usdc, priceData]) => {
+			console.log('Portfolio data loaded:', { eth, usdt, usdc, priceData })
+			
 			setBalances([
 				{ symbol: "ETH", name: "Ethereum", balance: eth, color: "from-blue-500 to-purple-600" },
 				{ symbol: "USDT", name: "Tether", balance: usdt, color: "from-green-500 to-emerald-600" },
 				{ symbol: "USDC", name: "USD Coin", balance: usdc, color: "from-blue-400 to-cyan-600" },
 			])
 			setPrices(priceData)
-			setLoading(false)
 		}).catch(error => {
 			console.error('Error loading portfolio data:', error);
-			setLoading(false);
+			setError('Failed to load portfolio data. Please try again.')
+		}).finally(() => {
+			setLoading(false)
 		})
 	}, [mounted, address, wallet])
 
@@ -96,14 +166,14 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
     const totalValueUSD = balances.reduce((sum, b) => {
         const token = supportedTokens.find((t) => t.symbol === b.symbol)
         const price = token && prices[token.coingeckoId]?.usd ? prices[token.coingeckoId].usd : 0
-        return sum + b.balance * price
+        return sum + (b.balance * price)
     }, 0)
 
     // Calculate total value in NGN
     const totalValueNGN = balances.reduce((sum, b) => {
         const token = supportedTokens.find((t) => t.symbol === b.symbol)
         const price = token && prices[token.coingeckoId]?.ngn ? prices[token.coingeckoId].ngn : 0
-        return sum + b.balance * price
+        return sum + (b.balance * price)
     }, 0)
     
     // Helper function to format the value based on visibility and selected currency
@@ -141,7 +211,29 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
 		);
 	}
 
-return (
+	// Show error state if there's an error
+	if (error) {
+		return (
+			<Card className="shadow-lg border-2 hover:shadow-xl transition-shadow border-red-200">
+				<CardHeader>
+					<CardTitle className="flex items-center space-x-2">
+						<Wallet className="h-5 w-5 text-red-600" />
+						<span>Portfolio Overview</span>
+					</CardTitle>
+					<CardDescription className="text-red-600">{error}</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<div className="text-center py-4">
+						<Button onClick={() => window.location.reload()} variant="outline">
+							Retry
+						</Button>
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
+
+	return (
         <Card className="shadow-lg border-2 hover:shadow-xl transition-shadow">
             <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -191,7 +283,7 @@ return (
                             </div>
                         </div>
                     </div>
-                        <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-2">
                         {balances.map((crypto) => {
                             const token = supportedTokens.find((t) => t.symbol === crypto.symbol)
                             const price = token ? prices[token.coingeckoId] : undefined
@@ -214,13 +306,19 @@ return (
                                         <div>
                                             <div className="font-medium">{crypto.symbol}</div>
                                             <div className="text-sm text-muted-foreground">
-                                                {showBalance ? `${crypto.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${crypto.symbol}` : "********"}
+                                                {showBalance 
+                                                    ? `${crypto.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${crypto.symbol}` 
+                                                    : "********"
+                                                }
                                             </div>
                                         </div>
                                     </div>
                                     <div className="text-right">
                                         <div className="font-medium">
-                                            {loading ? "--" : formatValue(currencyDisplay === 'usd' ? usdValue : ngnValue, currencyDisplay)}
+                                            {loading 
+                                                ? "--" 
+                                                : formatValue(currencyDisplay === 'usd' ? usdValue : ngnValue, currencyDisplay)
+                                            }
                                         </div>
                                         <Badge variant="default" className="text-xs mt-1">
                                             {loading ? "--" : (
@@ -230,7 +328,7 @@ return (
                                                         : `$${usdValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
                                                 ) : "********"
                                             )}
-                                      </Badge>
+                                        </Badge>
                                     </div>
                                 </div>
                             )

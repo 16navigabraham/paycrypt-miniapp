@@ -11,6 +11,7 @@ function UniversalMiniAppPage() {
   const [readyCalled, setReadyCalled] = useState(false);
   const [miniAppType, setMiniAppType] = useState<'farcaster' | 'base' | 'web' | 'unknown'>('unknown');
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
+  const [redirecting, setRedirecting] = useState(false);
 
   const addDebug = (message: string) => {
     console.log(message);
@@ -36,7 +37,8 @@ function UniversalMiniAppPage() {
       if (userAgent.includes('Farcaster') || 
           referrer.includes('farcaster') || 
           url.includes('farcaster') ||
-          referrer.includes('warpcast')) {
+          referrer.includes('warpcast') ||
+          hasParent) { // Assume iframe is Farcaster if no other indicators
         setMiniAppType('farcaster');
         addDebug('🟪 Detected: FARCASTER MiniApp');
         return 'farcaster';
@@ -49,16 +51,9 @@ function UniversalMiniAppPage() {
           referrer.includes('coinbase') ||
           url.includes('base.org') ||
           url.includes('coinbase') ||
-          url.includes('platform=base')) { // Added URL parameter detection
+          url.includes('platform=base')) {
         setMiniAppType('base');
         addDebug('🔵 Detected: BASE MiniApp');
-        return 'base';
-      }
-      
-      // Generic iframe detection
-      if (hasParent) {
-        setMiniAppType('base'); // Default to base for unknown iframes
-        addDebug('🔲 Detected: Generic iframe (defaulting to Base)');
         return 'base';
       }
       
@@ -73,12 +68,13 @@ function UniversalMiniAppPage() {
 
   // 🔧 Handle ready calls based on detected type
   useEffect(() => {
-    if (!mounted || readyCalled || miniAppType === 'unknown') return;
+    if (!mounted || readyCalled || miniAppType === 'unknown' || redirecting) return;
 
     const callReady = async () => {
       if (miniAppType === 'web') {
         addDebug('🌐 Web app - proceeding directly');
         setReadyCalled(true);
+        setRedirecting(true);
         setTimeout(() => router.replace("/dashboard"), 1000);
         return;
       }
@@ -107,14 +103,18 @@ function UniversalMiniAppPage() {
         // Proceed to dashboard after ready
         setTimeout(() => {
           addDebug('🚀 Proceeding to dashboard...');
+          setRedirecting(true);
           router.replace("/dashboard");
-        }, 1500);
+        }, 2000); // Increased delay for mobile
 
       } catch (error) {
         addDebug(`❌ Ready call error: ${error}`);
         setReadyCalled(true);
         // Still proceed even if ready fails
-        setTimeout(() => router.replace("/dashboard"), 2000);
+        setTimeout(() => {
+          setRedirecting(true);
+          router.replace("/dashboard");
+        }, 3000);
       }
     };
 
@@ -122,9 +122,9 @@ function UniversalMiniAppPage() {
     addDebug('⏰ Starting ready call process...');
     callReady();
 
-  }, [mounted, miniAppType, readyCalled, router]);
+  }, [mounted, miniAppType, readyCalled, router, redirecting]);
 
-  // 🔧 Farcaster-specific ready calls
+  // 🔧 Farcaster-specific ready calls - SIMPLIFIED
   const callFarcasterReady = async (): Promise<boolean> => {
     let success = false;
     addDebug('🟪 EXECUTING Farcaster ready calls...');
@@ -141,40 +141,28 @@ function UniversalMiniAppPage() {
       addDebug(`⚠️ Farcaster SDK failed: ${error}`);
     }
 
-    // Method 2: Try global Farcaster SDK
-    try {
-      if ((window as any).farcasterMiniAppSDK?.actions?.ready) {
-        addDebug('🟪 Found global Farcaster SDK, calling ready()...');
-        await (window as any).farcasterMiniAppSDK.actions.ready();
-        addDebug('✅ Global Farcaster SDK ready() EXECUTED');
-        success = true;
-      }
-    } catch (error) {
-      addDebug(`⚠️ Global Farcaster SDK failed: ${error}`);
-    }
-
-    // Method 3: Farcaster-specific postMessages - ALWAYS EXECUTE
+    // Method 2: Simplified postMessages - SINGLE MESSAGE
     if (window.parent && window.parent !== window) {
-      addDebug('🟪 SENDING Farcaster postMessages...');
-      const farcasterMessages = [
-        { type: 'ready' },
-        { type: 'frame_ready' },
-        { type: 'sdk_ready' },
-        { type: 'miniapp_ready' },
-        { action: 'ready' },
-        { event: 'ready' },
-        { status: 'ready' }
-      ];
-
-      farcasterMessages.forEach((msg, index) => {
-        try {
-          window.parent.postMessage(msg, '*');
-          addDebug(`📤 SENT Farcaster message ${index + 1}: ${msg.type || msg.action || msg.event}`);
-          success = true;
-        } catch (e) {
-          addDebug(`⚠️ Farcaster postMessage ${index + 1} failed: ${e}`);
-        }
-      });
+      addDebug('🟪 SENDING Farcaster postMessage...');
+      try {
+        // Send only the most important ready message
+        window.parent.postMessage({ type: 'ready' }, '*');
+        addDebug('📤 SENT Farcaster ready message');
+        
+        // Wait a bit, then send miniapp_ready
+        setTimeout(() => {
+          try {
+            window.parent.postMessage({ type: 'miniapp_ready' }, '*');
+            addDebug('📤 SENT Farcaster miniapp_ready message');
+          } catch (e) {
+            addDebug(`⚠️ Farcaster miniapp_ready failed: ${e}`);
+          }
+        }, 500);
+        
+        success = true;
+      } catch (e) {
+        addDebug(`⚠️ Farcaster postMessage failed: ${e}`);
+      }
     } else {
       addDebug('⚠️ No parent window for Farcaster postMessages');
     }
@@ -183,7 +171,7 @@ function UniversalMiniAppPage() {
     return success;
   };
 
-  // 🔧 Base-specific ready calls
+  // 🔧 Base-specific ready calls - SIMPLIFIED
   const callBaseReady = async (): Promise<boolean> => {
     let success = false;
     addDebug('🔵 EXECUTING Base ready calls...');
@@ -205,55 +193,31 @@ function UniversalMiniAppPage() {
       addDebug(`⚠️ OnchainKit MiniKit failed: ${error}`);
     }
 
-    // Method 2: Base-specific postMessages - ALWAYS EXECUTE
+    // Method 2: Simplified postMessages - SINGLE MESSAGE
     if (window.parent && window.parent !== window) {
-      addDebug('🔵 SENDING Base postMessages...');
-      const baseMessages = [
-        { type: 'ready' },
-        { type: 'base_ready' },
-        { type: 'miniapp_ready' },
-        { type: 'wallet_ready' },
-        { type: 'app_ready', platform: 'base' },
-        { type: 'frame_ready' },
-        { action: 'ready' },
-        { event: 'ready' },
-        { status: 'ready' }
-      ];
-
-      baseMessages.forEach((msg, index) => {
-        try {
-          window.parent.postMessage(msg, '*');
-          addDebug(`📤 SENT Base message ${index + 1}: ${msg.type || msg.action}`);
-          success = true;
-        } catch (e) {
-          addDebug(`⚠️ Base postMessage ${index + 1} failed: ${e}`);
-        }
-      });
+      addDebug('🔵 SENDING Base postMessage...');
+      try {
+        // Send only the most important ready message
+        window.parent.postMessage({ type: 'ready' }, '*');
+        addDebug('📤 SENT Base ready message');
+        
+        // Wait a bit, then send base_ready
+        setTimeout(() => {
+          try {
+            window.parent.postMessage({ type: 'base_ready' }, '*');
+            addDebug('📤 SENT Base base_ready message');
+          } catch (e) {
+            addDebug(`⚠️ Base base_ready failed: ${e}`);
+          }
+        }, 500);
+        
+        success = true;
+      } catch (e) {
+        addDebug(`⚠️ Base postMessage failed: ${e}`);
+      }
     } else {
       addDebug('⚠️ No parent window for Base postMessages');
     }
-
-    // Method 3: Try global SDK objects - ALWAYS TRY
-    addDebug('🔵 TRYING global SDK methods...');
-    const globalMethods = [
-      { name: 'window.sdk.actions.ready', fn: () => (window as any).sdk?.actions?.ready?.() },
-      { name: 'window.baseSDK.actions.ready', fn: () => (window as any).baseSDK?.actions?.ready?.() },
-      { name: 'window.coinbaseSDK.actions.ready', fn: () => (window as any).coinbaseSDK?.actions?.ready?.() },
-      { name: 'window.miniAppSDK.actions.ready', fn: () => (window as any).miniAppSDK?.actions?.ready?.() },
-      { name: 'window.miniKit.setFrameReady', fn: () => (window as any).miniKit?.setFrameReady?.() }
-    ];
-
-    globalMethods.forEach(({ name, fn }) => {
-      try {
-        const result = fn();
-        if (result !== undefined) {
-          addDebug(`✅ ${name} EXECUTED`);
-          success = true;
-        }
-      } catch (e) {
-        // Silent fail for globals
-      }
-    });
 
     addDebug(`🔵 Base ready calls completed. Success: ${success}`);
     return success;
@@ -300,7 +264,8 @@ function UniversalMiniAppPage() {
           {!mounted ? 'Initializing...' : 
            miniAppType === 'unknown' ? 'Detecting environment...' :
            !readyCalled ? `Calling ${miniAppType} ready...` : 
-           'Opening dashboard...'}
+           redirecting ? 'Opening dashboard...' :
+           'Processing...'}
         </p>
 
         {/* Debug info for development */}
