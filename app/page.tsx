@@ -4,21 +4,21 @@ import { useEffect, useState } from 'react';
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
-// 🔧 Universal MiniApp component that works with both Farcaster and Base
-function UniversalMiniAppPage() {
+// 🔧 Unified MiniApp component using MiniKit for both Farcaster and Base compatibility
+function UnifiedMiniAppPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [readyCalled, setReadyCalled] = useState(false);
-  const [miniAppType, setMiniAppType] = useState<'farcaster' | 'base' | 'web' | 'unknown'>('unknown');
+  const [miniAppType, setMiniAppType] = useState<'miniapp' | 'web' | 'unknown'>('unknown');
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
-  const [redirecting, setRedirecting] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   const addDebug = (message: string) => {
     console.log(message);
     setDebugInfo(prev => [...prev.slice(-4), message]); // Keep last 5 messages
   };
 
-  // 🔧 Detect MiniApp environment and type
+  // 🔧 Detect if we're in a miniapp environment
   useEffect(() => {
     setMounted(true);
     
@@ -33,28 +33,21 @@ function UniversalMiniAppPage() {
       addDebug(`📍 User agent: ${userAgent.substring(0, 50)}...`);
       addDebug(`📍 Referrer: ${referrer}`);
       
-      // Detect Farcaster
-      if (userAgent.includes('Farcaster') || 
-          referrer.includes('farcaster') || 
-          url.includes('farcaster') ||
-          referrer.includes('warpcast') ||
-          hasParent) { // Assume iframe is Farcaster if no other indicators
-        setMiniAppType('farcaster');
-        addDebug('🟪 Detected: FARCASTER MiniApp');
-        return 'farcaster';
-      }
-      
-      // Detect Base/Coinbase
-      if (userAgent.includes('Base') || 
+      // Detect any miniapp context (Farcaster, Base, or other)
+      if (hasParent || 
+          userAgent.includes('Farcaster') || 
+          userAgent.includes('Base') || 
           userAgent.includes('Coinbase') ||
+          referrer.includes('farcaster') || 
+          referrer.includes('warpcast') ||
           referrer.includes('base.org') || 
           referrer.includes('coinbase') ||
+          url.includes('farcaster') ||
           url.includes('base.org') ||
-          url.includes('coinbase') ||
-          url.includes('platform=base')) {
-        setMiniAppType('base');
-        addDebug('🔵 Detected: BASE MiniApp');
-        return 'base';
+          url.includes('coinbase')) {
+        setMiniAppType('miniapp');
+        addDebug('🟦 Detected: MiniApp Environment');
+        return 'miniapp';
       }
       
       // Regular web app
@@ -66,178 +59,101 @@ function UniversalMiniAppPage() {
     detectEnvironment();
   }, []);
 
-  // 🔧 Handle ready calls based on detected type
+  // 🔧 Handle ready calls using unified approach
   useEffect(() => {
-    if (!mounted || readyCalled || miniAppType === 'unknown' || redirecting) return;
+    if (!mounted || readyCalled || miniAppType === 'unknown') return;
 
-    const callReady = async () => {
+    const initializeMiniApp = async () => {
       if (miniAppType === 'web') {
         addDebug('🌐 Web app - proceeding directly');
         setReadyCalled(true);
-        setRedirecting(true);
+        setIsReady(true);
         setTimeout(() => router.replace("/dashboard"), 1000);
         return;
       }
 
-      addDebug(`📱 ${miniAppType.toUpperCase()} MiniApp - calling ready NOW...`);
+      addDebug('🟦 MiniApp detected - initializing...');
 
       try {
         let success = false;
 
-        if (miniAppType === 'farcaster') {
-          // FARCASTER-SPECIFIC ready calls
-          success = await callFarcasterReady();
-        } else if (miniAppType === 'base') {
-          // BASE-SPECIFIC ready calls
-          success = await callBaseReady();
+        // Method 1: Try MiniKit (preferred for Base compatibility)
+        try {
+          addDebug('🔧 Attempting MiniKit initialization...');
+          const { useMiniKit } = await import('@coinbase/onchainkit/minikit');
+          addDebug('✅ MiniKit imported successfully');
+          success = true;
+        } catch (error) {
+          addDebug(`⚠️ MiniKit not available: ${error}`);
+        }
+
+        // Method 2: Try Farcaster SDK directly
+        if (!success) {
+          try {
+            addDebug('🔧 Attempting Farcaster SDK initialization...');
+            const { sdk } = await import('@farcaster/miniapp-sdk');
+            addDebug('🔧 Farcaster SDK loaded, calling ready()...');
+            await sdk.actions.ready();
+            addDebug('✅ Farcaster SDK ready() executed successfully');
+            success = true;
+          } catch (error) {
+            addDebug(`⚠️ Farcaster SDK failed: ${error}`);
+          }
+        }
+
+        // Method 3: Minimal postMessage fallback
+        if (!success && window.parent && window.parent !== window) {
+          try {
+            addDebug('🔧 Using postMessage fallback...');
+            window.parent.postMessage({ type: 'ready' }, '*');
+            addDebug('📤 Sent ready postMessage');
+            success = true;
+          } catch (error) {
+            addDebug(`⚠️ PostMessage failed: ${error}`);
+          }
         }
 
         if (success) {
-          addDebug('✅ Ready calls executed successfully!');
+          addDebug('✅ MiniApp initialization successful!');
         } else {
-          addDebug('⚠️ Ready calls executed but with warnings');
+          addDebug('⚠️ MiniApp initialization completed with fallbacks');
         }
 
         setReadyCalled(true);
+        setIsReady(true);
 
-        // Proceed to dashboard after ready
+        // Navigate to dashboard
         setTimeout(() => {
-          addDebug('🚀 Proceeding to dashboard...');
-          setRedirecting(true);
+          addDebug('🚀 Navigating to dashboard...');
           router.replace("/dashboard");
-        }, 2000); // Increased delay for mobile
+        }, 1500);
 
       } catch (error) {
-        addDebug(`❌ Ready call error: ${error}`);
+        addDebug(`❌ MiniApp initialization error: ${error}`);
         setReadyCalled(true);
-        // Still proceed even if ready fails
+        setIsReady(true);
+        // Still proceed to dashboard
         setTimeout(() => {
-          setRedirecting(true);
           router.replace("/dashboard");
-        }, 3000);
+        }, 2000);
       }
     };
 
-    // Call ready immediately, no delays
-    addDebug('⏰ Starting ready call process...');
-    callReady();
+    addDebug('⏰ Starting MiniApp initialization...');
+    initializeMiniApp();
 
-  }, [mounted, miniAppType, readyCalled, router, redirecting]);
+  }, [mounted, miniAppType, readyCalled, router]);
 
-  // 🔧 Farcaster-specific ready calls - SIMPLIFIED
-  const callFarcasterReady = async (): Promise<boolean> => {
-    let success = false;
-    addDebug('🟪 EXECUTING Farcaster ready calls...');
-
-    // Method 1: Try to load and use Farcaster SDK
-    try {
-      addDebug('🟪 Loading Farcaster SDK...');
-      const { sdk } = await import('@farcaster/miniapp-sdk');
-      addDebug('🟪 Farcaster SDK loaded, calling ready()...');
-      await sdk.actions.ready();
-      addDebug('✅ Farcaster SDK ready() EXECUTED successfully');
-      success = true;
-    } catch (error) {
-      addDebug(`⚠️ Farcaster SDK failed: ${error}`);
-    }
-
-    // Method 2: Simplified postMessages - SINGLE MESSAGE
-    if (window.parent && window.parent !== window) {
-      addDebug('🟪 SENDING Farcaster postMessage...');
-      try {
-        // Send only the most important ready message
-        window.parent.postMessage({ type: 'ready' }, '*');
-        addDebug('📤 SENT Farcaster ready message');
-        
-        // Wait a bit, then send miniapp_ready
-        setTimeout(() => {
-          try {
-            window.parent.postMessage({ type: 'miniapp_ready' }, '*');
-            addDebug('📤 SENT Farcaster miniapp_ready message');
-          } catch (e) {
-            addDebug(`⚠️ Farcaster miniapp_ready failed: ${e}`);
-          }
-        }, 500);
-        
-        success = true;
-      } catch (e) {
-        addDebug(`⚠️ Farcaster postMessage failed: ${e}`);
-      }
-    } else {
-      addDebug('⚠️ No parent window for Farcaster postMessages');
-    }
-
-    addDebug(`🟪 Farcaster ready calls completed. Success: ${success}`);
-    return success;
+  // 🔧 Get appropriate status message
+  const getStatusInfo = () => {
+    if (!mounted) return { icon: '⏳', message: 'Initializing...' };
+    if (miniAppType === 'unknown') return { icon: '🔍', message: 'Detecting environment...' };
+    if (!readyCalled) return { icon: '🔧', message: 'Setting up MiniApp...' };
+    if (!isReady) return { icon: '⚡', message: 'Getting ready...' };
+    return { icon: '🚀', message: 'Opening dashboard...' };
   };
 
-  // 🔧 Base-specific ready calls - SIMPLIFIED
-  const callBaseReady = async (): Promise<boolean> => {
-    let success = false;
-    addDebug('🔵 EXECUTING Base ready calls...');
-
-    // Method 1: Try MiniKit from OnchainKit
-    try {
-      addDebug('🔵 Loading OnchainKit MiniKit...');
-      const miniKitModule = await import('@coinbase/onchainkit/minikit');
-      addDebug('📦 OnchainKit MiniKit loaded');
-      
-      // Check for global MiniKit objects
-      if ((window as any).miniKit?.setFrameReady) {
-        addDebug('🔵 Found MiniKit, calling setFrameReady()...');
-        (window as any).miniKit.setFrameReady();
-        addDebug('✅ MiniKit setFrameReady() EXECUTED');
-        success = true;
-      }
-    } catch (error) {
-      addDebug(`⚠️ OnchainKit MiniKit failed: ${error}`);
-    }
-
-    // Method 2: Simplified postMessages - SINGLE MESSAGE
-    if (window.parent && window.parent !== window) {
-      addDebug('🔵 SENDING Base postMessage...');
-      try {
-        // Send only the most important ready message
-        window.parent.postMessage({ type: 'ready' }, '*');
-        addDebug('📤 SENT Base ready message');
-        
-        // Wait a bit, then send base_ready
-        setTimeout(() => {
-          try {
-            window.parent.postMessage({ type: 'base_ready' }, '*');
-            addDebug('📤 SENT Base base_ready message');
-          } catch (e) {
-            addDebug(`⚠️ Base base_ready failed: ${e}`);
-          }
-        }, 500);
-        
-        success = true;
-      } catch (e) {
-        addDebug(`⚠️ Base postMessage failed: ${e}`);
-      }
-    } else {
-      addDebug('⚠️ No parent window for Base postMessages');
-    }
-
-    addDebug(`🔵 Base ready calls completed. Success: ${success}`);
-    return success;
-  };
-
-  // 🔧 Get appropriate emoji and message
-  const getMiniAppInfo = () => {
-    switch (miniAppType) {
-      case 'farcaster':
-        return { emoji: '🟪', name: 'Farcaster MiniApp', color: 'purple' };
-      case 'base':
-        return { emoji: '🔵', name: 'Base MiniApp', color: 'blue' };
-      case 'web':
-        return { emoji: '🌐', name: 'Web App', color: 'green' };
-      default:
-        return { emoji: '🔍', name: 'Detecting...', color: 'gray' };
-    }
-  };
-
-  const { emoji, name, color } = getMiniAppInfo();
+  const { icon, message } = getStatusInfo();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -251,21 +167,16 @@ function UniversalMiniAppPage() {
         </p>
         
         <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm mb-4 ${
-          color === 'purple' ? 'bg-purple-100 text-purple-700' :
-          color === 'blue' ? 'bg-blue-100 text-blue-700' :
-          color === 'green' ? 'bg-green-100 text-green-700' :
+          miniAppType === 'miniapp' ? 'bg-blue-100 text-blue-700' :
+          miniAppType === 'web' ? 'bg-green-100 text-green-700' :
           'bg-gray-100 text-gray-700'
         }`}>
-          <span>{emoji}</span>
-          <span>{name}</span>
+          <span>{icon}</span>
+          <span>{miniAppType === 'miniapp' ? 'MiniApp' : miniAppType === 'web' ? 'Web App' : 'Detecting...'}</span>
         </div>
         
         <p className="text-sm text-gray-500 mb-4">
-          {!mounted ? 'Initializing...' : 
-           miniAppType === 'unknown' ? 'Detecting environment...' :
-           !readyCalled ? `Calling ${miniAppType} ready...` : 
-           redirecting ? 'Opening dashboard...' :
-           'Processing...'}
+          {message}
         </p>
 
         {/* Debug info for development */}
@@ -285,7 +196,7 @@ function UniversalMiniAppPage() {
 }
 
 // 🔧 Export with dynamic loading
-export default dynamic(() => Promise.resolve(UniversalMiniAppPage), {
+export default dynamic(() => Promise.resolve(UnifiedMiniAppPage), {
   ssr: false,
   loading: () => (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">

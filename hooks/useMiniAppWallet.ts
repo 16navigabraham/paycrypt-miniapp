@@ -25,34 +25,19 @@ export function useMiniAppWallet(): MiniAppWallet {
   useEffect(() => {
     if (!mounted) return;
 
-    // Enhanced loading with retry for mobile
-    let attempts = 0;
-    const maxAttempts = 3;
-    
-    const tryLoadWallet = () => {
+    // Simple wallet loading with single retry for reliability
+    const loadWallet = () => {
       const address = localStorage.getItem('paycrypt_wallet_address');
       
-      if (address) {
-        setWallet({
-          address,
-          isConnected: Boolean(address),
-          isLoading: false
-        });
-      } else {
-        attempts++;
-        if (attempts < maxAttempts) {
-          setTimeout(tryLoadWallet, 300);
-        } else {
-          setWallet({
-            address: null,
-            isConnected: false,
-            isLoading: false
-          });
-        }
-      }
+      setWallet({
+        address,
+        isConnected: Boolean(address),
+        isLoading: false
+      });
     };
-    
-    tryLoadWallet();
+
+    // Small delay to ensure localStorage is available
+    setTimeout(loadWallet, 100);
   }, [mounted]);
 
   return wallet;
@@ -76,11 +61,7 @@ export function useMiniAppUser() {
   useEffect(() => {
     if (!mounted) return;
 
-    // Enhanced loading with retry for mobile
-    let attempts = 0;
-    const maxAttempts = 3;
-    
-    const tryLoadUserData = () => {
+    const loadUserData = () => {
       const walletAddress = localStorage.getItem('paycrypt_wallet_address');
       const fid = localStorage.getItem('paycrypt_fid');
       const username = localStorage.getItem('paycrypt_username');
@@ -95,94 +76,91 @@ export function useMiniAppUser() {
           walletAddress,
           pfpUrl: pfpUrl || ''
         });
-        setIsLoading(false);
       } else {
-        attempts++;
-        if (attempts < maxAttempts) {
-          setTimeout(tryLoadUserData, 300);
-        } else {
-          setUserData(null);
-          setIsLoading(false);
-        }
+        setUserData(null);
       }
+      
+      setIsLoading(false);
     };
-    
-    tryLoadUserData();
+
+    // Small delay to ensure localStorage is available
+    setTimeout(loadUserData, 100);
   }, [mounted]);
 
   return { userData, isLoading };
 }
 
-// Enhanced transaction handler with better mobile support
+// Enhanced transaction handler that works with multiple wallet providers
 export async function sendTransaction(transaction: {
   to: string;
   data: string;
   value?: string;
 }): Promise<Hex> {
-  // Try different wallet providers based on context
-  const providers = [
-    window.ethereum,
-    (window as any).coinbaseWallet?.ethereum,
-    (window as any).ethereum,
-  ].filter(Boolean);
+  // Try to get ethereum provider from various sources
+  const getProvider = () => {
+    // Check for MiniKit/OnchainKit provider first
+    if ((window as any).ethereum) return (window as any).ethereum;
+    
+    // Check for Coinbase Wallet
+    if ((window as any).coinbaseWallet?.ethereum) return (window as any).coinbaseWallet.ethereum;
+    
+    // Check for injected provider
+    if (window.ethereum) return window.ethereum;
+    
+    return null;
+  };
 
-  if (providers.length === 0) {
-    throw new Error('No wallet found - please connect a wallet');
+  const provider = getProvider();
+  if (!provider) {
+    throw new Error('No wallet provider found. Please connect a wallet.');
   }
 
-  let lastError: Error | null = null;
+  try {
+    console.log('🔗 Sending transaction...');
+    
+    const accounts = await provider.request({
+      method: 'eth_requestAccounts'
+    });
 
-  for (const provider of providers) {
-    try {
-      console.log('🔗 Attempting transaction with provider...');
-      
-      const accounts = await provider.request({
-        method: 'eth_requestAccounts'
-      });
-
-      if (!accounts || accounts.length === 0) {
-        throw new Error('No accounts found');
-      }
-
-      console.log('📝 Sending transaction...');
-      const txHash = await provider.request({
-        method: 'eth_sendTransaction',
-        params: [{
-          from: accounts[0],
-          to: transaction.to,
-          data: transaction.data,
-          value: transaction.value || '0x0'
-        }]
-      });
-
-      console.log('✅ Transaction sent:', txHash);
-      return txHash as Hex;
-    } catch (error: any) {
-      console.log('❌ Provider failed:', error.message);
-      lastError = error;
-      continue;
+    if (!accounts || accounts.length === 0) {
+      throw new Error('No accounts found');
     }
-  }
 
-  throw new Error(lastError?.message || 'All wallet providers failed');
+    const txHash = await provider.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: accounts[0],
+        to: transaction.to,
+        data: transaction.data,
+        value: transaction.value || '0x0'
+      }]
+    });
+
+    console.log('✅ Transaction sent:', txHash);
+    return txHash as Hex;
+  } catch (error: any) {
+    console.error('❌ Transaction failed:', error);
+    throw new Error(error.message || 'Transaction failed');
+  }
 }
 
-// Wait for transaction receipt with enhanced mobile support
+// Wait for transaction receipt
 export async function waitForTransaction(txHash: Hex): Promise<any> {
-  const providers = [
-    window.ethereum,
-    (window as any).coinbaseWallet?.ethereum,
-  ].filter(Boolean);
+  const getProvider = () => {
+    if ((window as any).ethereum) return (window as any).ethereum;
+    if ((window as any).coinbaseWallet?.ethereum) return (window as any).coinbaseWallet.ethereum;
+    if (window.ethereum) return window.ethereum;
+    return null;
+  };
 
-  if (providers.length === 0) {
+  const provider = getProvider();
+  if (!provider) {
     throw new Error('No wallet provider found');
   }
 
-  const provider = providers[0]; // Use first available provider
-
   let receipt = null;
   let attempts = 0;
-  const maxAttempts = 120; // 2 minutes max for mobile
+  const maxAttempts = 60; // 1 minute max
 
   console.log('⏳ Waiting for transaction receipt...');
 
@@ -194,20 +172,20 @@ export async function waitForTransaction(txHash: Hex): Promise<any> {
       });
       
       if (!receipt) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        await new Promise(resolve => setTimeout(resolve, 1000));
         attempts++;
       } else {
         console.log('✅ Transaction confirmed:', receipt);
       }
     } catch (error) {
       console.log('⚠️ Receipt check failed, retrying...', error);
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait longer on error
+      await new Promise(resolve => setTimeout(resolve, 2000));
       attempts++;
     }
   }
 
   if (!receipt) {
-    throw new Error('Transaction receipt not found after 2 minutes');
+    throw new Error('Transaction receipt not found after 1 minute');
   }
 
   return receipt;
@@ -215,41 +193,55 @@ export async function waitForTransaction(txHash: Hex): Promise<any> {
 
 // Helper function to detect miniapp context
 export function getMiniAppContext() {
+  if (typeof window === 'undefined') return { isMiniApp: false, isWeb: true };
+  
   const hasParent = window.parent && window.parent !== window;
   const referrer = document.referrer || '';
   const userAgent = window.navigator.userAgent || '';
   
   return {
-    isMiniApp: hasParent,
-    isFarcaster: referrer.includes('farcaster') || referrer.includes('warpcast') || userAgent.includes('Farcaster'),
-    isBase: referrer.includes('base.org') || referrer.includes('coinbase') || userAgent.includes('Base'),
+    isMiniApp: hasParent || 
+              referrer.includes('farcaster') || 
+              referrer.includes('warpcast') || 
+              referrer.includes('base.org') || 
+              referrer.includes('coinbase') ||
+              userAgent.includes('Farcaster') ||
+              userAgent.includes('Base') ||
+              userAgent.includes('Coinbase'),
     isWeb: !hasParent
   };
 }
 
-// Helper function to setup demo data for miniapp testing
-export function setupDemoData() {
-  const context = getMiniAppContext();
+// Helper to check if user data exists
+export function hasUserData(): boolean {
+  if (typeof window === 'undefined') return false;
+  return Boolean(localStorage.getItem('paycrypt_wallet_address'));
+}
+
+// Helper to clear user data
+export function clearUserData(): void {
+  if (typeof window === 'undefined') return;
   
-  if (context.isMiniApp && !localStorage.getItem('paycrypt_wallet_address')) {
-    console.log('🎭 Setting up demo data for miniapp...');
-    
-    const demoData = {
-      address: '0x742d35Cc6634C0532925a3b8D2C9D48C1c7b1db1',
-      fid: '12345',
-      username: 'demo_user',
-      displayName: 'Demo User',
-      pfpUrl: ''
-    };
-    
-    localStorage.setItem('paycrypt_wallet_address', demoData.address);
-    localStorage.setItem('paycrypt_fid', demoData.fid);
-    localStorage.setItem('paycrypt_username', demoData.username);
-    localStorage.setItem('paycrypt_display_name', demoData.displayName);
-    localStorage.setItem('paycrypt_pfp', demoData.pfpUrl);
-    
-    return demoData;
-  }
+  localStorage.removeItem('paycrypt_wallet_address');
+  localStorage.removeItem('paycrypt_fid');
+  localStorage.removeItem('paycrypt_username');
+  localStorage.removeItem('paycrypt_display_name');
+  localStorage.removeItem('paycrypt_pfp');
+}
+
+// Helper to set user data
+export function setUserData(data: {
+  walletAddress: string;
+  fid?: string;
+  username?: string;
+  displayName?: string;
+  pfpUrl?: string;
+}): void {
+  if (typeof window === 'undefined') return;
   
-  return null;
+  localStorage.setItem('paycrypt_wallet_address', data.walletAddress);
+  if (data.fid) localStorage.setItem('paycrypt_fid', data.fid);
+  if (data.username) localStorage.setItem('paycrypt_username', data.username);
+  if (data.displayName) localStorage.setItem('paycrypt_display_name', data.displayName);
+  if (data.pfpUrl) localStorage.setItem('paycrypt_pfp', data.pfpUrl);
 }
