@@ -3,12 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { LandingPage } from "@/components/landing/landing-page";
 
-// 🔧 Client Component that loads hooks dynamically
+// 🔧 Client Component that handles mini app direct flow
 function HomePageClient() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   // 🔧 Dynamic Hook Loading State
@@ -16,6 +14,9 @@ function HomePageClient() {
   const [wagmiHooks, setWagmiHooks] = useState<any>(null);
   const [hooksLoaded, setHooksLoaded] = useState(false);
   const [readyCalled, setReadyCalled] = useState(false);
+
+  // 🔧 Mini app flow state - directly proceed to dashboard
+  const [dashboardReady, setDashboardReady] = useState(false);
 
   // 🔧 Mount check
   useEffect(() => {
@@ -26,6 +27,8 @@ function HomePageClient() {
   useEffect(() => {
     if (!mounted) return;
 
+    console.log('🚀 Starting immediate ready calls for mini app...');
+
     // Method 1: Direct postMessage to parent
     const callReadyDirect = () => {
       try {
@@ -33,10 +36,10 @@ function HomePageClient() {
           window.parent.postMessage({ type: 'ready' }, '*');
           window.parent.postMessage({ type: 'frame_ready' }, '*');
           window.parent.postMessage({ type: 'sdk_ready' }, '*');
-          console.log('Direct ready messages sent to parent');
+          console.log('📤 Direct ready messages sent to parent');
         }
       } catch (error) {
-        console.warn('Direct ready call failed:', error);
+        console.warn('⚠️ Direct ready call failed:', error);
       }
     };
 
@@ -47,16 +50,16 @@ function HomePageClient() {
         if (window.sdk?.actions?.ready) {
           // @ts-ignore
           window.sdk.actions.ready();
-          console.log('Global sdk.actions.ready() called');
+          console.log('📤 Global sdk.actions.ready() called');
         }
         // @ts-ignore
         if (window.farcasterSDK?.actions?.ready) {
           // @ts-ignore
           window.farcasterSDK.actions.ready();
-          console.log('Global farcasterSDK.actions.ready() called');
+          console.log('📤 Global farcasterSDK.actions.ready() called');
         }
       } catch (error) {
-        console.warn('Global ready call failed:', error);
+        console.warn('⚠️ Global ready call failed:', error);
       }
     };
 
@@ -65,10 +68,15 @@ function HomePageClient() {
     callReadyGlobal();
 
     // Retry after short delays
-    setTimeout(callReadyDirect, 100);
-    setTimeout(callReadyGlobal, 200);
-    setTimeout(callReadyDirect, 500);
-    setTimeout(callReadyGlobal, 1000);
+    setTimeout(() => {
+      callReadyDirect();
+      callReadyGlobal();
+    }, 100);
+    
+    setTimeout(() => {
+      callReadyDirect();
+      callReadyGlobal();
+    }, 500);
 
   }, [mounted]);
 
@@ -78,20 +86,20 @@ function HomePageClient() {
 
     async function loadHooks() {
       try {
-        console.log('Loading MiniKit and wagmi hooks...');
+        console.log('📦 Loading MiniKit and wagmi hooks...');
         
         const [miniKitModule, wagmiModule] = await Promise.all([
           import('@coinbase/onchainkit/minikit'),
           import('wagmi')
         ]);
 
-        console.log('Hooks loaded successfully');
+        console.log('✅ Hooks loaded successfully');
 
         setMiniKitHook(miniKitModule);
         setWagmiHooks(wagmiModule);
         setHooksLoaded(true);
       } catch (error) {
-        console.error('Failed to load hooks:', error);
+        console.error('❌ Failed to load hooks:', error);
         setHooksLoaded(true); // Still set to true to prevent infinite loading
       }
     }
@@ -115,21 +123,13 @@ function HomePageClient() {
       isConnected: false 
     };
 
-  const connectData = (mounted && hooksLoaded && wagmiHooks?.useConnect) ? 
-    wagmiHooks.useConnect() : 
-    { 
-      connect: () => {}, 
-      connectors: [] 
-    };
-
   const { setFrameReady, isFrameReady, context } = miniKitData;
   const { address, isConnected } = accountData;
-  const { connect, connectors } = connectData;
 
   // 🔧 MiniKit ready call with multiple attempts
   useEffect(() => {
     if (mounted && hooksLoaded && miniKitHook && setFrameReady && !readyCalled) {
-      console.log('Attempting MiniKit setFrameReady() call...');
+      console.log('🎯 Attempting MiniKit setFrameReady() call...');
       
       const attemptReady = () => {
         try {
@@ -145,111 +145,74 @@ function HomePageClient() {
       attemptReady();
       setTimeout(attemptReady, 100);
       setTimeout(attemptReady, 500);
-      setTimeout(attemptReady, 1000);
     }
   }, [mounted, hooksLoaded, miniKitHook, setFrameReady, readyCalled]);
 
-  // 🔧 Additional ready call when frame is ready
-  useEffect(() => {
-    if (isFrameReady && !readyCalled) {
-      console.log('Frame became ready, ensuring ready call...');
-      try {
-        setFrameReady();
-        setReadyCalled(true);
-      } catch (error) {
-        console.error('Frame ready call failed:', error);
-      }
-    }
-  }, [isFrameReady, setFrameReady, readyCalled]);
-
-  // Check for existing wallet connection
+  // 🔧 Auto setup wallet connection and proceed to dashboard
   useEffect(() => {
     if (!mounted || !hooksLoaded) return;
 
-    const checkAuthentication = async () => {
+    const setupWalletAndProceed = async () => {
       try {
+        console.log('🔗 Setting up wallet connection for mini app...');
+        
         // Check if wallet is already connected
         if (isConnected && address) {
-          // Store wallet data for the session
+          console.log('✅ Wallet already connected:', address);
+          // Store wallet data immediately
           localStorage.setItem('paycrypt_wallet_address', address);
           
-          // If we have Farcaster context, store it too (for display purposes only)
+          // Store Farcaster context if available
           if (context?.user) {
             localStorage.setItem('paycrypt_fid', context.user.fid?.toString() || '');
             localStorage.setItem('paycrypt_username', context.user.username || '');
             localStorage.setItem('paycrypt_display_name', context.user.displayName || '');
             localStorage.setItem('paycrypt_pfp', context.user.pfpUrl || '');
+            console.log('📱 Farcaster context stored:', context.user);
           }
           
-          // Redirect to dashboard
-          router.replace("/dashboard");
+          setDashboardReady(true);
           return;
         }
 
-        // Check if user was previously authenticated
-        const storedWallet = localStorage.getItem('paycrypt_wallet_address');
-        if (storedWallet && isConnected) {
-          router.replace("/dashboard");
-          return;
+        // If we have Farcaster context but no wallet yet, still prepare for connection
+        if (context?.user && !address) {
+          console.log('📱 Farcaster context available, preparing wallet connection...');
+          localStorage.setItem('paycrypt_fid', context.user.fid?.toString() || '');
+          localStorage.setItem('paycrypt_username', context.user.username || '');
+          localStorage.setItem('paycrypt_display_name', context.user.displayName || '');
+          localStorage.setItem('paycrypt_pfp', context.user.pfpUrl || '');
         }
+
+        // For mini app, assume connection will happen automatically
+        // Set a fallback timer to proceed to dashboard
+        setTimeout(() => {
+          if (!dashboardReady) {
+            console.log('⏰ Proceeding to dashboard (mini app auto-flow)');
+            setDashboardReady(true);
+          }
+        }, 2000);
         
-        setIsLoading(false);
       } catch (error) {
-        console.error('Error checking authentication:', error);
-        setIsLoading(false);
+        console.error('❌ Error setting up wallet:', error);
+        // Still proceed to dashboard even if setup fails
+        setTimeout(() => setDashboardReady(true), 1000);
       }
     };
 
-    // Wait a moment for frame to be ready, then check authentication
-    const timer = setTimeout(() => {
-      checkAuthentication();
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [mounted, hooksLoaded, isConnected, address, context, router]);
-
-  const handleWalletAuth = async () => {
-    if (!mounted || !hooksLoaded || !wagmiHooks) {
-      console.error('Hooks not loaded yet');
-      return;
+    // Start setup after hooks are loaded and ready is called
+    if (readyCalled || hooksLoaded) {
+      const timer = setTimeout(setupWalletAndProceed, 500);
+      return () => clearTimeout(timer);
     }
+  }, [mounted, hooksLoaded, readyCalled, isConnected, address, context, dashboardReady]);
 
-    try {
-      console.log('Initiating wallet authentication...');
-      setIsLoading(true);
-      
-      if (isConnected && address) {
-        // Already connected, just proceed
-        handleAuthSuccess();
-      } else {
-        // Need to connect wallet
-        const farcasterConnector = connectors.find(
-          (connector: any) => connector.name === 'Farcaster Wallet' || connector.id === 'farcaster'
-        );
-        
-        if (farcasterConnector) {
-          // Use Farcaster wallet connector (preferred in Base App)
-          connect({ connector: farcasterConnector });
-        } else {
-          // Fallback to first available connector
-          connect({ connector: connectors[0] });
-        }
-      }
-      
-    } catch (error) {
-      console.error('Error during wallet authentication:', error);
-      setIsLoading(false);
-    }
-  };
-
-  const handleAuthSuccess = () => {
-    console.log('Wallet authentication successful');
-    
-    if (address) {
-      // Store wallet address as primary authentication
+  // 🔧 Handle wallet connection changes
+  useEffect(() => {
+    if (mounted && hooksLoaded && isConnected && address) {
+      console.log('🔄 Wallet connection detected:', address);
       localStorage.setItem('paycrypt_wallet_address', address);
       
-      // Store Farcaster context if available (for UI display only)
       if (context?.user) {
         localStorage.setItem('paycrypt_fid', context.user.fid?.toString() || '');
         localStorage.setItem('paycrypt_username', context.user.username || '');
@@ -257,51 +220,40 @@ function HomePageClient() {
         localStorage.setItem('paycrypt_pfp', context.user.pfpUrl || '');
       }
       
-      setIsLoading(false);
-      router.push("/dashboard");
+      if (!dashboardReady) {
+        setDashboardReady(true);
+      }
     }
-  };
+  }, [mounted, hooksLoaded, isConnected, address, context, dashboardReady]);
 
-  // Handle successful wallet connection
+  // 🔧 Redirect to dashboard when ready
   useEffect(() => {
-    if (mounted && hooksLoaded && isConnected && address && !localStorage.getItem('paycrypt_wallet_address')) {
-      handleAuthSuccess();
+    if (dashboardReady && mounted) {
+      console.log('🚀 Redirecting to dashboard...');
+      router.replace("/dashboard");
     }
-  }, [mounted, hooksLoaded, isConnected, address]);
+  }, [dashboardReady, mounted, router]);
 
-  // Show loading while hooks are loading
-  if (!mounted || !hooksLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <div className="text-center">
-          <img src="/paycrypt.png" alt="Paycrypt" className="h-16 w-16 mx-auto mb-4 rounded-lg shadow-lg" />
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading Paycrypt...</p>
-          <p className="text-sm text-gray-500 mt-2">Initializing MiniKit</p>
-        </div>
+  // 🔧 Show loading until dashboard is ready
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="text-center">
+        <img src="/paycrypt.png" alt="Paycrypt" className="h-16 w-16 mx-auto mb-4 rounded-lg shadow-lg" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600 font-medium">Connecting to Paycrypt...</p>
+        <p className="text-sm text-gray-500 mt-2">
+          {!mounted ? 'Initializing...' : 
+           !hooksLoaded ? 'Loading MiniKit...' : 
+           !readyCalled ? 'Calling ready...' : 
+           !dashboardReady ? 'Setting up wallet...' : 'Opening dashboard...'}
+        </p>
       </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <div className="text-center">
-          <img src="/paycrypt.png" alt="Paycrypt" className="h-16 w-16 mx-auto mb-4 rounded-lg shadow-lg" />
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">
-            {isConnected ? 'Setting up your account...' : 'Connect your wallet to continue...'}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return <LandingPage onGetStarted={handleWalletAuth} />;
+    </div>
+  );
 }
 
 // 🔧 Export with dynamic loading to prevent SSR
-const HomePage = dynamic(() => Promise.resolve(HomePageClient), {
+export default dynamic(() => Promise.resolve(HomePageClient), {
   ssr: false,
   loading: () => (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -313,5 +265,3 @@ const HomePage = dynamic(() => Promise.resolve(HomePageClient), {
     </div>
   )
 });
-
-export default HomePage;
