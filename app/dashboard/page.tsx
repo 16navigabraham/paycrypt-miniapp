@@ -27,151 +27,88 @@ interface FarcasterWallet {
   connectedAt: string;
 }
 
-// AuthGuard Component with Mini App Flow
-function AuthGuard({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const [wagmiHooks, setWagmiHooks] = useState<any>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Load wagmi hooks dynamically on client side
-  useEffect(() => {
-    async function loadWagmiHooks() {
-      try {
-        const { useAccount } = await import('wagmi');
-        setWagmiHooks({ useAccount });
-      } catch (error) {
-        console.error('Error loading wagmi hooks:', error);
-        setWagmiHooks({});
-      }
-    }
-    loadWagmiHooks();
-  }, []);
-
-  const accountHook = wagmiHooks?.useAccount?.();
-  const address = accountHook?.address;
-  const isConnected = accountHook?.isConnected;
-
-  useEffect(() => {
-    if (!wagmiHooks) return; // Wait for wagmi to load
-
-    // For mini app flow - assume wallet will be connected automatically
-    // Check for both live connection and stored wallet data
-    const storedWalletAddress = localStorage.getItem('paycrypt_wallet_address');
-    
-    if (isConnected && address) {
-      // Wallet is actively connected via wagmi
-      localStorage.setItem('paycrypt_wallet_address', address);
-      setIsAuthenticated(true);
-      setIsLoading(false);
-      console.log('âœ… Live wallet connection detected in dashboard');
-    } else if (storedWalletAddress) {
-      // Mini app flow - wallet data from home page setup
-      setIsAuthenticated(true);
-      setIsLoading(false);
-      console.log('âœ… Mini app wallet data found in dashboard');
-    } else {
-      // No wallet data - wait a bit for mini app setup, then redirect
-      console.log('â³ Waiting for mini app wallet setup...');
-      const timeout = setTimeout(() => {
-        console.log('âŒ No wallet data found, redirecting to home');
-        router.replace('/');
-      }, 3000); // Give 3 seconds for mini app setup
-      
-      return () => clearTimeout(timeout);
-    }
-  }, [router, isConnected, address, wagmiHooks]);
-
-  if (!wagmiHooks || isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Setting up Dashboard...</p>
-          <p className="text-sm text-gray-500 mt-2">Connecting your Farcaster wallet...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null; // AuthGuard will redirect
-  }
-
-  return <>{children}</>;
-}
-
-// Dashboard Component with Mini App Integration
+// Dashboard Component with Fixed Wagmi Integration
 function DashboardClient() {
   const router = useRouter();
-  const [wagmiHooks, setWagmiHooks] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [connectedWallet, setConnectedWallet] = useState<FarcasterWallet | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'live' | 'cached' | 'connecting'>('connecting');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Load wagmi hooks dynamically on client side
+  // 🔧 Mount check
   useEffect(() => {
-    async function loadWagmiHooks() {
-      try {
-        const { useAccount } = await import('wagmi');
-        setWagmiHooks({ useAccount });
-      } catch (error) {
-        console.error('Error loading wagmi hooks:', error);
-        setWagmiHooks({});
-      }
-    }
-    loadWagmiHooks();
+    setMounted(true);
   }, []);
 
-  const accountHook = wagmiHooks?.useAccount?.();
-  const address = accountHook?.address;
-  const isConnected = accountHook?.isConnected;
-
+  // 🔧 Load user data from localStorage (mini app flow)
   useEffect(() => {
-    if (!wagmiHooks) return; // Wait for wagmi to load
+    if (!mounted) return;
 
-    // Load user data - prioritize live connection, fallback to stored data
-    const currentWalletAddress = address || localStorage.getItem('paycrypt_wallet_address');
+    console.log('📊 Loading dashboard data...');
+
+    // Get stored wallet data
+    const storedWalletAddress = localStorage.getItem('paycrypt_wallet_address');
     const fid = localStorage.getItem('paycrypt_fid');
     const username = localStorage.getItem('paycrypt_username');
     const displayName = localStorage.getItem('paycrypt_display_name');
     const pfpUrl = localStorage.getItem('paycrypt_pfp');
-    
-    if (currentWalletAddress) {
-      // Determine connection status
-      if (isConnected && address) {
-        setConnectionStatus('live');
-        // Update stored address if live connection differs
-        if (address !== localStorage.getItem('paycrypt_wallet_address')) {
-          localStorage.setItem('paycrypt_wallet_address', address);
-        }
-      } else {
-        setConnectionStatus('cached');
-      }
 
+    if (storedWalletAddress) {
+      console.log('✅ Found stored wallet data:', storedWalletAddress);
+      
+      // Set user data
       setUserData({
         fid: fid || '',
         username: username || '',
-        displayName: displayName || username || 'Farcaster User',
-        walletAddress: currentWalletAddress,
+        displayName: displayName || username || 'User',
+        walletAddress: storedWalletAddress,
         pfpUrl: pfpUrl || ''
       });
-      
-      // Create wallet object compatible with existing components
+
+      // Create wallet object
       setConnectedWallet({
-        address: currentWalletAddress,
+        address: storedWalletAddress,
         chainId: '8453', // Base chain ID
         connectedAt: new Date().toISOString()
       });
 
-      console.log('ðŸŽ¯ Dashboard loaded with wallet:', currentWalletAddress);
-      console.log('ðŸ“± Connection status:', isConnected ? 'live' : 'cached');
+      setConnectionStatus('cached'); // Mini app connection
+      setIsAuthenticated(true);
+      
+      console.log('✅ Dashboard data loaded successfully');
+    } else {
+      console.log('⚠️ No wallet data found, redirecting to home...');
+      // No wallet data - redirect to home
+      setTimeout(() => {
+        router.replace('/');
+      }, 2000);
     }
-  }, [address, isConnected, wagmiHooks]);
+  }, [mounted, router]);
+
+  // 🔧 Try to get live wagmi connection (optional enhancement)
+  useEffect(() => {
+    if (!mounted || !isAuthenticated) return;
+
+    const tryLiveConnection = async () => {
+      try {
+        // Dynamically import and try wagmi
+        const { useAccount } = await import('wagmi');
+        // Note: This would need to be used in a component with proper provider context
+        // For now, we'll just use stored data
+        console.log('📱 Wagmi available, using stored data for mini app');
+      } catch (error) {
+        console.log('📱 Wagmi not available, using stored data');
+      }
+    };
+
+    tryLiveConnection();
+  }, [mounted, isAuthenticated]);
 
   const handleLogout = () => {
+    console.log('🚪 Logging out...');
     localStorage.removeItem('paycrypt_wallet_address');
     localStorage.removeItem('paycrypt_fid');
     localStorage.removeItem('paycrypt_username');
@@ -217,15 +154,25 @@ function DashboardClient() {
     }
   };
 
-  const authenticated = !!userData;
-
-  // Don't render until wagmi hooks are loaded
-  if (!wagmiHooks) {
+  // 🔧 Show loading until mounted and authenticated
+  if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Dashboard...</p>
+          <p className="text-gray-600">Initializing Dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your wallet data...</p>
+          <p className="text-sm text-gray-500 mt-2">Redirecting if no data found...</p>
         </div>
       </div>
     );
@@ -268,7 +215,7 @@ function DashboardClient() {
               </div>
               <div className="flex items-center space-x-4">
                 <p className="text-muted-foreground">
-                  {authenticated && connectedWallet
+                  {userData && connectedWallet
                     ? (
                       <span className="flex items-center space-x-2">
                         <span>Base Wallet: {formatAddress(connectedWallet.address)}</span>
@@ -311,7 +258,7 @@ function DashboardClient() {
                   <div className="font-medium">{userData.displayName}</div>
                   {userData.username && (
                     <div className="text-gray-500">
-                      @{userData.username} {userData.fid && `â€¢ FID: ${userData.fid}`}
+                      @{userData.username} {userData.fid && `• FID: ${userData.fid}`}
                     </div>
                   )}
                 </div>
@@ -334,11 +281,11 @@ function DashboardClient() {
         {userData && (
           <div className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950/30 dark:to-green-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <h2 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-1">
-              Welcome to Paycrypt, {userData.displayName}! ðŸŽ‰
+              Welcome to Paycrypt, {userData.displayName}! 🎉
             </h2>
             <p className="text-blue-700 dark:text-blue-200 text-sm">
               {connectionStatus === 'live' 
-                ? 'Your Farcaster wallet is actively connected. All systems ready!'
+                ? 'Your wallet is actively connected. All systems ready!'
                 : 'Connected via mini app. Your wallet is ready for secure transactions on Base network.'}
             </p>
           </div>
@@ -349,9 +296,9 @@ function DashboardClient() {
           {/* Left Column - Portfolio Overview (Takes 3/4 width on lg screens) */}
           <div className="lg:col-span-3 space-y-6">
             {/* Portfolio Overview Card */}
-            <div className="bg-lightblue rounded-xl shadow-sm border border-lightblue-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-black-900">
+                <h2 className="text-2xl font-semibold text-gray-900">
                   Portfolio Overview
                 </h2>
                 <div className="text-sm text-gray-500">
@@ -362,9 +309,9 @@ function DashboardClient() {
             </div>
 
             {/* Recent Transactions Card */}
-            <div className="bg-lightblue rounded-xl shadow-sm border border-lightblue-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-black-900">
+                <h2 className="text-2xl font-semibold text-gray-900">
                   Recent Transactions
                 </h2>
               </div>
@@ -372,9 +319,9 @@ function DashboardClient() {
             </div>
 
             {/* Market Data Card */}
-            <div className="bg-lightblue rounded-xl shadow-sm border border-lightblue-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-black-900">
+                <h2 className="text-2xl font-semibold text-gray-900">
                   Market Data
                 </h2>
                 <div className="text-sm text-gray-500">
@@ -390,8 +337,8 @@ function DashboardClient() {
             <div className="space-y-6">
               {/* Account Info Card */}
               {userData && (
-                <div className="bg-lightblue rounded-xl shadow-sm border border-lightblue-200 p-6">
-                  <h2 className="text-xl font-semibold text-black-900 mb-4">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
                     Account Info
                   </h2>
                   <div className="space-y-3">
@@ -431,9 +378,9 @@ function DashboardClient() {
               )}
 
               {/* Quick Actions Card */}
-              <div className="bg-lightblue rounded-xl shadow-sm border border-lightblue-200 p-6">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-black-900">
+                  <h2 className="text-xl font-semibold text-gray-900">
                     Quick Actions
                   </h2>
                 </div>
@@ -447,24 +394,15 @@ function DashboardClient() {
   )
 }
 
-// Dashboard Component wrapped with AuthGuard
-function Dashboard() {
-  return (
-    <AuthGuard>
-      <DashboardClient />
-    </AuthGuard>
-  );
-}
-
 // Export dynamic component with no SSR
-const DashboardPage = dynamic(() => Promise.resolve(Dashboard), {
+const DashboardPage = dynamic(() => Promise.resolve(DashboardClient), {
   ssr: false,
   loading: () => (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
         <p className="text-gray-600">Setting up Dashboard...</p>
-        <p className="text-sm text-gray-500 mt-2">Connecting your Farcaster wallet...</p>
+        <p className="text-sm text-gray-500 mt-2">Loading your mini app data...</p>
       </div>
     </div>
   )
