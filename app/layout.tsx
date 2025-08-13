@@ -126,12 +126,26 @@ export default function RootLayout({
                     await sdk.actions.ready();
                     console.log('✅ Farcaster SDK ready() called successfully');
                     window.farcasterMiniAppSDK = sdk; // Make available globally
+                    
+                    // Additional mobile-specific ready calls
+                    setTimeout(() => {
+                      try {
+                        sdk.actions.ready();
+                        console.log('🔄 Mobile retry: Farcaster SDK ready() called again');
+                      } catch (e) {
+                        console.warn('⚠️ Mobile retry failed:', e);
+                      }
+                    }, 100);
+                    
+                    return;
                   }
                   
                 } catch (error) {
                   console.warn('⚠️ Farcaster SDK load failed:', error);
-                  sendFarcasterFallbackReady();
                 }
+                
+                // Enhanced fallback for mobile
+                sendFarcasterFallbackReady();
               }
 
               // Base SDK initialization  
@@ -176,17 +190,48 @@ export default function RootLayout({
                     { type: 'sdk_ready' },
                     { type: 'miniapp_ready' },
                     { action: 'ready' },
-                    { event: 'ready' }
+                    { event: 'ready' },
+                    // Additional mobile-specific formats
+                    { method: 'fc_ready' },
+                    { name: 'ready' },
+                    'ready' // Sometimes just a string works
                   ];
                   
-                  messages.forEach(msg => {
+                  messages.forEach((msg, index) => {
                     try {
                       window.parent.postMessage(msg, '*');
-                      console.log('📤 Farcaster fallback message sent:', msg.type || msg.action);
+                      console.log(\`📤 Farcaster fallback message \${index + 1} sent:\`, msg.type || msg.action || msg);
+                      
+                      // Mobile retry with delay
+                      setTimeout(() => {
+                        try {
+                          window.parent.postMessage(msg, '*');
+                        } catch (e) {
+                          // Silent retry
+                        }
+                      }, 50 * index);
+                      
                     } catch (e) {
                       console.warn('⚠️ Farcaster fallback failed:', e);
                     }
                   });
+                  
+                  // Additional global method attempts for mobile
+                  setTimeout(() => {
+                    const globalAttempts = [
+                      () => window.parent?.postMessage({ type: 'ready', source: 'miniapp' }, '*'),
+                      () => window.parent?.postMessage({ ready: true }, '*'),
+                      () => window.parent?.postMessage({ status: 'ready', timestamp: Date.now() }, '*')
+                    ];
+                    
+                    globalAttempts.forEach(attempt => {
+                      try {
+                        attempt();
+                      } catch (e) {
+                        // Silent
+                      }
+                    });
+                  }, 200);
                 }
               }
 

@@ -9,9 +9,9 @@ import {Label} from "@/components/ui/label"
 import {Badge} from "@/components/ui/badge"
 import { Loader2, AlertCircle } from "lucide-react"
 import BackToDashboard from "@/components/BackToDashboard"
-import AuthGuard from "@/components/AuthGuard"
 import { Input } from "@/components/ui/input"
 
+import { useSafeWagmi, useSafeWriteContract, useSafeReadContract, useSafeWaitForTransaction } from '@/hooks/useSafeWagmi';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
 import { ERC20_ABI } from "@/config/erc20Abi";
 import { parseUnits, toBytes, toHex, Hex, fromHex, formatUnits } from 'viem';
@@ -46,11 +46,9 @@ async function fetchPrices(tokenList: TokenConfig[]): Promise<Record<string, any
   }
 }
 
-// Client-side only component with wagmi hooks
+// Client-side only component with safe wagmi hooks
 function AirtimePageClient() {
-  // Import wagmi hooks dynamically only on client side
-  const [wagmiHooks, setWagmiHooks] = useState<any>(null);
-  
+  const [mounted, setMounted] = useState(false);
   const [activeTokens, setActiveTokens] = useState<TokenConfig[]>([]);
   const [selectedToken, setSelectedToken] = useState<string>(""); // Stores the address of the selected token
   const [network, setNetwork] = useState("");
@@ -67,45 +65,17 @@ function AirtimePageClient() {
   const [transactionHashForModal, setTransactionHashForModal] = useState<Hex | undefined>(undefined);
   const backendRequestSentRef = useRef<Hex | null>(null);
 
-  // Load wagmi hooks dynamically on client side
+  // Safe wagmi hooks
+  const { address, isConnected, isLoading: wagmiLoading } = useSafeWagmi();
+
+  // Set mounted
   useEffect(() => {
-    async function loadWagmiHooks() {
-      try {
-        const { useAccount, useConnect, useWriteContract, useWaitForTransactionReceipt, useReadContract } = await import('wagmi');
-        const { useBaseNetworkEnforcer } = await import('@/hooks/useBaseNetworkEnforcer');
-        
-        setWagmiHooks({
-          useAccount,
-          useConnect,
-          useWriteContract,
-          useWaitForTransactionReceipt,
-          useReadContract,
-          useBaseNetworkEnforcer
-        });
-      } catch (error) {
-        console.error('Error loading wagmi hooks:', error);
-      }
-    }
-    
-    loadWagmiHooks();
+    setMounted(true);
   }, []);
-
-  // Only use wagmi hooks after they're loaded
-  const accountHook = wagmiHooks?.useAccount();
-  const connectHook = wagmiHooks?.useConnect();
-  const baseNetworkHook = wagmiHooks?.useBaseNetworkEnforcer();
-
-  const address = accountHook?.address;
-  const isConnected = accountHook?.isConnected;
-  const connect = connectHook?.connect;
-  const connectors = connectHook?.connectors;
-  const isOnBaseChain = baseNetworkHook?.isOnBaseChain;
-  const isSwitchingChain = baseNetworkHook?.isSwitchingChain;
-  const promptSwitchToBase = baseNetworkHook?.promptSwitchToBase;
 
   // Load tokens and prices on initial mount
   useEffect(() => {
-    if (!wagmiHooks) return; // Wait for wagmi hooks to load
+    if (!mounted) return;
     
     async function loadTokensAndPrices() {
       setLoading(true);
@@ -123,7 +93,7 @@ function AirtimePageClient() {
       }
     }
     loadTokensAndPrices();
-  }, [wagmiHooks]);
+  }, [mounted]);
 
   // Generate requestId when form has data
   useEffect(() => {
@@ -142,35 +112,35 @@ function AirtimePageClient() {
   const tokenAmountForOrder: bigint = selectedTokenObj ? parseUnits(cryptoNeeded.toFixed(selectedTokenObj.decimals), selectedTokenObj.decimals) : BigInt(0);
   const bytes32RequestId: Hex = requestId ? toHex(toBytes(requestId), { size: 32 }) : toHex(toBytes(""), { size: 32 });
 
-  // Wagmi hooks - only use after wagmi is loaded
-  const readContractHook = wagmiHooks?.useReadContract({
+  // Safe wagmi contract hooks
+  const readContractData = useSafeReadContract({
     address: CONTRACT_ADDRESS,
     abi: CONTRACT_ABI,
     functionName: 'getOrder',
     args: [fromHex(bytes32RequestId, 'bigint')],
-    query: { enabled: Boolean(requestId && address && wagmiHooks) },
+    query: { enabled: Boolean(requestId && address) },
   });
 
-  const writeContractApproveHook = wagmiHooks?.useWriteContract();
-  const writeContractMainHook = wagmiHooks?.useWriteContract();
+  const writeContractApprove = useSafeWriteContract();
+  const writeContractMain = useSafeWriteContract();
 
-  const waitForApprovalReceiptHook = wagmiHooks?.useWaitForTransactionReceipt({
-    hash: writeContractApproveHook?.data as Hex,
+  const waitForApprovalReceipt = useSafeWaitForTransaction({
+    hash: writeContractApprove?.data as Hex,
     query: {
-      enabled: Boolean(writeContractApproveHook?.data),
+      enabled: Boolean(writeContractApprove?.data),
       refetchInterval: 1000,
     },
   });
 
-  const waitForMainReceiptHook = wagmiHooks?.useWaitForTransactionReceipt({
-    hash: writeContractMainHook?.data as Hex,
+  const waitForMainReceipt = useSafeWaitForTransaction({
+    hash: writeContractMain?.data as Hex,
     query: {
-      enabled: Boolean(writeContractMainHook?.data),
+      enabled: Boolean(writeContractMain?.data),
       refetchInterval: 1000,
     },
   });
 
-  const existingOrder = readContractHook?.data;
+  const existingOrder = readContractData?.data;
 
   // Handle backend API call after successful transaction
   const handlePostTransaction = useCallback(async (transactionHash: Hex) => {
@@ -231,24 +201,24 @@ function AirtimePageClient() {
 
   // Effect to monitor approval transaction status
   useEffect(() => {
-    if (!showTransactionModal || !writeContractApproveHook || !waitForApprovalReceiptHook) return;
+    if (!showTransactionModal || !writeContractApprove || !waitForApprovalReceipt) return;
 
-    if (writeContractApproveHook.isPending) {
+    if (writeContractApprove.isPending) {
       setTxStatus('waitingForApprovalSignature');
       setTransactionHashForModal(undefined);
       setTransactionError(null);
       setBackendMessage(null);
       toast.info("Awaiting token approval signature...");
       backendRequestSentRef.current = null;
-    } else if (writeContractApproveHook.data && !waitForApprovalReceiptHook.isSuccess && !waitForApprovalReceiptHook.isLoading) {
+    } else if (writeContractApprove.data && !waitForApprovalReceipt.isSuccess && !waitForApprovalReceipt.isLoading) {
       setTxStatus('approving');
-      setTransactionHashForModal(writeContractApproveHook.data);
+      setTransactionHashForModal(writeContractApprove.data);
       toast.loading("Token approval sent, waiting for confirmation...", { id: 'approval-status' });
-    } else if (waitForApprovalReceiptHook.isLoading) {
+    } else if (waitForApprovalReceipt.isLoading) {
       setTxStatus('approving');
-      setTransactionHashForModal(writeContractApproveHook.data);
+      setTransactionHashForModal(writeContractApprove.data);
       toast.loading("Token approval confirming on blockchain...", { id: 'approval-status' });
-    } else if (waitForApprovalReceiptHook.isSuccess) {
+    } else if (waitForApprovalReceipt.isSuccess) {
       setTxStatus('approvalSuccess');
       toast.success("Token approved! Proceeding with payment...", { id: 'approval-status' });
       
@@ -264,7 +234,7 @@ function AirtimePageClient() {
         
         try {
           setTxStatus('waitingForSignature');
-          writeContractMainHook?.writeContract({
+          writeContractMain?.writeContract({
             address: CONTRACT_ADDRESS,
             abi: CONTRACT_ABI,
             functionName: 'createOrder',
@@ -284,84 +254,57 @@ function AirtimePageClient() {
         }
       }, 2000); // 2 second delay
       
-    } else if (writeContractApproveHook.isError || waitForApprovalReceiptHook.isError) {
+    } else if (writeContractApprove.isError || waitForApprovalReceipt.isError) {
       setTxStatus('error');
-      const errorMsg = (writeContractApproveHook.error?.message || waitForApprovalReceiptHook.error?.message || "Token approval failed").split('\n')[0];
+      const errorMsg = (writeContractApprove.error?.message || waitForApprovalReceipt.error?.message || "Token approval failed").split('\n')[0];
       setTransactionError(errorMsg);
       toast.error(`Approval failed: ${errorMsg}`, { id: 'approval-status' });
     }
-  }, [showTransactionModal, writeContractApproveHook, waitForApprovalReceiptHook, bytes32RequestId, selectedTokenObj?.address, tokenAmountForOrder, writeContractMainHook]);
+  }, [showTransactionModal, writeContractApprove, waitForApprovalReceipt, bytes32RequestId, selectedTokenObj?.address, tokenAmountForOrder, writeContractMain]);
 
   // Effect to monitor main transaction status
   useEffect(() => {
-    if (!showTransactionModal || !writeContractMainHook || !waitForMainReceiptHook) return;
+    if (!showTransactionModal || !writeContractMain || !waitForMainReceipt) return;
     
     // Skip if we're in approval phase
     if (['waitingForApprovalSignature', 'approving', 'approvalSuccess'].includes(txStatus)) {
       return;
     }
 
-    if (writeContractMainHook.isPending) {
+    if (writeContractMain.isPending) {
       setTxStatus('waitingForSignature');
       setTransactionHashForModal(undefined);
       setTransactionError(null);
       setBackendMessage(null);
       toast.info("Awaiting wallet signature for payment...");
       backendRequestSentRef.current = null;
-    } else if (writeContractMainHook.data && !waitForMainReceiptHook.isSuccess && !waitForMainReceiptHook.isLoading) {
+    } else if (writeContractMain.data && !waitForMainReceipt.isSuccess && !waitForMainReceipt.isLoading) {
       setTxStatus('sending');
-      setTransactionHashForModal(writeContractMainHook.data);
+      setTransactionHashForModal(writeContractMain.data);
       toast.loading("Payment transaction sent, waiting for blockchain confirmation...", { id: 'tx-status' });
-    } else if (waitForMainReceiptHook.isLoading) {
+    } else if (waitForMainReceipt.isLoading) {
       setTxStatus('confirming');
-      setTransactionHashForModal(writeContractMainHook.data);
+      setTransactionHashForModal(writeContractMain.data);
       toast.loading("Payment transaction confirming on blockchain...", { id: 'tx-status' });
-    } else if (waitForMainReceiptHook.isSuccess) {
+    } else if (waitForMainReceipt.isSuccess) {
       if (txStatus !== 'backendProcessing' && txStatus !== 'backendSuccess' && txStatus !== 'backendError') {
         setTxStatus('success');
-        setTransactionHashForModal(writeContractMainHook.data);
+        setTransactionHashForModal(writeContractMain.data);
         toast.success("Blockchain transaction confirmed! Processing order...", { id: 'tx-status' });
         
         // Process backend transaction
-        if (writeContractMainHook.data) {
-          handlePostTransaction(writeContractMainHook.data);
+        if (writeContractMain.data) {
+          handlePostTransaction(writeContractMain.data);
         }
       }
-    } else if (writeContractMainHook.isError || waitForMainReceiptHook.isError) {
+    } else if (writeContractMain.isError || waitForMainReceipt.isError) {
       setTxStatus('error');
-      const errorMsg = (writeContractMainHook.error?.message?.split('\n')[0] || waitForMainReceiptHook.error?.message?.split('\n')[0] || "Transaction failed").split('\n')[0];
+      const errorMsg = (writeContractMain.error?.message?.split('\n')[0] || waitForMainReceipt.error?.message?.split('\n')[0] || "Transaction failed").split('\n')[0];
       setTransactionError(errorMsg);
-      setTransactionHashForModal(writeContractMainHook.data);
+      setTransactionHashForModal(writeContractMain.data);
       toast.error(`Transaction failed: ${errorMsg}`, { id: 'tx-status' });
     }
-  }, [showTransactionModal, writeContractMainHook, waitForMainReceiptHook, txStatus, handlePostTransaction]);
-
-  // Wagmi wallet connection
-  const ensureWalletConnected = async () => {
-    if (!isConnected) {
-      toast.error("Please connect your wallet to proceed.");
-      try {
-        // Try to connect with the first available connector (usually Farcaster in mini apps)
-        const farcasterConnector = connectors?.find((c: any) => c.name.includes('Farcaster'));
-        const connectorToUse = farcasterConnector || connectors?.[0];
-        if (connectorToUse && connect) {
-          connect({ connector: connectorToUse });
-        }
-      } catch (error) {
-        console.error('Error connecting wallet:', error);
-      }
-      return false;
-    }
-    if (!address) {
-      toast.error("No wallet address found. Please ensure wallet is connected.");
-      return false;
-    }
-    if (!isOnBaseChain) {
-      promptSwitchToBase?.();
-      return false;
-    }
-    return true;
-  };
+  }, [showTransactionModal, writeContractMain, waitForMainReceipt, txStatus, handlePostTransaction]);
 
   const handlePurchase = async () => {
     setShowTransactionModal(true);
@@ -370,13 +313,13 @@ function AirtimePageClient() {
     setTxStatus('idle');
     backendRequestSentRef.current = null;
 
-    const walletConnectedAndOnBase = await ensureWalletConnected();
-    if (!walletConnectedAndOnBase) {
+    if (!isConnected || !address) {
+      toast.error("Please ensure your wallet is connected (mini app should handle this automatically).");
       setShowTransactionModal(false);
       return;
     }
 
-    if (!address || !requestId || !selectedTokenObj || amountNGN <= 0) {
+    if (!requestId || !selectedTokenObj || amountNGN <= 0) {
       toast.error("Please check all form fields and wallet connection.");
       setTxStatus('error');
       return;
@@ -430,8 +373,8 @@ function AirtimePageClient() {
     console.log("----------------------------------------");
 
     // Reset previous transaction states
-    writeContractApproveHook?.reset();
-    writeContractMainHook?.reset();
+    writeContractApprove?.reset();
+    writeContractMain?.reset();
 
     if (!selectedTokenObj.address) {
       toast.error("Selected crypto has no contract address.");
@@ -449,7 +392,7 @@ function AirtimePageClient() {
       
       console.log("Approving unlimited amount for future transactions");
       
-      writeContractApproveHook?.writeContract({
+      writeContractApprove?.writeContract({
         address: selectedTokenObj.address as Hex,
         abi: ERC20_ABI,
         functionName: 'approve',
@@ -487,242 +430,247 @@ function AirtimePageClient() {
 
   const isButtonDisabled = loading || !canPay ||
                            ['waitingForApprovalSignature', 'approving', 'waitingForSignature', 'sending', 'confirming', 'backendProcessing'].includes(txStatus) ||
-                           writeContractApproveHook?.isPending || waitForApprovalReceiptHook?.isLoading || 
-                           writeContractMainHook?.isPending || waitForMainReceiptHook?.isLoading || 
-                           !isOnBaseChain || isSwitchingChain;
+                           writeContractApprove?.isPending || waitForApprovalReceipt?.isLoading || 
+                           writeContractMain?.isPending || waitForMainReceipt?.isLoading ||
+                           wagmiLoading;
 
-  // Don't render until wagmi hooks are loaded
-  if (!wagmiHooks) {
+  // Don't render until mounted and basic loading is done
+  if (!mounted || wagmiLoading) {
     return (
-      <AuthGuard>
-        <div className="container py-10 max-w-xl mx-auto">
-          <div className="flex items-center justify-center p-10">
-            <Loader2 className="w-8 h-8 animate-spin mr-2" />
-            <span>Loading...</span>
-          </div>
+      <div className="container py-10 max-w-xl mx-auto">
+        <div className="flex items-center justify-center p-10">
+          <Loader2 className="w-8 h-8 animate-spin mr-2" />
+          <span>Loading...</span>
         </div>
-      </AuthGuard>
+      </div>
     );
   }
 
   if (loading) return (
-    <AuthGuard>
-      <div className="container py-10 max-w-xl mx-auto">
-        <div className="flex items-center justify-center p-10">
-          <Loader2 className="w-8 h-8 animate-spin mr-2" />
-          <span>Loading active tokens...</span>
-        </div>
+    <div className="container py-10 max-w-xl mx-auto">
+      <div className="flex items-center justify-center p-10">
+        <Loader2 className="w-8 h-8 animate-spin mr-2" />
+        <span>Loading active tokens...</span>
       </div>
-    </AuthGuard>
+    </div>
   );
 
   return (
-    <AuthGuard>
-      <div className="container py-10 max-w-xl mx-auto">
-        <BackToDashboard />
-        <h1 className="text-3xl font-bold mb-4">Buy Airtime</h1>
-        <p className="text-muted-foreground mb-8">
-          Purchase airtime using supported ERC20 cryptocurrencies on Base chain.
-        </p>
-        <Card>
-          <CardHeader>
-            <CardTitle>Crypto to Airtime Payment</CardTitle>
-            <CardDescription>
-              Preview and calculate your airtime purchase with crypto
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Token selection */}
-            <div className="space-y-2">
-              <Label htmlFor="token-select">Pay With</Label>
-              <Select value={selectedToken} onValueChange={setSelectedToken}>
-                <SelectTrigger id="token-select">
-                  <SelectValue placeholder="Select ERC20 token" />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeTokens.length === 0 ? (
-                    <SelectItem value="" disabled>No ERC20 tokens available</SelectItem>
-                  ) : (
-                    activeTokens.map(token => (
-                      <SelectItem key={token.address} value={token.address}>
-                        {token.symbol} - {token.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {activeTokens.length === 0 && !loading && (
-                <p className="text-sm text-yellow-600">
-                  No active ERC20 tokens found from contract.
-                </p>
-              )}
+    <div className="container py-10 max-w-xl mx-auto">
+      <BackToDashboard />
+      <h1 className="text-3xl font-bold mb-4">Buy Airtime</h1>
+      <p className="text-muted-foreground mb-8">
+        Purchase airtime using supported ERC20 cryptocurrencies on Base chain.
+      </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Crypto to Airtime Payment</CardTitle>
+          <CardDescription>
+            Preview and calculate your airtime purchase with crypto
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Connection Status */}
+          {address && (
+            <div className="text-sm p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-green-700">
+                  Wallet Connected: {address.slice(0, 6)}...{address.slice(-4)}
+                </span>
+              </div>
             </div>
+          )}
 
-            {/* Network provider */}
-            <div className="space-y-2">
-              <Label htmlFor="network-select">Network Provider</Label>
-              <Select value={network} onValueChange={setNetwork}>
-                <SelectTrigger id="network-select">
-                  <SelectValue placeholder="Select network" />
-                </SelectTrigger>
-                <SelectContent>
-                  {NETWORKS.map(n => (
-                    <SelectItem key={n.serviceID} value={n.serviceID}>
-                      {n.name}
+          {/* Token selection */}
+          <div className="space-y-2">
+            <Label htmlFor="token-select">Pay With</Label>
+            <Select value={selectedToken} onValueChange={setSelectedToken}>
+              <SelectTrigger id="token-select">
+                <SelectValue placeholder="Select ERC20 token" />
+              </SelectTrigger>
+              <SelectContent>
+                {activeTokens.length === 0 ? (
+                  <SelectItem value="" disabled>No ERC20 tokens available</SelectItem>
+                ) : (
+                  activeTokens.map(token => (
+                    <SelectItem key={token.address} value={token.address}>
+                      {token.symbol} - {token.name}
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {activeTokens.length === 0 && !loading && (
+              <p className="text-sm text-yellow-600">
+                No active ERC20 tokens found from contract.
+              </p>
+            )}
+          </div>
 
-            {/* Amount input */}
-            <div className="space-y-2">
-              <Label htmlFor="amount-input">Amount (NGN)</Label>
-              <Input
-                id="amount-input"
-                type="number"
-                placeholder="Enter amount (₦100 - ₦50,000)"
-                value={amount}
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val === "" || val === "0") {
-                    setAmount("");
-                  } else {
-                    const numVal = Math.max(0, parseInt(val));
-                    setAmount(String(Math.min(numVal, 50000))); // Cap at 50k
-                  }
-                }}
-                min="100"
-                max="50000"
-                disabled={!selectedTokenObj}
-              />
-              {amountNGN > 0 && priceNGN && selectedTokenObj && (
-                <div className="text-sm text-muted-foreground flex items-center justify-between">
-                  <span>
-                    You will pay: ~{cryptoNeeded.toFixed(selectedTokenObj.decimals)} {selectedTokenObj.symbol}
-                  </span>
-                  <Badge variant="secondary">
-                    1 {selectedTokenObj.symbol} = ₦{priceNGN?.toLocaleString()}
+          {/* Network provider */}
+          <div className="space-y-2">
+            <Label htmlFor="network-select">Network Provider</Label>
+            <Select value={network} onValueChange={setNetwork}>
+              <SelectTrigger id="network-select">
+                <SelectValue placeholder="Select network" />
+              </SelectTrigger>
+              <SelectContent>
+                {NETWORKS.map(n => (
+                  <SelectItem key={n.serviceID} value={n.serviceID}>
+                    {n.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Amount input */}
+          <div className="space-y-2">
+            <Label htmlFor="amount-input">Amount (NGN)</Label>
+            <Input
+              id="amount-input"
+              type="number"
+              placeholder="Enter amount (₦100 - ₦50,000)"
+              value={amount}
+              onChange={e => {
+                const val = e.target.value;
+                if (val === "" || val === "0") {
+                  setAmount("");
+                } else {
+                  const numVal = Math.max(0, parseInt(val));
+                  setAmount(String(Math.min(numVal, 50000))); // Cap at 50k
+                }
+              }}
+              min="100"
+              max="50000"
+              disabled={!selectedTokenObj}
+            />
+            {amountNGN > 0 && priceNGN && selectedTokenObj && (
+              <div className="text-sm text-muted-foreground flex items-center justify-between">
+                <span>
+                  You will pay: ~{cryptoNeeded.toFixed(selectedTokenObj.decimals)} {selectedTokenObj.symbol}
+                </span>
+                <Badge variant="secondary">
+                  1 {selectedTokenObj.symbol} = ₦{priceNGN?.toLocaleString()}
+                </Badge>
+              </div>
+            )}
+            {amountNGN > 0 && amountNGN < 100 && (
+              <p className="text-sm text-red-500">Minimum amount is ₦100.</p>
+            )}
+            {amountNGN > 50000 && (
+              <p className="text-sm text-red-500">Maximum amount is ₦50,000.</p>
+            )}
+          </div>
+
+          {/* Phone number input */}
+          <div className="space-y-2">
+            <Label htmlFor="phone-input">Phone Number</Label>
+            <Input
+              id="phone-input"
+              type="tel"
+              placeholder="Enter phone number (11 digits)"
+              value={phone}
+              onChange={e => {
+                const v = e.target.value.replace(/\D/g, "")
+                setPhone(v.slice(0, 11))
+              }}
+              maxLength={11}
+            />
+            {phone && phone.length < 10 && (
+              <p className="text-sm text-red-500">Phone number must be at least 10 digits.</p>
+            )}
+          </div>
+
+          {/* Compulsory token approval info */}
+          {selectedTokenObj && (
+            <div className="text-sm p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-blue-500" />
+                <span className="text-blue-700">
+                  Token approval required for all ERC20 transactions
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Transaction summary */}
+          <div className="border-t pt-4 space-y-2 text-sm">
+            {requestId && (
+              <div className="flex justify-between">
+                <span>Request ID:</span>
+                <span className="text-muted-foreground font-mono text-xs">{requestId}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span>Amount (NGN):</span>
+              <span>
+                {amountNGN > 0 ? `₦${amountNGN.toLocaleString()}` : "--"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>You will pay:</span>
+              <span>
+                {cryptoNeeded > 0 && selectedTokenObj ? (
+                  <Badge variant="outline">
+                    {cryptoNeeded.toFixed(selectedTokenObj.decimals)} {selectedTokenObj.symbol}
                   </Badge>
-                </div>
-              )}
-              {amountNGN > 0 && amountNGN < 100 && (
-                <p className="text-sm text-red-500">Minimum amount is ₦100.</p>
-              )}
-              {amountNGN > 50000 && (
-                <p className="text-sm text-red-500">Maximum amount is ₦50,000.</p>
-              )}
+                ) : (
+                  "--"
+                )}
+              </span>
             </div>
-
-            {/* Phone number input */}
-            <div className="space-y-2">
-              <Label htmlFor="phone-input">Phone Number</Label>
-              <Input
-                id="phone-input"
-                type="tel"
-                placeholder="Enter phone number (11 digits)"
-                value={phone}
-                onChange={e => {
-                  const v = e.target.value.replace(/\D/g, "")
-                  setPhone(v.slice(0, 11))
-                }}
-                maxLength={11}
-              />
-              {phone && phone.length < 10 && (
-                <p className="text-sm text-red-500">Phone number must be at least 10 digits.</p>
-              )}
-            </div>
-
-            {/* Compulsory token approval info */}
             {selectedTokenObj && (
-              <div className="text-sm p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-blue-500" />
-                  <span className="text-blue-700">
-                    Token approval required for all ERC20 transactions
-                  </span>
-                </div>
+              <div className="flex justify-between">
+                <span>Network:</span>
+                <span>{NETWORKS.find(n => n.serviceID === network)?.name || network || "--"}</span>
               </div>
             )}
-
-            {/* Transaction summary */}
-            <div className="border-t pt-4 space-y-2 text-sm">
-              {requestId && (
-                <div className="flex justify-between">
-                  <span>Request ID:</span>
-                  <span className="text-muted-foreground font-mono text-xs">{requestId}</span>
-                </div>
-              )}
+            {phone && (
               <div className="flex justify-between">
-                <span>Amount (NGN):</span>
-                <span>
-                  {amountNGN > 0 ? `₦${amountNGN.toLocaleString()}` : "--"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>You will pay:</span>
-                <span>
-                  {cryptoNeeded > 0 && selectedTokenObj ? (
-                    <Badge variant="outline">
-                      {cryptoNeeded.toFixed(selectedTokenObj.decimals)} {selectedTokenObj.symbol}
-                    </Badge>
-                  ) : (
-                    "--"
-                  )}
-                </span>
-              </div>
-              {selectedTokenObj && (
-                <div className="flex justify-between">
-                  <span>Network:</span>
-                  <span>{NETWORKS.find(n => n.serviceID === network)?.name || network || "--"}</span>
-                </div>
-              )}
-              {phone && (
-                <div className="flex justify-between">
-                  <span>Phone:</span>
-                  <span className="font-mono">{phone}</span>
-                </div>
-              )}
-            </div>
-            
-            <Button
-              className="w-full"
-              onClick={handlePurchase}
-              disabled={isButtonDisabled}
-            >
-              {isSwitchingChain ? "Switching Network..." :
-              !isOnBaseChain ? "Switch to Base Network" :
-              txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval Signature..." :
-              txStatus === 'approving' ? "Approving Token..." :
-              txStatus === 'approvalSuccess' ? "Approval Complete - Starting Payment..." :
-              txStatus === 'waitingForSignature' ? "Awaiting Payment Signature..." :
-              txStatus === 'sending' ? "Sending Payment..." :
-              txStatus === 'confirming' ? "Confirming Payment..." :
-              txStatus === 'success' ? "Payment Confirmed!" :
-              txStatus === 'backendProcessing' ? "Processing Order..." :
-              txStatus === 'backendSuccess' ? "Airtime Delivered Successfully!" :
-              txStatus === 'backendError' ? "Order Failed - Try Again" :
-              txStatus === 'error' ? "Transaction Failed - Try Again" :
-              canPay ? "Approve & Purchase Airtime" :
-              "Fill all details"}
-            </Button>
-
-            {/* Active tokens info */}
-            {activeTokens.length > 0 && (
-              <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
-                <p className="font-medium mb-1">Active ERC20 Tokens ({activeTokens.length}):</p>
-                <p>{activeTokens.map(t => t.symbol).join(", ")}</p>
+                <span>Phone:</span>
+                <span className="font-mono">{phone}</span>
               </div>
             )}
+          </div>
+          
+          <Button
+            className="w-full"
+            onClick={handlePurchase}
+            disabled={isButtonDisabled}
+          >
+            {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval Signature..." :
+            txStatus === 'approving' ? "Approving Token..." :
+            txStatus === 'approvalSuccess' ? "Approval Complete - Starting Payment..." :
+            txStatus === 'waitingForSignature' ? "Awaiting Payment Signature..." :
+            txStatus === 'sending' ? "Sending Payment..." :
+            txStatus === 'confirming' ? "Confirming Payment..." :
+            txStatus === 'success' ? "Payment Confirmed!" :
+            txStatus === 'backendProcessing' ? "Processing Order..." :
+            txStatus === 'backendSuccess' ? "Airtime Delivered Successfully!" :
+            txStatus === 'backendError' ? "Order Failed - Try Again" :
+            txStatus === 'error' ? "Transaction Failed - Try Again" :
+            !isConnected ? "Wallet Not Connected" :
+            canPay ? "Approve & Purchase Airtime" :
+            "Fill all details"}
+          </Button>
 
-            {/* Transaction flow info */}
-            <div className="text-xs text-muted-foreground p-3 bg-blue-50 rounded-lg">
-              <p className="font-medium mb-1">Transaction Flow:</p>
-              <p>1. Token Approval → 2. Payment Transaction → 3. Order Processing</p>
+          {/* Active tokens info */}
+          {activeTokens.length > 0 && (
+            <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
+              <p className="font-medium mb-1">Active ERC20 Tokens ({activeTokens.length}):</p>
+              <p>{activeTokens.map(t => t.symbol).join(", ")}</p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+
+          {/* Transaction flow info */}
+          <div className="text-xs text-muted-foreground p-3 bg-blue-50 rounded-lg">
+            <p className="font-medium mb-1">Transaction Flow:</p>
+            <p>1. Token Approval → 2. Payment Transaction → 3. Order Processing</p>
+          </div>
+        </CardContent>
+      </Card>
       
       <TransactionStatusModal
         isOpen={showTransactionModal}
@@ -733,7 +681,7 @@ function AirtimePageClient() {
         backendMessage={backendMessage}
         requestId={requestId}
       />
-    </AuthGuard>
+    </div>
   )
 }
 
@@ -741,14 +689,12 @@ function AirtimePageClient() {
 const AirtimePage = dynamic(() => Promise.resolve(AirtimePageClient), {
   ssr: false,
   loading: () => (
-    <AuthGuard>
-      <div className="container py-10 max-w-xl mx-auto">
-        <div className="flex items-center justify-center p-10">
-          <Loader2 className="w-8 h-8 animate-spin mr-2" />
-          <span>Loading...</span>
-        </div>
+    <div className="container py-10 max-w-xl mx-auto">
+      <div className="flex items-center justify-center p-10">
+        <Loader2 className="w-8 h-8 animate-spin mr-2" />
+        <span>Loading...</span>
       </div>
-    </AuthGuard>
+    </div>
   )
 });
 

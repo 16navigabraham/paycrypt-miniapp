@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { DollarSign, Wallet, Eye, EyeOff } from "lucide-react" // Import Eye and EyeOff icons
-import { Button } from "@/components/ui/button" // Import Button component for the toggles
+import { DollarSign, Wallet, Eye, EyeOff } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useSafeWagmi } from "@/hooks/useSafeWagmi"
 
 // Base chain contract addresses (update if needed)
 const USDT_CONTRACT = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
@@ -49,19 +50,33 @@ async function fetchPrices() {
 }
 
 export function PortfolioOverview({ wallet }: { wallet: any }) {
+	const [mounted, setMounted] = useState(false);
 	const [balances, setBalances] = useState<any[]>([])
 	const [prices, setPrices] = useState<any>({})
 	const [loading, setLoading] = useState(false)
-    const [showBalance, setShowBalance] = useState(true) // New state: true to show, false to hide
-    const [currencyDisplay, setCurrencyDisplay] = useState<'usd' | 'ngn'>('usd') // New state: 'usd' or 'ngn'
+    const [showBalance, setShowBalance] = useState(true)
+    const [currencyDisplay, setCurrencyDisplay] = useState<'usd' | 'ngn'>('usd')
+
+	// Use safe wagmi hook
+	const { address } = useSafeWagmi();
+
+	// Set mounted
+	useEffect(() => {
+		setMounted(true);
+	}, []);
 
 	useEffect(() => {
-		if (!wallet?.address) return
+		if (!mounted) return;
+		
+		// Use address from safe wagmi hook or wallet prop
+		const walletAddress = address || wallet?.address;
+		if (!walletAddress) return;
+		
 		setLoading(true)
 		Promise.all([
-			fetchEthBalance(wallet.address),
-			fetchErc20Balance(wallet.address, USDT_CONTRACT, 6),
-			fetchErc20Balance(wallet.address, USDC_CONTRACT, 6),
+			fetchEthBalance(walletAddress),
+			fetchErc20Balance(walletAddress, USDT_CONTRACT, 6),
+			fetchErc20Balance(walletAddress, USDC_CONTRACT, 6),
 			fetchPrices(),
 		]).then(([eth, usdt, usdc, priceData]) => {
 			setBalances([
@@ -71,8 +86,11 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
 			])
 			setPrices(priceData)
 			setLoading(false)
+		}).catch(error => {
+			console.error('Error loading portfolio data:', error);
+			setLoading(false);
 		})
-	}, [wallet])
+	}, [mounted, address, wallet])
 
 	 // Calculate total value in USD
     const totalValueUSD = balances.reduce((sum, b) => {
@@ -87,10 +105,11 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
         const price = token && prices[token.coingeckoId]?.ngn ? prices[token.coingeckoId].ngn : 0
         return sum + b.balance * price
     }, 0)
+    
     // Helper function to format the value based on visibility and selected currency
     const formatValue = (value: number, currency: 'usd' | 'ngn') => {
         if (!showBalance) {
-            return "********" // Display hidden text
+            return "********"
         }
         return currency === 'usd'
             ? `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
@@ -101,10 +120,31 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
     const toggleBalanceVisibility = () => setShowBalance((prev) => !prev)
     const toggleCurrencyDisplay = () => setCurrencyDisplay((prev) => (prev === 'usd' ? 'ngn' : 'usd'))
 
+	// Don't render until mounted
+	if (!mounted) {
+		return (
+			<Card className="shadow-lg border-2 hover:shadow-xl transition-shadow">
+				<CardHeader>
+					<CardTitle className="flex items-center space-x-2">
+						<Wallet className="h-5 w-5 text-blue-600" />
+						<span>Portfolio Overview</span>
+					</CardTitle>
+					<CardDescription>Loading your portfolio...</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<div className="animate-pulse space-y-4">
+						<div className="h-8 bg-gray-200 rounded"></div>
+						<div className="h-4 bg-gray-200 rounded"></div>
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
+
 return (
         <Card className="shadow-lg border-2 hover:shadow-xl transition-shadow">
             <CardHeader>
-                <CardTitle className="flex items-center justify-between"> {/* Added justify-between */}
+                <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                         <Wallet className="h-5 w-5 text-blue-600" />
                         <span>Portfolio Overview</span>
@@ -123,12 +163,12 @@ return (
                         {/* Toggle Currency Display Button */}
                         <Button
                             variant="ghost"
-                            size="sm" // Smaller size for text button
+                            size="sm"
                             onClick={toggleCurrencyDisplay}
                             className="text-sm font-semibold text-muted-foreground hover:text-blue-500"
                             aria-label={`Switch to ${currencyDisplay === 'usd' ? 'Naira' : 'Dollar'}`}
                         >
-                            {currencyDisplay === 'usd' ? "NGN" : "USD"} {/* Text shows what it will switch TO */}
+                            {currencyDisplay === 'usd' ? "NGN" : "USD"}
                         </Button>
                     </div>
                 </CardTitle>
@@ -179,11 +219,9 @@ return (
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        {/* Display value based on selected currency and visibility */}
                                         <div className="font-medium">
                                             {loading ? "--" : formatValue(currencyDisplay === 'usd' ? usdValue : ngnValue, currencyDisplay)}
                                         </div>
-                                        {/* Show the other currency in a badge for individual tokens if not loading */}
                                         <Badge variant="default" className="text-xs mt-1">
                                             {loading ? "--" : (
                                                 showBalance ? (
