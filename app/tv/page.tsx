@@ -1,20 +1,19 @@
 // app/tv/page.tsx
 "use client"
 import { useState, useEffect, useCallback, useRef } from "react"
-import dynamic from "next/dynamic"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {Button} from "@/components/ui/button"
 import {Label} from "@/components/ui/label"
 import {Badge} from "@/components/ui/badge"
-import { Loader2, AlertCircle, CheckCircle } from "lucide-react"
+import { Loader2, AlertCircle, CheckCircle, Wifi } from "lucide-react"
 import BackToDashboard from "@/components/BackToDashboard"
-import AuthGuard from "@/components/AuthGuard"
 import { Input } from "@/components/ui/input"
 
+import { useMiniAppWallet, sendTransaction, waitForTransaction } from '@/hooks/useMiniAppWallet';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
 import { ERC20_ABI } from "@/config/erc20Abi";
-import { parseUnits, toBytes, toHex, Hex, fromHex, formatUnits } from 'viem';
+import { parseUnits, toBytes, toHex, Hex, encodeFunctionData } from 'viem';
 import { toast } from 'sonner';
 import { TransactionStatusModal } from "@/components/TransactionStatusModal";
 
@@ -112,8 +111,8 @@ function getSmartCardLength(serviceID: string): number[] {
   return SMART_CARD_LENGTHS[id] ?? SMART_CARD_LENGTHS.default
 }
 
-// 🔧 Client Component with Dynamic Wagmi Hooks
-function TVPageClient() {
+export default function TVPage() {
+  const [mounted, setMounted] = useState(false);
   const [selectedTokenAddress, setSelectedTokenAddress] = useState<string>("");
   const [provider, setProvider] = useState("");
   const [plan, setPlan] = useState("");
@@ -143,54 +142,12 @@ function TVPageClient() {
 
   const backendRequestSentRef = useRef<Hex | null>(null);
 
-  // 🔧 Dynamic Wagmi Hooks Loading
-  const [wagmiHooks, setWagmiHooks] = useState<any>(null);
-  const [baseNetworkHook, setBaseNetworkHook] = useState<any>(null);
-  const [wagmiLoading, setWagmiLoading] = useState(true);
+  // Simple wallet hook
+  const { address, isConnected, isLoading: walletLoading } = useMiniAppWallet();
 
-  // Load wagmi hooks dynamically
   useEffect(() => {
-    async function loadWagmiHooks() {
-      try {
-        const [wagmiModule, baseNetworkModule] = await Promise.all([
-          import('wagmi'),
-          import('@/hooks/useBaseNetworkEnforcer')
-        ]);
-
-        setWagmiHooks({
-          useAccount: wagmiModule.useAccount,
-          useConnect: wagmiModule.useConnect,
-          useWriteContract: wagmiModule.useWriteContract,
-          useWaitForTransactionReceipt: wagmiModule.useWaitForTransactionReceipt,
-          useReadContract: wagmiModule.useReadContract,
-        });
-
-        setBaseNetworkHook({
-          useBaseNetworkEnforcer: baseNetworkModule.useBaseNetworkEnforcer
-        });
-
-        setWagmiLoading(false);
-      } catch (error) {
-        console.error('Failed to load wagmi hooks:', error);
-        setWagmiLoading(false);
-      }
-    }
-
-    loadWagmiHooks();
+    setMounted(true);
   }, []);
-
-  // 🔧 Conditional Hook Usage - Only call hooks after they're loaded
-  const accountData = wagmiHooks?.useAccount?.() || { address: null, isConnected: false };
-  const connectData = wagmiHooks?.useConnect?.() || { connect: () => {}, connectors: [] };
-  const baseNetworkData = baseNetworkHook?.useBaseNetworkEnforcer?.() || { 
-    isOnBaseChain: false, 
-    isSwitchingChain: false, 
-    promptSwitchToBase: () => {} 
-  };
-
-  const { address, isConnected } = accountData;
-  const { connect, connectors } = connectData;
-  const { isOnBaseChain, isSwitchingChain, promptSwitchToBase } = baseNetworkData;
 
   // Derived values
   const selectedCrypto = activeTokens.find(c => c.address === selectedTokenAddress);
@@ -202,108 +159,22 @@ function TVPageClient() {
   const tokenAmountForOrder: bigint = selectedCrypto ? parseUnits(cryptoNeeded.toFixed(selectedCrypto.decimals), selectedCrypto.decimals) : BigInt(0);
   const bytes32RequestId: Hex = toHex(toBytes(requestId || ""), { size: 32 });
 
-  // 🔧 Conditional Read Contract Hook
-  const existingOrderData = wagmiHooks?.useReadContract?.({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: 'getOrder',
-    args: [fromHex(bytes32RequestId, 'bigint')],
-    query: { enabled: Boolean(requestId && address && wagmiHooks) },
-  }) || { data: null };
-
-  const { data: existingOrder } = existingOrderData;
-
-  // 🔧 Conditional Write Contract Hooks
-  const approveContractData = wagmiHooks?.useWriteContract?.() || {
-    writeContract: () => {},
-    data: null,
-    isPending: false,
-    isError: false,
-    error: null,
-    reset: () => {}
-  };
-
-  const {
-    writeContract: writeApprove,
-    data: approveHash,
-    isPending: isApprovePending,
-    isError: isApproveError,
-    error: approveWriteError,
-    reset: resetApprove
-  } = approveContractData;
-
-  const approvalReceiptData = wagmiHooks?.useWaitForTransactionReceipt?.({
-    hash: approveHash as Hex,
-    query: {
-      enabled: Boolean(approveHash && wagmiHooks),
-      refetchInterval: 1000,
-    },
-  }) || {
-    isLoading: false,
-    isSuccess: false,
-    isError: false,
-    error: null
-  };
-
-  const {
-    isLoading: isApprovalConfirming,
-    isSuccess: isApprovalTxConfirmed,
-    isError: isApprovalConfirmError,
-    error: approveConfirmError
-  } = approvalReceiptData;
-
-  const mainContractData = wagmiHooks?.useWriteContract?.() || {
-    writeContract: () => {},
-    data: null,
-    isPending: false,
-    isError: false,
-    error: null,
-    reset: () => {}
-  };
-
-  const {
-    writeContract,
-    data: hash,
-    isPending: isWritePending,
-    isError: isWriteError,
-    error: writeError,
-    reset: resetWrite
-  } = mainContractData;
-
-  const mainReceiptData = wagmiHooks?.useWaitForTransactionReceipt?.({
-    hash: hash as Hex,
-    query: {
-      enabled: Boolean(hash && wagmiHooks),
-      refetchInterval: 1000,
-    },
-  }) || {
-    isLoading: false,
-    isSuccess: false,
-    isError: false,
-    error: null
-  };
-
-  const {
-    isLoading: isConfirming,
-    isSuccess: isConfirmed,
-    isError: isConfirmError,
-    error: confirmError
-  } = mainReceiptData;
-
   /* initial load */
   useEffect(() => {
-    let mounted = true;
+    if (!mounted) return;
+    
+    let isMounted = true;
     (async () => {
       setLoading(true);
       try {
         const tokens = await fetchActiveTokensWithMetadata();
-        if (!mounted) return;
+        if (!isMounted) return;
         setActiveTokens(tokens.filter(token => token.tokenType !== 0)); // Filter out ETH
         const prices = await fetchPrices(tokens);
-        if (!mounted) return;
+        if (!isMounted) return;
         setPrices(prices);
         const prov = await fetchTVProviders();
-        if (!mounted) return;
+        if (!isMounted) return;
         setProviders(prov);
       } catch (error) {
         console.error("Error loading tokens, prices, or providers:", error);
@@ -313,8 +184,8 @@ function TVPageClient() {
         setLoadingProviders(false);
       }
     })();
-    return () => { mounted = false; };
-  }, []);
+    return () => { isMounted = false; };
+  }, [mounted]);
 
   /* plans when provider changes */
   useEffect(() => {
@@ -477,9 +348,9 @@ function TVPageClient() {
         setVerificationSuccess(false);
         setRequestId(undefined);
         backendRequestSentRef.current = null;
-      // Clear requestId slightly later to prevent immediate re-generation
-       setTimeout(() => setRequestId(undefined), 100);
-          }, 3000); 
+        // Clear requestId slightly later to prevent immediate re-generation
+        setTimeout(() => setRequestId(undefined), 100);
+      }, 3000); 
     } catch (error: any) {
       console.error("Backend API call failed:", error);
       setTxStatus('backendError');
@@ -499,168 +370,19 @@ function TVPageClient() {
     }
   }, [requestId, smartCardNumber, provider, plan, amountNGN, cryptoNeeded, selectedCrypto?.symbol, selectedCrypto?.decimals, address]);
 
-  // Effect to monitor approval transaction status
-  useEffect(() => {
-    if (!showTransactionModal || !wagmiHooks) return;
-
-    if (isApprovePending) {
-      setTxStatus('waitingForApprovalSignature');
-      setTransactionHashForModal(undefined);
-      setTransactionError(null);
-      setBackendMessage(null);
-      toast.info("Awaiting token approval signature...");
-      backendRequestSentRef.current = null;
-    } else if (approveHash && !isApprovalTxConfirmed && !isApprovalConfirming) {
-      setTxStatus('approving');
-      setTransactionHashForModal(approveHash);
-      toast.loading("Token approval sent, waiting for confirmation...", { id: 'approval-status' });
-    } else if (isApprovalConfirming) {
-      setTxStatus('approving');
-      setTransactionHashForModal(approveHash);
-      toast.loading("Token approval confirming on blockchain...", { id: 'approval-status' });
-    } else if (isApprovalTxConfirmed) {
-      setTxStatus('approvalSuccess');
-      toast.success("Token approved! Proceeding with payment...", { id: 'approval-status' });
-      
-      console.log("Approval confirmed! Initiating main transaction...");
-      
-      // Automatically proceed with main transaction
-      setTimeout(() => {
-        console.log("Contract call params:", {
-          requestId: bytes32RequestId,
-          tokenAddress: selectedCrypto?.address,
-          amount: tokenAmountForOrder.toString()
-        });
-        
-        try {
-          setTxStatus('waitingForSignature');
-          writeContract({
-            address: CONTRACT_ADDRESS,
-            abi: CONTRACT_ABI,
-            functionName: 'createOrder',
-            args: [
-              bytes32RequestId,
-              selectedCrypto?.address as Hex, // Use token address directly
-              tokenAmountForOrder,
-            ],
-            value: undefined,
-          });
-        } catch (error: any) {
-          console.error("Error sending main transaction after approval:", error);
-          const errorMsg = error.message || "Failed to send main transaction after approval.";
-          setTransactionError(errorMsg);
-          setTxStatus('error');
-          toast.error(errorMsg);
-        }
-      }, 2000); // 2 second delay
-      
-    } else if (isApproveError || isApprovalConfirmError) {
-      setTxStatus('error');
-      const errorMsg = (approveWriteError?.message || approveConfirmError?.message || "Token approval failed").split('\n')[0];
-      setTransactionError(errorMsg);
-      toast.error(`Approval failed: ${errorMsg}`, { id: 'approval-status' });
-    }
-  }, [isApprovePending, approveHash, isApprovalTxConfirmed, isApprovalConfirming, isApproveError, isApprovalConfirmError, approveWriteError, approveConfirmError, showTransactionModal, bytes32RequestId, selectedCrypto?.address, tokenAmountForOrder, writeContract, wagmiHooks]);
-
-  // Effect to monitor main transaction status
-  useEffect(() => {
-    if (!showTransactionModal || !wagmiHooks) return;
-    
-    // Skip if we're in approval phase
-    if (['waitingForApprovalSignature', 'approving', 'approvalSuccess'].includes(txStatus)) {
-      return;
-    }
-
-    if (isWritePending) {
-      setTxStatus('waitingForSignature');
-      setTransactionHashForModal(undefined);
-      setTransactionError(null);
-      setBackendMessage(null);
-      toast.info("Awaiting wallet signature for payment...");
-      backendRequestSentRef.current = null;
-    } else if (hash && !isConfirmed && !isConfirming) {
-      setTxStatus('sending');
-      setTransactionHashForModal(hash);
-      toast.loading("Payment transaction sent, waiting for blockchain confirmation...", { id: 'tx-status' });
-    } else if (isConfirming) {
-      setTxStatus('confirming');
-      setTransactionHashForModal(hash);
-      toast.loading("Payment transaction confirming on blockchain...", { id: 'tx-status' });
-    } else if (isConfirmed) {
-      if (txStatus !== 'backendProcessing' && txStatus !== 'backendSuccess' && txStatus !== 'backendError') {
-        setTxStatus('success');
-        setTransactionHashForModal(hash);
-        toast.success("Blockchain transaction confirmed! Processing order...", { id: 'tx-status' });
-        
-        // Process backend transaction
-        if (hash) {
-          handlePostTransaction(hash);
-        }
-      }
-    } else if (isWriteError || isConfirmError) {
-      setTxStatus('error');
-      const errorMsg = (writeError?.message?.split('\n')[0] || confirmError?.message?.split('\n')[0] || "Wallet transaction failed or was rejected.").split('\n')[0];
-      setTransactionError(errorMsg);
-      setTransactionHashForModal(hash);
-      toast.error(`Transaction failed: ${errorMsg}`, { id: 'tx-status' });
-    }
-  }, [isWritePending, hash, isConfirming, isConfirmed, isWriteError, isConfirmError, writeError, confirmError, txStatus, handlePostTransaction, showTransactionModal, wagmiHooks]);
-
-  // 🔧 Wallet connection helper with conditional wagmi usage
-  const ensureWalletConnected = async () => {
-    if (!wagmiHooks) {
-      toast.error("Wallet functionality is loading. Please wait...");
-      return false;
-    }
-
-    if (!isConnected) {
-      toast.error("Please connect your wallet to proceed.");
-      try {
-        // Try to connect with the first available connector (usually Farcaster in mini apps)
-        const farcasterConnector = connectors.find((c: { name: string | string[] }) => c.name.includes('Farcaster'));
-        const connectorToUse = farcasterConnector || connectors[0];
-        if (connectorToUse) {
-          connect({ connector: connectorToUse });
-        }
-      } catch (error) {
-        console.error('Error connecting wallet:', error);
-      }
-      return false;
-    }
-    if (!address) {
-      toast.error("No wallet address found. Please ensure wallet is connected.");
-      return false;
-    }
-    if (!isOnBaseChain) {
-      promptSwitchToBase();
-      return false;
-    }
-    return true;
-  };
-
   const handlePurchase = async () => {
-    if (!wagmiHooks) {
-      toast.error("Wallet functionality is still loading. Please wait...");
-      return;
-    }
-
     setShowTransactionModal(true);
     setTransactionError(null);
     setBackendMessage(null);
     setTxStatus('idle');
     backendRequestSentRef.current = null;
 
-    const walletConnectedAndOnBase = await ensureWalletConnected();
-    if (!walletConnectedAndOnBase) {
+    if (!isConnected || !address) {
+      toast.error("Please ensure your wallet is connected.");
       setShowTransactionModal(false);
       return;
     }
 
-    if (!address) {
-      toast.error("Wallet address not found after connection. Please refresh and try again.");
-      setTxStatus('error');
-      return;
-    }
     if (!requestId) {
       toast.error("Request ID not generated. Please fill all form details.");
       setTxStatus('error');
@@ -687,13 +409,6 @@ function TVPageClient() {
       return;
     }
 
-    // Check for existing order
-    if (existingOrder && existingOrder.user && existingOrder.user !== '0x0000000000000000000000000000000000000000') {
-      toast.error('Order already exists for this request. Please refresh and try again.');
-      setRequestId(generateRequestId());
-      setTxStatus('error');
-      return;
-    }
     if (tokenAmountForOrder === 0n) {
       toast.error('Amount too low. Please enter a valid amount.');
       setRequestId(generateRequestId());
@@ -701,17 +416,10 @@ function TVPageClient() {
       return;
     }
 
-    console.log("--- Initiating ERC20 Transaction Flow ---");
-    console.log("RequestId (bytes32):", bytes32RequestId);
-    console.log("Token Address:", selectedCrypto.address);
-    console.log("TokenAmount for Order (parsed):", tokenAmountForOrder.toString());
-    console.log("Selected Crypto:", selectedCrypto.symbol);
-    console.log("Crypto Needed (float):", cryptoNeeded);
-    console.log("Selected Crypto Decimals:", selectedCrypto.decimals);
-    console.log("----------------------------------------");
-
-    resetApprove();
-    resetWrite();
+    console.log("--- Starting Mini App TV Payment ---");
+    console.log("RequestId:", requestId);
+    console.log("Token:", selectedCrypto.symbol);
+    console.log("Amount:", cryptoNeeded);
 
     if (!selectedCrypto.address) {
       toast.error("Selected crypto has no contract address.");
@@ -719,28 +427,81 @@ function TVPageClient() {
       return;
     }
 
-    // COMPULSORY TOKEN APPROVAL - Always start with approval for all ERC20 tokens
-    toast.info("Approving token spend for this transaction...");
-    setTxStatus('waitingForApprovalSignature');
-    
     try {
-      // Approve unlimited amount for convenience (standard practice)
+      // Step 1: Token Approval
+      setTxStatus('waitingForApprovalSignature');
+      toast.info("Please approve token spending...");
+
       const unlimitedApproval = parseUnits('115792089237316195423570985008687907853269984665640564039457584007913129639935', 0);
       
-      console.log("Approving unlimited amount for future transactions");
-      
-      writeApprove({
-        address: selectedCrypto.address as Hex,
+      const approvalData = encodeFunctionData({
         abi: ERC20_ABI,
         functionName: 'approve',
         args: [CONTRACT_ADDRESS, unlimitedApproval],
       });
+
+      const approvalTx = await sendTransaction({
+        to: selectedCrypto.address,
+        data: approvalData,
+      });
+
+      setTxStatus('approving');
+      setTransactionHashForModal(approvalTx);
+      toast.loading("Waiting for approval confirmation...", { id: 'approval-status' });
+
+      // Wait for approval
+      await waitForTransaction(approvalTx);
+      
+      setTxStatus('approvalSuccess');
+      toast.success("Token approved! Proceeding with payment...", { id: 'approval-status' });
+
+      // Step 2: Main Transaction
+      setTimeout(async () => {
+        try {
+          setTxStatus('waitingForSignature');
+          toast.info("Please confirm the payment transaction...");
+
+          const orderData = encodeFunctionData({
+            abi: CONTRACT_ABI,
+            functionName: 'createOrder',
+            args: [
+              bytes32RequestId,
+              selectedCrypto.address as Hex,
+              tokenAmountForOrder,
+            ],
+          });
+
+          const orderTx = await sendTransaction({
+            to: CONTRACT_ADDRESS,
+            data: orderData,
+          });
+
+          setTxStatus('confirming');
+          setTransactionHashForModal(orderTx);
+          toast.loading("Confirming payment on blockchain...", { id: 'tx-status' });
+
+          // Wait for confirmation
+          await waitForTransaction(orderTx);
+
+          setTxStatus('success');
+          toast.success("Payment confirmed! Processing order...", { id: 'tx-status' });
+
+          // Process with backend
+          await handlePostTransaction(orderTx);
+
+        } catch (error: any) {
+          console.error("Main transaction error:", error);
+          setTransactionError(error.message);
+          setTxStatus('error');
+          toast.error(`Payment failed: ${error.message}`, { id: 'tx-status' });
+        }
+      }, 2000);
+
     } catch (error: any) {
-      console.error("Error sending approval transaction:", error);
-      const errorMsg = error.message || "Failed to send approval transaction.";
-      setTransactionError(errorMsg);
+      console.error("Approval transaction error:", error);
+      setTransactionError(error.message);
       setTxStatus('error');
-      toast.error(errorMsg);
+      toast.error(`Approval failed: ${error.message}`);
     }
 
     // Regenerate requestId for next transaction
@@ -749,7 +510,7 @@ function TVPageClient() {
 
   const handleCloseModal = useCallback(() => {
     // Don't allow closing during critical phases
-    if (['waitingForApprovalSignature', 'approving', 'waitingForSignature', 'sending', 'confirming', 'backendProcessing'].includes(txStatus)) {
+    if (['waitingForApprovalSignature', 'approving', 'waitingForSignature', 'confirming', 'backendProcessing'].includes(txStatus)) {
       toast.info("Please wait for the transaction to complete before closing.");
       return;
     }
@@ -774,19 +535,16 @@ function TVPageClient() {
     requestId;
 
   const isButtonDisabled = loading || loadingProviders || loadingPlans || verifyingCard || !canPay ||
-                           ['waitingForApprovalSignature', 'approving', 'waitingForSignature', 'sending', 'confirming', 'backendProcessing'].includes(txStatus) ||
-                           isApprovePending || isApprovalConfirming ||
-                           isWritePending || isConfirming ||
-                           !isOnBaseChain || isSwitchingChain ||
-                           wagmiLoading || !wagmiHooks;
+                           ['waitingForApprovalSignature', 'approving', 'waitingForSignature', 'confirming', 'backendProcessing'].includes(txStatus) ||
+                           walletLoading;
 
-  // 🔧 Show loading state while wagmi hooks are loading
-  if (wagmiLoading || !wagmiHooks) {
+  // Don't render until mounted
+  if (!mounted || walletLoading) {
     return (
       <div className="container py-10 max-w-xl mx-auto">
         <div className="flex items-center justify-center p-10">
           <Loader2 className="w-8 h-8 animate-spin mr-2" />
-          <span>Loading wallet functionality...</span>
+          <span>Loading...</span>
         </div>
       </div>
     );
@@ -808,6 +566,31 @@ function TVPageClient() {
       <p className="text-muted-foreground mb-8">
         Pay for your TV subscription using supported ERC20 cryptocurrencies on Base chain.
       </p>
+
+      {/* Connection Status */}
+      {address && (
+        <div className="text-sm p-3 bg-green-50 border border-green-200 rounded-lg mb-6">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <Wifi className="w-4 h-4 text-green-500" />
+            <span className="text-green-700">
+              Wallet Connected: {address.slice(0, 6)}...{address.slice(-4)}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!address && (
+        <div className="text-sm p-3 bg-orange-50 border border-orange-200 rounded-lg mb-6">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-orange-500" />
+            <span className="text-orange-700">
+              No wallet connected. Please ensure you're accessing this through the mini app.
+            </span>
+          </div>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Crypto to TV Subscription</CardTitle>
@@ -1000,21 +783,18 @@ function TVPageClient() {
             onClick={handlePurchase}
             disabled={isButtonDisabled}
           >
-            {wagmiLoading ? "Loading Wallet..." :
-            isSwitchingChain ? "Switching Network..." :
-            !isOnBaseChain ? "Switch to Base Network" :
-            txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval Signature..." :
+            {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
             txStatus === 'approving' ? "Approving Token..." :
-            txStatus === 'approvalSuccess' ? "Approval Complete - Starting Payment..." :
-            txStatus === 'waitingForSignature' ? "Awaiting Payment Signature..." :
-            txStatus === 'sending' ? "Sending Payment..." :
-            txStatus === 'confirming' ? "Confirming Payment..." :
+            txStatus === 'approvalSuccess' ? "Starting Payment..." :
+            txStatus === 'waitingForSignature' ? "Awaiting Payment..." :
+            txStatus === 'confirming' ? "Confirming..." :
             txStatus === 'success' ? "Payment Confirmed!" :
             txStatus === 'backendProcessing' ? "Processing Order..." :
             txStatus === 'backendSuccess' ? "TV Subscription Successful!" :
             txStatus === 'backendError' ? "Payment Failed - Try Again" :
             txStatus === 'error' ? "Transaction Failed - Try Again" :
-            canPay ? "Approve & Pay TV Subscription" :
+            !isConnected ? "Wallet Not Connected" :
+            canPay ? "Pay TV Subscription" :
             "Complete form and verify card"}
           </Button>
 
@@ -1025,12 +805,6 @@ function TVPageClient() {
               <p>{activeTokens.map(t => t.symbol).join(", ")}</p>
             </div>
           )}
-
-          {/* Transaction flow info */}
-          <div className="text-xs text-muted-foreground p-3 bg-blue-50 rounded-lg">
-            <p className="font-medium mb-1">Transaction Flow:</p>
-            <p>1. Token Approval → 2. Payment Transaction → 3. Order Processing</p>
-          </div>
         </CardContent>
       </Card>
       
@@ -1044,28 +818,5 @@ function TVPageClient() {
         requestId={requestId}
       />
     </div>
-  );
-}
-
-// 🔧 Main component with dynamic loading to prevent SSR issues
-const TVPage = dynamic(() => Promise.resolve(TVPageClient), {
-  ssr: false,
-  loading: () => (
-    <AuthGuard>
-      <div className="container py-10 max-w-xl mx-auto">
-        <div className="flex items-center justify-center p-10">
-          <Loader2 className="w-8 h-8 animate-spin mr-2" />
-          <span>Loading TV subscription page...</span>
-        </div>
-      </div>
-    </AuthGuard>
-  )
-});
-
-export default function TVPageWrapper() {
-  return (
-    <AuthGuard>
-      <TVPage />
-    </AuthGuard>
   );
 }

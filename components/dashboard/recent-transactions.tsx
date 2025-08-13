@@ -5,7 +5,7 @@ import { getUserHistory } from "@/lib/api"
 import Link from "next/link"
 import { TransactionReceiptModal } from "@/components/TransactionReceiptModal"
 import { Button } from "@/components/ui/button"
-import { useSafeWagmi } from "@/hooks/useSafeWagmi"
+import { useMiniAppWallet } from "@/hooks/useMiniAppWallet"
 import * as htmlToImage from 'html-to-image'
 import download from 'downloadjs'
 
@@ -37,8 +37,8 @@ export default function RecentTransactions({ wallet }: Props) {
   const [selectedOrder, setSelectedOrder] = useState<Transaction | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // Use safe wagmi hook
-  const { address, isConnected } = useSafeWagmi();
+  // Use simple mini app wallet hook
+  const { address, isConnected } = useMiniAppWallet();
 
   // Set mounted
   useEffect(() => {
@@ -49,7 +49,7 @@ export default function RecentTransactions({ wallet }: Props) {
     if (!mounted) return;
 
     const fetchHistory = async () => {
-      // Use address from safe wagmi hook or wallet prop
+      // Use address from mini app hook or wallet prop
       const walletAddress = address || wallet?.address;
       
       if (walletAddress) {

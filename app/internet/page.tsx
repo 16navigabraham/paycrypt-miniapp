@@ -2,7 +2,6 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,12 +9,12 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import BackToDashboard from '@/components/BackToDashboard'
-import AuthGuard from "@/components/AuthGuard"
-import { Loader2, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle, Wifi } from "lucide-react"
 
+import { useMiniAppWallet, sendTransaction, waitForTransaction } from '@/hooks/useMiniAppWallet';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
 import { ERC20_ABI } from "@/config/erc20Abi";
-import { parseUnits, toBytes, toHex, Hex, fromHex, formatUnits } from 'viem';
+import { parseUnits, toBytes, toHex, Hex, encodeFunctionData } from 'viem';
 import { toast } from 'sonner';
 import { TransactionStatusModal } from "@/components/TransactionStatusModal";
 
@@ -88,11 +87,8 @@ async function fetchDataServices() {
     }
 }
 
-// Client-side only component with wagmi hooks
-function InternetPageClient() {
-    // Import wagmi hooks dynamically only on client side
-    const [wagmiHooks, setWagmiHooks] = useState<any>(null);
-    
+export default function InternetPage() {
+    const [mounted, setMounted] = useState(false);
     const [activeTokens, setActiveTokens] = useState<TokenConfig[]>([]);
     const [selectedTokenAddress, setSelectedTokenAddress] = useState<string>("");
     const [provider, setProvider] = useState("");
@@ -113,46 +109,16 @@ function InternetPageClient() {
 
     const backendRequestSentRef = useRef<Hex | null>(null);
 
-    // Load wagmi hooks dynamically on client side
+    // Simple wallet hook
+    const { address, isConnected, isLoading: walletLoading } = useMiniAppWallet();
+
     useEffect(() => {
-        async function loadWagmiHooks() {
-            try {
-                const { useAccount, useConnect, useWriteContract, useWaitForTransactionReceipt, useReadContract } = await import('wagmi');
-                const { useBaseNetworkEnforcer } = await import('@/hooks/useBaseNetworkEnforcer');
-                
-                setWagmiHooks({
-                    useAccount,
-                    useConnect,
-                    useWriteContract,
-                    useWaitForTransactionReceipt,
-                    useReadContract,
-                    useBaseNetworkEnforcer
-                });
-            } catch (error) {
-                console.error('Error loading wagmi hooks:', error);
-                setWagmiHooks({});
-            }
-        }
-        
-        loadWagmiHooks();
+        setMounted(true);
     }, []);
-
-    // Only use wagmi hooks after they're loaded
-    const accountHook = wagmiHooks?.useAccount?.();
-    const connectHook = wagmiHooks?.useConnect?.();
-    const baseNetworkHook = wagmiHooks?.useBaseNetworkEnforcer?.();
-
-    const address = accountHook?.address;
-    const isConnected = accountHook?.isConnected;
-    const connect = connectHook?.connect;
-    const connectors = connectHook?.connectors;
-    const isOnBaseChain = baseNetworkHook?.isOnBaseChain;
-    const isSwitchingChain = baseNetworkHook?.isSwitchingChain;
-    const promptSwitchToBase = baseNetworkHook?.promptSwitchToBase;
 
     // Load tokens and prices on initial mount
     useEffect(() => {
-        if (!wagmiHooks) return; // Wait for wagmi hooks to load
+        if (!mounted) return;
         
         async function loadTokensAndPricesAndProviders() {
             setLoading(true);
@@ -173,7 +139,7 @@ function InternetPageClient() {
             }
         }
         loadTokensAndPricesAndProviders();
-    }, [wagmiHooks]);
+    }, [mounted]);
 
     // Effect to fetch plans when provider changes
     useEffect(() => {
@@ -223,38 +189,6 @@ function InternetPageClient() {
         tokenAmountForOrder = parseUnits(cryptoNeeded.toFixed(selectedCrypto.decimals), selectedCrypto.decimals);
     }
     const bytes32RequestId: Hex = toHex(toBytes(requestId || ""), { size: 32 });
-
-    // Wagmi hooks - only use after wagmi is loaded
-    const readContractHook = wagmiHooks?.useReadContract?.({
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: 'getOrder',
-        args: [fromHex(bytes32RequestId, 'bigint')],
-        query: {
-            enabled: Boolean(requestId && address && wagmiHooks),
-        },
-    });
-
-    const writeContractApproveHook = wagmiHooks?.useWriteContract?.();
-    const writeContractMainHook = wagmiHooks?.useWriteContract?.();
-
-    const waitForApprovalReceiptHook = wagmiHooks?.useWaitForTransactionReceipt?.({
-        hash: writeContractApproveHook?.data as Hex,
-        query: {
-            enabled: Boolean(writeContractApproveHook?.data),
-            refetchInterval: 1000,
-        },
-    });
-
-    const waitForMainReceiptHook = wagmiHooks?.useWaitForTransactionReceipt?.({
-        hash: writeContractMainHook?.data as Hex,
-        query: {
-            enabled: Boolean(writeContractMainHook?.data),
-            refetchInterval: 1000,
-        },
-    });
-
-    const existingOrder = readContractHook?.data;
 
     // Handle backend API call after successful transaction
     const handlePostTransaction = useCallback(async (transactionHash: Hex) => {
@@ -319,140 +253,6 @@ function InternetPageClient() {
         }
     }, [requestId, customerID, provider, plan, amountNGN, cryptoNeeded, selectedCrypto?.symbol, selectedCrypto?.decimals, address]);
 
-    // Effect to monitor approval transaction status
-    useEffect(() => {
-        if (!showTransactionModal || !writeContractApproveHook || !waitForApprovalReceiptHook) return;
-
-        if (writeContractApproveHook.isPending) {
-            setTxStatus('waitingForApprovalSignature');
-            setTransactionHashForModal(undefined);
-            setTransactionError(null);
-            setBackendMessage(null);
-            toast.info("Awaiting token approval signature...");
-            backendRequestSentRef.current = null;
-        } else if (writeContractApproveHook.data && !waitForApprovalReceiptHook.isSuccess && !waitForApprovalReceiptHook.isLoading) {
-            setTxStatus('approving');
-            setTransactionHashForModal(writeContractApproveHook.data);
-            toast.loading("Token approval sent, waiting for confirmation...", { id: 'approval-status' });
-        } else if (waitForApprovalReceiptHook.isLoading) {
-            setTxStatus('approving');
-            setTransactionHashForModal(writeContractApproveHook.data);
-            toast.loading("Token approval confirming on blockchain...", { id: 'approval-status' });
-        } else if (waitForApprovalReceiptHook.isSuccess) {
-            setTxStatus('approvalSuccess');
-            toast.success("Token approved! Proceeding with payment...", { id: 'approval-status' });
-            
-            console.log("Approval: Blockchain confirmed! Initiating main transaction...");
-            
-            // Automatically proceed with main transaction
-            setTimeout(() => {
-                console.log("Contract call params:", {
-                    requestId: bytes32RequestId,
-                    tokenAddress: selectedCrypto?.address,
-                    amount: tokenAmountForOrder.toString()
-                });
-                
-                try {
-                    setTxStatus('waitingForSignature');
-                    writeContractMainHook?.writeContract?.({
-                        address: CONTRACT_ADDRESS,
-                        abi: CONTRACT_ABI,
-                        functionName: 'createOrder',
-                        args: [
-                            bytes32RequestId,
-                            selectedCrypto?.address as Hex,
-                            tokenAmountForOrder,
-                        ],
-                        value: undefined,
-                    });
-                } catch (error: any) {
-                    console.error("Error sending main transaction after approval:", error);
-                    const errorMsg = error.message || "Failed to send main transaction after approval.";
-                    setTransactionError(errorMsg);
-                    setTxStatus('error');
-                    toast.error(errorMsg);
-                }
-            }, 2000);
-            
-        } else if (writeContractApproveHook.isError || waitForApprovalReceiptHook.isError) {
-            setTxStatus('error');
-            const errorMsg = (writeContractApproveHook.error?.message || waitForApprovalReceiptHook.error?.message || "Token approval failed").split('\n')[0];
-            setTransactionError(errorMsg);
-            toast.error(`Approval failed: ${errorMsg}`, { id: 'approval-status' });
-        }
-    }, [showTransactionModal, writeContractApproveHook, waitForApprovalReceiptHook, bytes32RequestId, selectedCrypto?.address, tokenAmountForOrder, writeContractMainHook]);
-
-    // Effect to monitor main transaction status
-    useEffect(() => {
-        if (!showTransactionModal || !writeContractMainHook || !waitForMainReceiptHook) return;
-        
-        // Skip if we're in approval phase
-        if (['waitingForApprovalSignature', 'approving', 'approvalSuccess'].includes(txStatus)) {
-            return;
-        }
-
-        if (writeContractMainHook.isPending) {
-            setTxStatus('waitingForSignature');
-            setTransactionHashForModal(undefined);
-            setTransactionError(null);
-            setBackendMessage(null);
-            toast.info("Awaiting wallet signature for payment...");
-            backendRequestSentRef.current = null;
-        } else if (writeContractMainHook.data && !waitForMainReceiptHook.isSuccess && !waitForMainReceiptHook.isLoading) {
-            setTxStatus('sending');
-            setTransactionHashForModal(writeContractMainHook.data);
-            toast.loading("Payment transaction sent, waiting for blockchain confirmation...", { id: 'tx-status' });
-        } else if (waitForMainReceiptHook.isLoading) {
-            setTxStatus('confirming');
-            setTransactionHashForModal(writeContractMainHook.data);
-            toast.loading("Payment transaction confirming on blockchain...", { id: 'tx-status' });
-        } else if (waitForMainReceiptHook.isSuccess) {
-            if (txStatus !== 'backendProcessing' && txStatus !== 'backendSuccess' && txStatus !== 'backendError') {
-                setTxStatus('success');
-                setTransactionHashForModal(writeContractMainHook.data);
-                toast.success("Blockchain transaction confirmed! Processing order...", { id: 'tx-status' });
-                
-                // Process backend transaction
-                if (writeContractMainHook.data) {
-                    handlePostTransaction(writeContractMainHook.data);
-                }
-            }
-        } else if (writeContractMainHook.isError || waitForMainReceiptHook.isError) {
-            setTxStatus('error');
-            const errorMsg = (writeContractMainHook.error?.message?.split('\n')[0] || waitForMainReceiptHook.error?.message?.split('\n')[0] || "Wallet transaction failed or was rejected.").split('\n')[0];
-            setTransactionError(errorMsg);
-            setTransactionHashForModal(writeContractMainHook.data);
-            toast.error(`Transaction failed: ${errorMsg}`, { id: 'tx-status' });
-        }
-    }, [showTransactionModal, writeContractMainHook, waitForMainReceiptHook, txStatus, handlePostTransaction]);
-
-    // Wagmi wallet connection
-    const ensureWalletConnected = async () => {
-        if (!isConnected) {
-            toast.error("Please connect your wallet to proceed.");
-            try {
-                // Try to connect with the first available connector (usually Farcaster in mini apps)
-                const farcasterConnector = connectors?.find((c: any) => c.name.includes('Farcaster'));
-                const connectorToUse = farcasterConnector || connectors?.[0];
-                if (connectorToUse && connect) {
-                    connect({ connector: connectorToUse });
-                }
-            } catch (error) {
-                console.error('Error connecting wallet:', error);
-            }
-            return false;
-        }
-        if (!address) {
-            toast.error("No wallet address found. Please ensure wallet is connected.");
-            return false;
-        }
-        if (!isOnBaseChain) {
-            promptSwitchToBase?.();
-            return false;
-        }
-        return true;
-    };
-
     const handlePurchase = async () => {
         setShowTransactionModal(true);
         setTransactionError(null);
@@ -460,17 +260,12 @@ function InternetPageClient() {
         setTxStatus('idle');
         backendRequestSentRef.current = null;
 
-        const walletConnectedAndOnBase = await ensureWalletConnected();
-        if (!walletConnectedAndOnBase) {
+        if (!isConnected || !address) {
+            toast.error("Please ensure your wallet is connected.");
             setShowTransactionModal(false);
             return;
         }
 
-        if (!address) {
-            toast.error("Wallet address not found after connection. Please refresh and try again.");
-            setTxStatus('error');
-            return;
-        }
         if (!requestId) {
             toast.error("Request ID not generated. Please fill all form details.");
             setTxStatus('error');
@@ -492,12 +287,6 @@ function InternetPageClient() {
             return;
         }
 
-        if (existingOrder && existingOrder.user && existingOrder.user !== '0x0000000000000000000000000000000000000000') {
-            toast.error('Order already exists for this request. Please refresh and try again.');
-            setRequestId(generateRequestId());
-            setTxStatus('error');
-            return;
-        }
         if (tokenAmountForOrder === 0n) {
             toast.error('Amount too low. Please enter a valid amount.');
             setRequestId(generateRequestId());
@@ -505,47 +294,86 @@ function InternetPageClient() {
             return;
         }
 
-        console.log("--- Initiating ERC20 Transaction Flow ---");
-        console.log("RequestId (bytes32):", bytes32RequestId);
-        console.log("Token Address:", selectedCrypto.address);
-        console.log("TokenAmount for Order (parsed):", tokenAmountForOrder.toString());
-        console.log("Selected Crypto:", selectedCrypto.symbol);
-        console.log("Crypto Needed (float):", cryptoNeeded);
-        console.log("Selected Crypto Decimals:", selectedCrypto.decimals);
-        console.log("Existing order check:", existingOrder);
-        console.log("----------------------------------------");
+        console.log("--- Starting Mini App Internet Purchase ---");
+        console.log("RequestId:", requestId);
+        console.log("Token:", selectedCrypto.symbol);
+        console.log("Amount:", cryptoNeeded);
 
-        writeContractApproveHook?.reset?.();
-        writeContractMainHook?.reset?.();
-
-        if (!selectedCrypto.address) {
-            toast.error("Selected crypto has no contract address.");
-            setTxStatus('error');
-            return;
-        }
-
-        // COMPULSORY TOKEN APPROVAL - Always start with approval for all ERC20 tokens
-        toast.info("Approving token spend for this transaction...");
-        setTxStatus('waitingForApprovalSignature');
-        
         try {
-            // Approve unlimited amount for convenience (standard practice)
+            // Step 1: Token Approval
+            setTxStatus('waitingForApprovalSignature');
+            toast.info("Please approve token spending...");
+
             const unlimitedApproval = parseUnits('115792089237316195423570985008687907853269984665640564039457584007913129639935', 0);
             
-            console.log("Approving unlimited amount for future transactions");
-            
-            writeContractApproveHook?.writeContract?.({
-                address: selectedCrypto.address as Hex,
+            const approvalData = encodeFunctionData({
                 abi: ERC20_ABI,
                 functionName: 'approve',
                 args: [CONTRACT_ADDRESS, unlimitedApproval],
             });
+
+            const approvalTx = await sendTransaction({
+                to: selectedCrypto.address,
+                data: approvalData,
+            });
+
+            setTxStatus('approving');
+            setTransactionHashForModal(approvalTx);
+            toast.loading("Waiting for approval confirmation...", { id: 'approval-status' });
+
+            // Wait for approval
+            await waitForTransaction(approvalTx);
+            
+            setTxStatus('approvalSuccess');
+            toast.success("Token approved! Proceeding with payment...", { id: 'approval-status' });
+
+            // Step 2: Main Transaction
+            setTimeout(async () => {
+                try {
+                    setTxStatus('waitingForSignature');
+                    toast.info("Please confirm the payment transaction...");
+
+                    const orderData = encodeFunctionData({
+                        abi: CONTRACT_ABI,
+                        functionName: 'createOrder',
+                        args: [
+                            bytes32RequestId,
+                            selectedCrypto.address as Hex,
+                            tokenAmountForOrder,
+                        ],
+                    });
+
+                    const orderTx = await sendTransaction({
+                        to: CONTRACT_ADDRESS,
+                        data: orderData,
+                    });
+
+                    setTxStatus('confirming');
+                    setTransactionHashForModal(orderTx);
+                    toast.loading("Confirming payment on blockchain...", { id: 'tx-status' });
+
+                    // Wait for confirmation
+                    await waitForTransaction(orderTx);
+
+                    setTxStatus('success');
+                    toast.success("Payment confirmed! Processing order...", { id: 'tx-status' });
+
+                    // Process with backend
+                    await handlePostTransaction(orderTx);
+
+                } catch (error: any) {
+                    console.error("Main transaction error:", error);
+                    setTransactionError(error.message);
+                    setTxStatus('error');
+                    toast.error(`Payment failed: ${error.message}`, { id: 'tx-status' });
+                }
+            }, 2000);
+
         } catch (error: any) {
-            console.error("Error sending approval transaction:", error);
-            const errorMsg = error.message || "Failed to send approval transaction.";
-            setTransactionError(errorMsg);
+            console.error("Approval transaction error:", error);
+            setTransactionError(error.message);
             setTxStatus('error');
-            toast.error(errorMsg);
+            toast.error(`Approval failed: ${error.message}`);
         }
 
         // Regenerate requestId for next transaction
@@ -554,7 +382,7 @@ function InternetPageClient() {
 
     const handleCloseModal = useCallback(() => {
         // Don't allow closing during critical phases
-        if (['waitingForApprovalSignature', 'approving', 'waitingForSignature', 'sending', 'confirming', 'backendProcessing'].includes(txStatus)) {
+        if (['waitingForApprovalSignature', 'approving', 'waitingForSignature', 'confirming', 'backendProcessing'].includes(txStatus)) {
             toast.info("Please wait for the transaction to complete before closing.");
             return;
         }
@@ -571,236 +399,228 @@ function InternetPageClient() {
 
     const isFormValid = Boolean(selectedTokenAddress && provider && plan && customerID && requestId && cryptoNeeded > 0);
     
-    const isRequestIdUsed = existingOrder && existingOrder.user && existingOrder.user !== '0x0000000000000000000000000000000000000000';
-    
     const isButtonDisabled = loading || 
                              loadingPlans || 
-                             ['waitingForApprovalSignature', 'approving', 'waitingForSignature', 'sending', 'confirming', 'backendProcessing'].includes(txStatus) ||
+                             ['waitingForApprovalSignature', 'approving', 'waitingForSignature', 'confirming', 'backendProcessing'].includes(txStatus) ||
                              !isFormValid ||
-                             writeContractApproveHook?.isPending || 
-                             waitForApprovalReceiptHook?.isLoading || 
-                             writeContractMainHook?.isPending ||
-                             waitForMainReceiptHook?.isLoading ||
-                             !isOnBaseChain || 
-                             isSwitchingChain ||
-                             isRequestIdUsed;
+                             walletLoading;
 
-    // Don't render until wagmi hooks are loaded
-    if (!wagmiHooks) {
+    // Don't render until mounted
+    if (!mounted || walletLoading) {
         return (
-            <AuthGuard>
-                <div className="container py-10 max-w-xl mx-auto">
-                    <div className="flex items-center justify-center p-10">
-                        <Loader2 className="w-8 h-8 animate-spin mr-2" />
-                        <span>Loading...</span>
-                    </div>
+            <div className="container py-10 max-w-xl mx-auto">
+                <div className="flex items-center justify-center p-10">
+                    <Loader2 className="w-8 h-8 animate-spin mr-2" />
+                    <span>Loading...</span>
                 </div>
-            </AuthGuard>
+            </div>
         );
     }
 
     if (loading) {
         return (
-            <AuthGuard>
-                <div className="container py-10 max-w-xl mx-auto">
-                    <div className="flex items-center justify-center p-10">
-                        <Loader2 className="w-8 h-8 animate-spin mr-2" />
-                        <span>Loading active tokens...</span>
-                    </div>
+            <div className="container py-10 max-w-xl mx-auto">
+                <div className="flex items-center justify-center p-10">
+                    <Loader2 className="w-8 h-8 animate-spin mr-2" />
+                    <span>Loading active tokens...</span>
                 </div>
-            </AuthGuard>
+            </div>
         );
     }
 
     return (
-        <AuthGuard>
-            <div className="container py-10 max-w-xl mx-auto">
-                <BackToDashboard />
-                <h1 className="text-3xl font-bold mb-4">Buy Internet Data</h1>
-                <p className="text-muted-foreground mb-8">
-                    Purchase internet data bundles using supported ERC20 cryptocurrencies on Base chain.
-                </p>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Crypto to Internet Data</CardTitle>
-                        <CardDescription>
-                            Preview and calculate your internet data purchase with crypto
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        {/* Pay With Token Selection */}
-                        <div className="space-y-2">
-                            <Label htmlFor="crypto">Pay With</Label>
-                            <Select value={selectedTokenAddress} onValueChange={setSelectedTokenAddress}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select ERC20 token" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {activeTokens.length === 0 ? (
-                                        <SelectItem value="" disabled>No ERC20 tokens available</SelectItem>
-                                    ) : (
-                                        activeTokens.map((c) => (
-                                            <SelectItem key={c.address} value={c.address}>
-                                                {c.symbol} - {c.name}
-                                            </SelectItem>
-                                        ))
-                                    )}
-                                </SelectContent>
-                            </Select>
-                            {activeTokens.length === 0 && !loading && (
-                                <p className="text-sm text-yellow-600">
-                                    No active ERC20 tokens found from contract.
-                                </p>
-                            )}
-                        </div>
-                        
-                        {/* Internet Provider Selection */}
-                        <div className="space-y-2">
-                            <Label htmlFor="provider">Internet Provider</Label>
-                            <Select value={provider} onValueChange={setProvider}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select provider" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {providersToShow.map((p) => (
-                                        <SelectItem key={p.serviceID || p.id} value={p.serviceID}>
-                                            {p.name}
+        <div className="container py-10 max-w-xl mx-auto">
+            <BackToDashboard />
+            <h1 className="text-3xl font-bold mb-4">Buy Internet Data</h1>
+            <p className="text-muted-foreground mb-8">
+                Purchase internet data bundles using supported ERC20 cryptocurrencies on Base chain.
+            </p>
+
+            {/* Connection Status */}
+            {address && (
+                <div className="text-sm p-3 bg-green-50 border border-green-200 rounded-lg mb-6">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <Wifi className="w-4 h-4 text-green-500" />
+                        <span className="text-green-700">
+                            Wallet Connected: {address.slice(0, 6)}...{address.slice(-4)}
+                        </span>
+                    </div>
+                </div>
+            )}
+
+            {!address && (
+                <div className="text-sm p-3 bg-orange-50 border border-orange-200 rounded-lg mb-6">
+                    <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-orange-500" />
+                        <span className="text-orange-700">
+                            No wallet connected. Please ensure you're accessing this through the mini app.
+                        </span>
+                    </div>
+                </div>
+            )}
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Crypto to Internet Data</CardTitle>
+                    <CardDescription>
+                        Preview and calculate your internet data purchase with crypto
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {/* Pay With Token Selection */}
+                    <div className="space-y-2">
+                        <Label htmlFor="crypto">Pay With</Label>
+                        <Select value={selectedTokenAddress} onValueChange={setSelectedTokenAddress}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select ERC20 token" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {activeTokens.length === 0 ? (
+                                    <SelectItem value="" disabled>No ERC20 tokens available</SelectItem>
+                                ) : (
+                                    activeTokens.map((c) => (
+                                        <SelectItem key={c.address} value={c.address}>
+                                            {c.symbol} - {c.name}
                                         </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                    ))
+                                )}
+                            </SelectContent>
+                        </Select>
+                        {activeTokens.length === 0 && !loading && (
+                            <p className="text-sm text-yellow-600">
+                                No active ERC20 tokens found from contract.
+                            </p>
+                        )}
+                    </div>
+                    
+                    {/* Internet Provider Selection */}
+                    <div className="space-y-2">
+                        <Label htmlFor="provider">Internet Provider</Label>
+                        <Select value={provider} onValueChange={setProvider}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select provider" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {providersToShow.map((p) => (
+                                    <SelectItem key={p.serviceID || p.id} value={p.serviceID}>
+                                        {p.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    
+                    {/* Data Plan Selection */}
+                    <div className="space-y-2">
+                        <Label htmlFor="plan">Data Plan</Label>
+                        <Select value={plan} onValueChange={setPlan} disabled={!provider || loadingPlans}>
+                            <SelectTrigger>
+                                <SelectValue placeholder={loadingPlans ? "Loading plans..." : "Select data plan"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {plans.length > 0 ? (
+                                    plans.map((p) => (
+                                        <SelectItem key={p.variation_code} value={p.variation_code}>
+                                            {p.name} - ₦{Number(p.variation_amount).toLocaleString()}
+                                        </SelectItem>
+                                    ))
+                                ) : (
+                                    !loadingPlans && provider && (
+                                        <SelectItem value="no-plans" disabled>
+                                            No plans available for this provider
+                                        </SelectItem>
+                                    )
+                                )}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    
+                    {/* Customer ID / Phone Number */}
+                    <div className="space-y-2">
+                        <Label htmlFor="customerID">Customer ID / Phone Number</Label>
+                        <Input
+                            id="customerID"
+                            type="text"
+                            placeholder="Enter customer ID or phone number"
+                            value={customerID}
+                            maxLength={11}
+                            onChange={(e) => setCustomerID(e.target.value)}
+                        />
+                    </div>
+                    
+                    {/* Compulsory token approval info */}
+                    {selectedCrypto && (
+                      <div className="text-sm p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 text-blue-500" />
+                          <span className="text-blue-700">
+                            Token approval required for all ERC20 transactions
+                          </span>
                         </div>
-                        
-                        {/* Data Plan Selection */}
-                        <div className="space-y-2">
-                            <Label htmlFor="plan">Data Plan</Label>
-                            <Select value={plan} onValueChange={setPlan} disabled={!provider || loadingPlans}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder={loadingPlans ? "Loading plans..." : "Select data plan"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {plans.length > 0 ? (
-                                        plans.map((p) => (
-                                            <SelectItem key={p.variation_code} value={p.variation_code}>
-                                                {p.name} - ₦{Number(p.variation_amount).toLocaleString()}
-                                            </SelectItem>
-                                        ))
-                                    ) : (
-                                        !loadingPlans && provider && (
-                                            <SelectItem value="no-plans" disabled>
-                                                No plans available for this provider
-                                            </SelectItem>
-                                        )
-                                    )}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        
-                        {/* Customer ID / Phone Number */}
-                        <div className="space-y-2">
-                            <Label htmlFor="customerID">Customer ID / Phone Number</Label>
-                            <Input
-                                id="customerID"
-                                type="text"
-                                placeholder="Enter customer ID or phone number"
-                                value={customerID}
-                                maxLength={11}
-                                onChange={(e) => setCustomerID(e.target.value)}
-                            />
-                        </div>
-                        
-                        {/* Request ID status indicator */}
-                        {isRequestIdUsed && (
-                            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
-                                <AlertCircle className="w-4 h-4 text-red-500" />
-                                <span className="text-sm text-red-700">
-                                    Request ID already used. A new one will be generated.
+                      </div>
+                    )}
+
+                    {requestId && (
+                        <div className="border-t pt-4 space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span>Conversion Rate:</span>
+                                <span>
+                                    {selectedCrypto && priceNGN
+                                        ? `₦${priceNGN.toLocaleString()} / 1 ${selectedCrypto.symbol}`
+                                        : "--"}
                                 </span>
                             </div>
-                        )}
-                        
-                        {/* Compulsory token approval info */}
-                        {selectedCrypto && (
-                          <div className="text-sm p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div className="flex items-center gap-2">
-                              <AlertCircle className="w-4 h-4 text-blue-500" />
-                              <span className="text-blue-700">
-                                Token approval required for all ERC20 transactions
-                              </span>
+                            <div className="flex justify-between text-sm">
+                                <span>Plan Amount:</span>
+                                <span>
+                                    {selectedPlan ? `₦${Number(selectedPlan.variation_amount).toLocaleString()}` : "--"}
+                                </span>
                             </div>
-                          </div>
-                        )}
-
-                        {requestId && (
-                            <div className="border-t pt-4 space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span>Conversion Rate:</span>
-                                    <span>
-                                        {selectedCrypto && priceNGN
-                                            ? `₦${priceNGN.toLocaleString()} / 1 ${selectedCrypto.symbol}`
-                                            : "--"}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span>Plan Amount:</span>
-                                    <span>
-                                        {selectedPlan ? `₦${Number(selectedPlan.variation_amount).toLocaleString()}` : "--"}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span>You will pay:</span>
-                                    <span>
-                                        {cryptoNeeded > 0 && selectedCrypto ? (
-                                            <Badge variant="outline">
-                                                {cryptoNeeded.toFixed(selectedCrypto.decimals)}{" "} {selectedCrypto.symbol}
-                                            </Badge>
-                                        ) : (
-                                            "--"
-                                        )}
-                                    </span>
-                                </div>
+                            <div className="flex justify-between text-sm">
+                                <span>You will pay:</span>
+                                <span>
+                                    {cryptoNeeded > 0 && selectedCrypto ? (
+                                        <Badge variant="outline">
+                                            {cryptoNeeded.toFixed(selectedCrypto.decimals)}{" "} {selectedCrypto.symbol}
+                                        </Badge>
+                                    ) : (
+                                        "--"
+                                    )}
+                                </span>
                             </div>
-                        )}
-                        
-                        <Button
-                            className="w-full"
-                            onClick={handlePurchase}
-                            disabled={isButtonDisabled}
-                        >
-                            {isSwitchingChain ? "Switching Network..." :
-                            !isOnBaseChain ? "Switch to Base Network" :
-                            isRequestIdUsed ? "Generating New Request ID..." :
-                            txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval Signature..." :
-                            txStatus === 'approving' ? "Approving Token..." :
-                            txStatus === 'approvalSuccess' ? "Approval Complete - Starting Payment..." :
-                            txStatus === 'waitingForSignature' ? "Awaiting Payment Signature..." :
-                            txStatus === 'sending' ? "Sending Payment..." :
-                            txStatus === 'confirming' ? "Confirming Payment..." :
-                            txStatus === 'success' ? "Payment Confirmed!" :
-                            txStatus === 'backendProcessing' ? "Processing Order..." :
-                            txStatus === 'backendSuccess' ? "Data Delivered Successfully!" :
-                            txStatus === 'backendError' ? "Order Failed - Try Again" :
-                            txStatus === 'error' ? "Transaction Failed - Try Again" :
-                            isFormValid ? "Approve & Purchase Internet Data" :
-                            "Fill all details"}
-                        </Button>
-
-                        {/* Active tokens info */}
-                        {activeTokens.length > 0 && (
-                            <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
-                                <p className="font-medium mb-1">Active ERC20 Tokens ({activeTokens.length}):</p>
-                                <p>{activeTokens.map(t => t.symbol).join(", ")}</p>
-                            </div>
-                        )}
-
-                        {/* Transaction flow info */}
-                        <div className="text-xs text-muted-foreground p-3 bg-blue-50 rounded-lg">
-                            <p className="font-medium mb-1">Transaction Flow:</p>
-                            <p>1. Token Approval → 2. Payment Transaction → 3. Order Processing</p>
                         </div>
-                    </CardContent>
-                </Card>
-            </div>
+                    )}
+                    
+                    <Button
+                        className="w-full"
+                        onClick={handlePurchase}
+                        disabled={isButtonDisabled}
+                    >
+                        {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
+                        txStatus === 'approving' ? "Approving Token..." :
+                        txStatus === 'approvalSuccess' ? "Starting Payment..." :
+                        txStatus === 'waitingForSignature' ? "Awaiting Payment..." :
+                        txStatus === 'confirming' ? "Confirming..." :
+                        txStatus === 'success' ? "Payment Confirmed!" :
+                        txStatus === 'backendProcessing' ? "Processing Order..." :
+                        txStatus === 'backendSuccess' ? "Data Delivered!" :
+                        txStatus === 'backendError' ? "Order Failed - Try Again" :
+                        txStatus === 'error' ? "Transaction Failed - Try Again" :
+                        !isConnected ? "Wallet Not Connected" :
+                        isFormValid ? "Purchase Internet Data" :
+                        "Fill all details"}
+                    </Button>
+
+                    {/* Active tokens info */}
+                    {activeTokens.length > 0 && (
+                        <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
+                            <p className="font-medium mb-1">Active ERC20 Tokens ({activeTokens.length}):</p>
+                            <p>{activeTokens.map(t => t.symbol).join(", ")}</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
             
             <TransactionStatusModal
                 isOpen={showTransactionModal}
@@ -811,23 +631,6 @@ function InternetPageClient() {
                 backendMessage={backendMessage}
                 requestId={requestId}
             />
-        </AuthGuard>
+        </div>
     );
 }
-
-// Export dynamic component with no SSR
-const InternetPage = dynamic(() => Promise.resolve(InternetPageClient), {
-    ssr: false,
-    loading: () => (
-        <AuthGuard>
-            <div className="container py-10 max-w-xl mx-auto">
-                <div className="flex items-center justify-center p-10">
-                    <Loader2 className="w-8 h-8 animate-spin mr-2" />
-                    <span>Loading...</span>
-                </div>
-            </div>
-        </AuthGuard>
-    )
-});
-
-export default InternetPage;

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { DollarSign, Wallet, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useSafeWagmi } from "@/hooks/useSafeWagmi"
+import { useMiniAppWallet } from "@/hooks/useMiniAppWallet"
 
 // Base chain contract addresses (update if needed)
 const USDT_CONTRACT = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
@@ -57,8 +57,8 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
     const [showBalance, setShowBalance] = useState(true)
     const [currencyDisplay, setCurrencyDisplay] = useState<'usd' | 'ngn'>('usd')
 
-	// Use safe wagmi hook
-	const { address } = useSafeWagmi();
+	// Use simple mini app wallet hook
+	const { address } = useMiniAppWallet();
 
 	// Set mounted
 	useEffect(() => {
@@ -68,7 +68,7 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
 	useEffect(() => {
 		if (!mounted) return;
 		
-		// Use address from safe wagmi hook or wallet prop
+		// Use address from mini app hook or wallet prop
 		const walletAddress = address || wallet?.address;
 		if (!walletAddress) return;
 		
