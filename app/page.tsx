@@ -2,31 +2,91 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from "next/navigation";
-import { useMiniKit } from '@coinbase/onchainkit/minikit';
-import { useAccount, useConnect } from 'wagmi';
+import dynamic from "next/dynamic";
 import { LandingPage } from "@/components/landing/landing-page";
 
-export default function HomePage() {
+// 🔧 Client Component that loads hooks dynamically
+function HomePageClient() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
-  // 🔧 Use MiniKit hook directly (now safe with proper provider setup)
-  const { setFrameReady, isFrameReady, context } = useMiniKit();
-  
-  // 🔧 Use wagmi hooks directly (now safe with MiniKitProvider)
-  const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
+  // 🔧 Dynamic Hook Loading State
+  const [miniKitHook, setMiniKitHook] = useState<any>(null);
+  const [wagmiHooks, setWagmiHooks] = useState<any>(null);
+  const [hooksLoaded, setHooksLoaded] = useState(false);
 
-  // 🔧 CRITICAL: Call setFrameReady() when app is ready - following docs exactly
+  // 🔧 Mount check
   useEffect(() => {
-    if (!isFrameReady) {
-      setFrameReady();
-      console.log('MiniKit setFrameReady() called - splash screen should dismiss');
+    setMounted(true);
+  }, []);
+
+  // 🔧 Load hooks dynamically only after mounting
+  useEffect(() => {
+    if (!mounted) return;
+
+    async function loadHooks() {
+      try {
+        console.log('Loading MiniKit and wagmi hooks...');
+        
+        const [miniKitModule, wagmiModule] = await Promise.all([
+          import('@coinbase/onchainkit/minikit'),
+          import('wagmi')
+        ]);
+
+        console.log('Hooks loaded successfully');
+
+        setMiniKitHook(miniKitModule);
+        setWagmiHooks(wagmiModule);
+        setHooksLoaded(true);
+      } catch (error) {
+        console.error('Failed to load hooks:', error);
+        setHooksLoaded(true); // Still set to true to prevent infinite loading
+      }
     }
-  }, [setFrameReady, isFrameReady]);
+
+    loadHooks();
+  }, [mounted]);
+
+  // 🔧 Only call hooks after they're loaded and we're mounted
+  const miniKitData = (mounted && hooksLoaded && miniKitHook?.useMiniKit) ? 
+    miniKitHook.useMiniKit() : 
+    { 
+      setFrameReady: () => {}, 
+      isFrameReady: false, 
+      context: null 
+    };
+
+  const accountData = (mounted && hooksLoaded && wagmiHooks?.useAccount) ? 
+    wagmiHooks.useAccount() : 
+    { 
+      address: null, 
+      isConnected: false 
+    };
+
+  const connectData = (mounted && hooksLoaded && wagmiHooks?.useConnect) ? 
+    wagmiHooks.useConnect() : 
+    { 
+      connect: () => {}, 
+      connectors: [] 
+    };
+
+  const { setFrameReady, isFrameReady, context } = miniKitData;
+  const { address, isConnected } = accountData;
+  const { connect, connectors } = connectData;
+
+  // 🔧 CRITICAL: Call setFrameReady() when app is ready
+  useEffect(() => {
+    if (mounted && hooksLoaded && miniKitHook && setFrameReady && !isFrameReady) {
+      console.log('Calling setFrameReady() - splash screen should dismiss');
+      setFrameReady();
+    }
+  }, [mounted, hooksLoaded, miniKitHook, setFrameReady, isFrameReady]);
 
   // Check for existing wallet connection
   useEffect(() => {
+    if (!mounted || !hooksLoaded) return;
+
     const checkAuthentication = async () => {
       try {
         // Check if wallet is already connected
@@ -62,15 +122,19 @@ export default function HomePage() {
     };
 
     // Wait a moment for frame to be ready, then check authentication
-    if (isFrameReady) {
-      const timer = setTimeout(() => {
-        checkAuthentication();
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [isFrameReady, isConnected, address, context, router]);
+    const timer = setTimeout(() => {
+      checkAuthentication();
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [mounted, hooksLoaded, isConnected, address, context, router]);
 
   const handleWalletAuth = async () => {
+    if (!mounted || !hooksLoaded || !wagmiHooks) {
+      console.error('Hooks not loaded yet');
+      return;
+    }
+
     try {
       console.log('Initiating wallet authentication...');
       setIsLoading(true);
@@ -79,9 +143,9 @@ export default function HomePage() {
         // Already connected, just proceed
         handleAuthSuccess();
       } else {
-        // Need to connect wallet - MiniKitProvider automatically configures Farcaster connector
+        // Need to connect wallet
         const farcasterConnector = connectors.find(
-          connector => connector.name === 'Farcaster Wallet' || connector.id === 'farcaster'
+          (          connector: { name: string; id: string; }) => connector.name === 'Farcaster Wallet' || connector.id === 'farcaster'
         );
         
         if (farcasterConnector) {
@@ -121,10 +185,22 @@ export default function HomePage() {
 
   // Handle successful wallet connection
   useEffect(() => {
-    if (isConnected && address && !localStorage.getItem('paycrypt_wallet_address')) {
+    if (mounted && hooksLoaded && isConnected && address && !localStorage.getItem('paycrypt_wallet_address')) {
       handleAuthSuccess();
     }
-  }, [isConnected, address]);
+  }, [mounted, hooksLoaded, isConnected, address]);
+
+  // Show loading while hooks are loading
+  if (!mounted || !hooksLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading MiniKit...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -141,3 +217,18 @@ export default function HomePage() {
 
   return <LandingPage onGetStarted={handleWalletAuth} />;
 }
+
+// 🔧 Export with dynamic loading to prevent SSR
+const HomePage = dynamic(() => Promise.resolve(HomePageClient), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading Paycrypt...</p>
+      </div>
+    </div>
+  )
+});
+
+export default HomePage;
