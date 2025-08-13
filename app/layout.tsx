@@ -33,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
         },
       ],
     },
-    // 🔧 Proper Farcaster frame metadata following docs
+    // 🔧 Proper Farcaster frame metadata
     other: {
       'fc:frame': JSON.stringify({
         version: 'next',
@@ -64,65 +64,142 @@ export default function RootLayout({
         <meta name="google-site-verification" content="pCijtRPRcIw7lEvQNXnUtUE4WReAEAgiFl2FURDGrz0" />
         <link rel="icon" href="/paycrypt.png" type="image/png" sizes="32x32" />
         <link rel="shortcut icon" href="/paycrypt.png" type="image/png" />
-        {/* 🔧 Ultra-early ready call script for MiniKit */}
+        
+        {/* 🔧 MiniApp SDK Script - Load from CDN */}
         <script
+          type="module"
           dangerouslySetInnerHTML={{
             __html: `
-              // Ultra-early ready call for Farcaster MiniKit
-              (function() {
-                if (typeof window !== 'undefined' && window.parent !== window) {
-                  console.log('🚀 Ultra-early ready calls starting...');
+              // Load Farcaster MiniApp SDK from CDN and initialize
+              (async function() {
+                try {
+                  // Check if we're in a MiniApp environment
+                  const isMiniApp = window.parent !== window || 
+                                   window.location.href.includes('farcaster') ||
+                                   document.referrer.includes('farcaster');
                   
-                  const attempts = [
-                    () => {
-                      window.parent.postMessage({ type: 'ready' }, '*');
-                      console.log('📤 Sent ready message');
-                    },
-                    () => {
-                      window.parent.postMessage({ type: 'frame_ready' }, '*');
-                      console.log('📤 Sent frame_ready message');
-                    },
-                    () => {
-                      window.parent.postMessage({ type: 'sdk_ready' }, '*');
-                      console.log('📤 Sent sdk_ready message');
-                    },
-                    () => {
-                      if (window.sdk?.actions?.ready) {
-                        window.sdk.actions.ready();
-                        console.log('📤 Called window.sdk.actions.ready()');
+                  if (!isMiniApp) {
+                    console.log('🌐 Regular web app mode');
+                    return;
+                  }
+
+                  console.log('📱 MiniApp environment detected, loading SDK...');
+                  
+                  // Try to import Farcaster MiniApp SDK from CDN
+                  let sdk;
+                  try {
+                    const module = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
+                    sdk = module.sdk;
+                    console.log('✅ Farcaster MiniApp SDK loaded from CDN');
+                  } catch (error) {
+                    console.warn('⚠️ CDN SDK load failed, using fallback:', error);
+                  }
+
+                  // Immediate ready call attempts
+                  const readyAttempts = [
+                    // Try SDK if loaded
+                    async () => {
+                      if (sdk?.actions?.ready) {
+                        await sdk.actions.ready();
+                        console.log('✅ SDK ready() called successfully');
+                        return true;
                       }
+                      return false;
                     },
+                    // Fallback to postMessage
                     () => {
-                      if (window.farcasterSDK?.actions?.ready) {
-                        window.farcasterSDK.actions.ready();
-                        console.log('📤 Called window.farcasterSDK.actions.ready()');
+                      if (window.parent && window.parent !== window) {
+                        const messages = [
+                          { type: 'ready' },
+                          { type: 'frame_ready' },
+                          { type: 'sdk_ready' },
+                          { type: 'miniapp_ready' },
+                          { action: 'ready' },
+                          { event: 'ready' }
+                        ];
+                        
+                        messages.forEach(msg => {
+                          try {
+                            window.parent.postMessage(msg, '*');
+                            console.log('📤 Sent ready message:', msg.type || msg.action);
+                          } catch (e) {
+                            console.warn('⚠️ PostMessage failed:', e);
+                          }
+                        });
+                        return true;
                       }
-                    }
-                  ];
-                  
-                  // Execute all attempts immediately
-                  attempts.forEach(attempt => {
-                    try { 
-                      attempt(); 
-                    } catch(e) {
-                      console.warn('⚠️ Ready attempt failed:', e);
-                    }
-                  });
-                  
-                  // Retry after short delays
-                  [100, 300, 500, 1000].forEach(delay => {
-                    setTimeout(() => {
-                      attempts.forEach(attempt => {
-                        try { 
-                          attempt(); 
-                        } catch(e) {
-                          console.warn('⚠️ Retry attempt failed:', e);
+                      return false;
+                    },
+                    // Try global objects
+                    () => {
+                      const globalAttempts = [
+                        () => window.sdk?.actions?.ready?.(),
+                        () => window.farcasterSDK?.actions?.ready?.(),
+                        () => window.miniAppSDK?.actions?.ready?.()
+                      ];
+                      
+                      let success = false;
+                      globalAttempts.forEach((attempt, i) => {
+                        try {
+                          attempt();
+                          console.log(\`📤 Global ready attempt \${i + 1} executed\`);
+                          success = true;
+                        } catch (e) {
+                          console.warn(\`⚠️ Global attempt \${i + 1} failed:\`, e);
                         }
                       });
+                      return success;
+                    }
+                  ];
+
+                  // Execute all attempts
+                  let anySuccess = false;
+                  for (const attempt of readyAttempts) {
+                    try {
+                      const result = await attempt();
+                      if (result) anySuccess = true;
+                    } catch (error) {
+                      console.warn('⚠️ Ready attempt failed:', error);
+                    }
+                  }
+
+                  if (anySuccess) {
+                    console.log('✅ At least one ready call succeeded');
+                  } else {
+                    console.warn('⚠️ All ready attempts failed');
+                  }
+
+                  // Retry attempts after delays
+                  [100, 300, 500, 1000, 2000].forEach(delay => {
+                    setTimeout(async () => {
+                      for (const attempt of readyAttempts) {
+                        try {
+                          await attempt();
+                        } catch (error) {
+                          // Silent retry
+                        }
+                      }
                     }, delay);
                   });
+
+                  // Make SDK available globally for the React app
+                  if (sdk) {
+                    window.farcasterMiniAppSDK = sdk;
+                  }
                   
-                  console.log('✅ Ultra-early ready calls completed');
+                } catch (error) {
+                  console.error('❌ MiniApp SDK initialization failed:', error);
+                  
+                  // Fallback ready calls even if SDK fails
+                  if (window.parent && window.parent !== window) {
+                    try {
+                      window.parent.postMessage({ type: 'ready' }, '*');
+                      window.parent.postMessage({ type: 'frame_ready' }, '*');
+                      console.log('📤 Fallback ready messages sent');
+                    } catch (e) {
+                      console.warn('⚠️ Fallback messages failed:', e);
+                    }
+                  }
                 }
               })();
             `,

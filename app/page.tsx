@@ -4,227 +4,237 @@ import { useEffect, useState } from 'react';
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
-// 🔧 Client Component that handles mini app direct flow
+// 🔧 Client Component that handles both Farcaster MiniApp and regular web app
 function HomePageClient() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
-  // 🔧 Dynamic Hook Loading State
-  const [miniKitHook, setMiniKitHook] = useState<any>(null);
+  // 🔧 SDK Loading State
+  const [farcasterSDK, setFarcasterSDK] = useState<any>(null);
   const [wagmiHooks, setWagmiHooks] = useState<any>(null);
-  const [hooksLoaded, setHooksLoaded] = useState(false);
+  const [sdkLoaded, setSDKLoaded] = useState(false);
   const [readyCalled, setReadyCalled] = useState(false);
 
-  // 🔧 Mini app flow state - directly proceed to dashboard
+  // 🔧 App flow state
   const [dashboardReady, setDashboardReady] = useState(false);
+  const [isMiniApp, setIsMiniApp] = useState(false);
 
   // 🔧 Mount check
   useEffect(() => {
     setMounted(true);
+    
+    // Check if we're in a MiniApp environment
+    const checkMiniApp = () => {
+      // Check for parent window (iframe indicator)
+      const hasParent = window.parent && window.parent !== window;
+      // Check for Farcaster-specific indicators
+      const hasFarcasterContext = window.location.href.includes('farcaster') || 
+                                 document.referrer.includes('farcaster') ||
+                                 window.navigator.userAgent.includes('Farcaster');
+      
+      const miniAppDetected = hasParent || hasFarcasterContext;
+      setIsMiniApp(miniAppDetected);
+      console.log('🔍 MiniApp detected:', miniAppDetected);
+      return miniAppDetected;
+    };
+
+    checkMiniApp();
   }, []);
 
-  // 🔧 IMMEDIATE ready call using multiple methods
+  // 🔧 Load SDKs dynamically based on environment
   useEffect(() => {
     if (!mounted) return;
 
-    console.log('🚀 Starting immediate ready calls for mini app...');
-
-    // Method 1: Direct postMessage to parent
-    const callReadyDirect = () => {
+    async function loadSDKs() {
       try {
-        if (window.parent && window.parent !== window) {
-          window.parent.postMessage({ type: 'ready' }, '*');
-          window.parent.postMessage({ type: 'frame_ready' }, '*');
-          window.parent.postMessage({ type: 'sdk_ready' }, '*');
-          console.log('📤 Direct ready messages sent to parent');
-        }
-      } catch (error) {
-        console.warn('⚠️ Direct ready call failed:', error);
-      }
-    };
-
-    // Method 2: Try global SDK objects
-    const callReadyGlobal = () => {
-      try {
-        // @ts-ignore
-        if (window.sdk?.actions?.ready) {
-          // @ts-ignore
-          window.sdk.actions.ready();
-          console.log('📤 Global sdk.actions.ready() called');
-        }
-        // @ts-ignore
-        if (window.farcasterSDK?.actions?.ready) {
-          // @ts-ignore
-          window.farcasterSDK.actions.ready();
-          console.log('📤 Global farcasterSDK.actions.ready() called');
-        }
-      } catch (error) {
-        console.warn('⚠️ Global ready call failed:', error);
-      }
-    };
-
-    // Call immediately
-    callReadyDirect();
-    callReadyGlobal();
-
-    // Retry after short delays
-    setTimeout(() => {
-      callReadyDirect();
-      callReadyGlobal();
-    }, 100);
-    
-    setTimeout(() => {
-      callReadyDirect();
-      callReadyGlobal();
-    }, 500);
-
-  }, [mounted]);
-
-  // 🔧 Load hooks dynamically only after mounting
-  useEffect(() => {
-    if (!mounted) return;
-
-    async function loadHooks() {
-      try {
-        console.log('📦 Loading MiniKit and wagmi hooks...');
+        console.log('📦 Loading SDKs...');
         
-        const [miniKitModule, wagmiModule] = await Promise.all([
-          import('@coinbase/onchainkit/minikit'),
-          import('wagmi')
-        ]);
-
-        console.log('✅ Hooks loaded successfully');
-
-        setMiniKitHook(miniKitModule);
+        // Always load wagmi for wallet functionality
+        const wagmiModule = await import('wagmi');
         setWagmiHooks(wagmiModule);
-        setHooksLoaded(true);
+
+        // Load Farcaster MiniApp SDK if in MiniApp environment
+        if (isMiniApp) {
+          try {
+            // Try to load Farcaster MiniApp SDK
+            const farcasterModule = await import('@farcaster/miniapp-sdk');
+            setFarcasterSDK(farcasterModule);
+            console.log('✅ Farcaster MiniApp SDK loaded');
+          } catch (error) {
+            console.warn('⚠️ Farcaster MiniApp SDK not available, falling back to manual ready calls');
+            // Fallback for manual ready calls
+            setFarcasterSDK({ sdk: null });
+          }
+        }
+
+        setSDKLoaded(true);
+        console.log('✅ SDKs loaded successfully');
       } catch (error) {
-        console.error('❌ Failed to load hooks:', error);
-        setHooksLoaded(true); // Still set to true to prevent infinite loading
+        console.error('❌ Failed to load SDKs:', error);
+        setSDKLoaded(true); // Still set to true to prevent infinite loading
       }
     }
 
-    loadHooks();
-  }, [mounted]);
+    loadSDKs();
+  }, [mounted, isMiniApp]);
 
-  // 🔧 Only call hooks after they're loaded and we're mounted
-  const miniKitData = (mounted && hooksLoaded && miniKitHook?.useMiniKit) ? 
-    miniKitHook.useMiniKit() : 
-    { 
-      setFrameReady: () => {}, 
-      isFrameReady: false, 
-      context: null 
+  // 🔧 Handle ready calls for MiniApp
+  useEffect(() => {
+    if (!mounted || !sdkLoaded || readyCalled) return;
+
+    const callReady = async () => {
+      if (!isMiniApp) {
+        // Not a MiniApp, proceed directly
+        setReadyCalled(true);
+        setDashboardReady(true);
+        return;
+      }
+
+      console.log('🎯 Calling ready for MiniApp...');
+
+      try {
+        // Method 1: Use Farcaster MiniApp SDK if available
+        if (farcasterSDK?.sdk) {
+          await farcasterSDK.sdk.actions.ready();
+          console.log('✅ Farcaster SDK ready() called successfully');
+          setReadyCalled(true);
+          return;
+        }
+
+        // Method 2: Fallback to manual postMessage calls
+        if (window.parent && window.parent !== window) {
+          const readyMessages = [
+            { type: 'ready' },
+            { type: 'frame_ready' },
+            { type: 'sdk_ready' },
+            { type: 'miniapp_ready' },
+            { action: 'ready' },
+            { event: 'ready' }
+          ];
+
+          readyMessages.forEach(message => {
+            try {
+              window.parent.postMessage(message, '*');
+              console.log('📤 Sent ready message:', message);
+            } catch (error) {
+              console.warn('⚠️ Failed to send message:', message, error);
+            }
+          });
+
+          // Also try global SDK objects
+          const globalReadyAttempts = [
+            () => (window as any).sdk?.actions?.ready?.(),
+            () => (window as any).farcasterSDK?.actions?.ready?.(),
+            () => (window as any).miniAppSDK?.actions?.ready?.(),
+            () => (window as any).parent?.postMessage?.({ type: 'ready' }, '*')
+          ];
+
+          globalReadyAttempts.forEach((attempt, index) => {
+            try {
+              attempt();
+              console.log(`📤 Global ready attempt ${index + 1} executed`);
+            } catch (error) {
+              console.warn(`⚠️ Global ready attempt ${index + 1} failed:`, error);
+            }
+          });
+        }
+
+        setReadyCalled(true);
+        console.log('✅ Ready calls completed');
+      } catch (error) {
+        console.error('❌ Ready call failed:', error);
+        setReadyCalled(true); // Still set to prevent infinite loop
+      }
     };
 
-  const accountData = (mounted && hooksLoaded && wagmiHooks?.useAccount) ? 
+    // Call ready immediately and with retries
+    callReady();
+    
+    // Retry after delays
+    const retryTimeouts = [100, 300, 500, 1000];
+    retryTimeouts.forEach(delay => {
+      setTimeout(callReady, delay);
+    });
+
+  }, [mounted, sdkLoaded, isMiniApp, farcasterSDK, readyCalled]);
+
+  // 🔧 Use wagmi hooks safely
+  const accountData = (mounted && sdkLoaded && wagmiHooks?.useAccount) ? 
     wagmiHooks.useAccount() : 
-    { 
-      address: null, 
-      isConnected: false 
-    };
+    { address: null, isConnected: false };
 
-  const { setFrameReady, isFrameReady, context } = miniKitData;
   const { address, isConnected } = accountData;
 
-  // 🔧 MiniKit ready call with multiple attempts
+  // 🔧 Handle wallet connection and user data
   useEffect(() => {
-    if (mounted && hooksLoaded && miniKitHook && setFrameReady && !readyCalled) {
-      console.log('🎯 Attempting MiniKit setFrameReady() call...');
-      
-      const attemptReady = () => {
-        try {
-          setFrameReady();
-          setReadyCalled(true);
-          console.log('✅ MiniKit setFrameReady() called successfully');
-        } catch (error) {
-          console.error('❌ setFrameReady() failed:', error);
-        }
-      };
-
-      // Multiple attempts
-      attemptReady();
-      setTimeout(attemptReady, 100);
-      setTimeout(attemptReady, 500);
-    }
-  }, [mounted, hooksLoaded, miniKitHook, setFrameReady, readyCalled]);
-
-  // 🔧 Auto setup wallet connection and proceed to dashboard
-  useEffect(() => {
-    if (!mounted || !hooksLoaded) return;
+    if (!mounted || !sdkLoaded) return;
 
     const setupWalletAndProceed = async () => {
       try {
-        console.log('🔗 Setting up wallet connection for mini app...');
+        console.log('🔗 Setting up wallet connection...');
         
         // Check if wallet is already connected
         if (isConnected && address) {
-          console.log('✅ Wallet already connected:', address);
-          // Store wallet data immediately
+          console.log('✅ Wallet connected:', address);
           localStorage.setItem('paycrypt_wallet_address', address);
           
-          // Store Farcaster context if available
-          if (context?.user) {
-            localStorage.setItem('paycrypt_fid', context.user.fid?.toString() || '');
-            localStorage.setItem('paycrypt_username', context.user.username || '');
-            localStorage.setItem('paycrypt_display_name', context.user.displayName || '');
-            localStorage.setItem('paycrypt_pfp', context.user.pfpUrl || '');
-            console.log('📱 Farcaster context stored:', context.user);
+          // For MiniApp, try to get Farcaster context
+          if (isMiniApp && farcasterSDK?.sdk) {
+            try {
+              const context = await farcasterSDK.sdk.context;
+              if (context?.user) {
+                localStorage.setItem('paycrypt_fid', context.user.fid?.toString() || '');
+                localStorage.setItem('paycrypt_username', context.user.username || '');
+                localStorage.setItem('paycrypt_display_name', context.user.displayName || '');
+                localStorage.setItem('paycrypt_pfp', context.user.pfpUrl || '');
+                console.log('📱 Farcaster context stored:', context.user);
+              }
+            } catch (error) {
+              console.warn('⚠️ Failed to get Farcaster context:', error);
+            }
           }
           
           setDashboardReady(true);
           return;
         }
 
-        // If we have Farcaster context but no wallet yet, still prepare for connection
-        if (context?.user && !address) {
-          console.log('📱 Farcaster context available, preparing wallet connection...');
-          localStorage.setItem('paycrypt_fid', context.user.fid?.toString() || '');
-          localStorage.setItem('paycrypt_username', context.user.username || '');
-          localStorage.setItem('paycrypt_display_name', context.user.displayName || '');
-          localStorage.setItem('paycrypt_pfp', context.user.pfpUrl || '');
-        }
-
-        // For mini app, assume connection will happen automatically
-        // Set a fallback timer to proceed to dashboard
-        setTimeout(() => {
-          if (!dashboardReady) {
-            console.log('⏰ Proceeding to dashboard (mini app auto-flow)');
+        // For MiniApp without active wallet connection, still proceed after delay
+        if (isMiniApp && readyCalled) {
+          setTimeout(() => {
+            console.log('⏰ MiniApp proceeding to dashboard without active wallet');
             setDashboardReady(true);
-          }
-        }, 2000);
+          }, 2000);
+        } else if (!isMiniApp) {
+          // Regular web app - redirect to connect wallet
+          setTimeout(() => {
+            console.log('🌐 Regular web app - need wallet connection');
+            setDashboardReady(true);
+          }, 1000);
+        }
         
       } catch (error) {
         console.error('❌ Error setting up wallet:', error);
-        // Still proceed to dashboard even if setup fails
         setTimeout(() => setDashboardReady(true), 1000);
       }
     };
 
-    // Start setup after hooks are loaded and ready is called
-    if (readyCalled || hooksLoaded) {
-      const timer = setTimeout(setupWalletAndProceed, 500);
+    if (readyCalled || !isMiniApp) {
+      const timer = setTimeout(setupWalletAndProceed, 300);
       return () => clearTimeout(timer);
     }
-  }, [mounted, hooksLoaded, readyCalled, isConnected, address, context, dashboardReady]);
+  }, [mounted, sdkLoaded, readyCalled, isConnected, address, isMiniApp, farcasterSDK]);
 
   // 🔧 Handle wallet connection changes
   useEffect(() => {
-    if (mounted && hooksLoaded && isConnected && address) {
+    if (mounted && sdkLoaded && isConnected && address) {
       console.log('🔄 Wallet connection detected:', address);
       localStorage.setItem('paycrypt_wallet_address', address);
-      
-      if (context?.user) {
-        localStorage.setItem('paycrypt_fid', context.user.fid?.toString() || '');
-        localStorage.setItem('paycrypt_username', context.user.username || '');
-        localStorage.setItem('paycrypt_display_name', context.user.displayName || '');
-        localStorage.setItem('paycrypt_pfp', context.user.pfpUrl || '');
-      }
       
       if (!dashboardReady) {
         setDashboardReady(true);
       }
     }
-  }, [mounted, hooksLoaded, isConnected, address, context, dashboardReady]);
+  }, [mounted, sdkLoaded, isConnected, address, dashboardReady]);
 
   // 🔧 Redirect to dashboard when ready
   useEffect(() => {
@@ -234,19 +244,28 @@ function HomePageClient() {
     }
   }, [dashboardReady, mounted, router]);
 
+  // 🔧 Get loading message based on state
+  const getLoadingMessage = () => {
+    if (!mounted) return 'Initializing...';
+    if (!sdkLoaded) return isMiniApp ? 'Loading MiniApp SDK...' : 'Loading app...';
+    if (isMiniApp && !readyCalled) return 'Calling MiniApp ready...';
+    if (!dashboardReady) return 'Setting up wallet...';
+    return 'Opening dashboard...';
+  };
+
   // 🔧 Show loading until dashboard is ready
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="text-center">
         <img src="/paycrypt.png" alt="Paycrypt" className="h-16 w-16 mx-auto mb-4 rounded-lg shadow-lg" />
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600 font-medium">Connecting to Paycrypt...</p>
-        <p className="text-sm text-gray-500 mt-2">
-          {!mounted ? 'Initializing...' : 
-           !hooksLoaded ? 'Loading MiniKit...' : 
-           !readyCalled ? 'Calling ready...' : 
-           !dashboardReady ? 'Setting up wallet...' : 'Opening dashboard...'}
+        <p className="text-gray-600 font-medium">
+          {isMiniApp ? 'Connecting to Paycrypt MiniApp...' : 'Connecting to Paycrypt...'}
         </p>
+        <p className="text-sm text-gray-500 mt-2">{getLoadingMessage()}</p>
+        {isMiniApp && (
+          <p className="text-xs text-blue-600 mt-2">🔗 MiniApp Mode Detected</p>
+        )}
       </div>
     </div>
   );

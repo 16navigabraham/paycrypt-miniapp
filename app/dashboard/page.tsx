@@ -64,17 +64,17 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       localStorage.setItem('paycrypt_wallet_address', address);
       setIsAuthenticated(true);
       setIsLoading(false);
-      console.log('✅ Live wallet connection detected in dashboard');
+      console.log('âœ… Live wallet connection detected in dashboard');
     } else if (storedWalletAddress) {
       // Mini app flow - wallet data from home page setup
       setIsAuthenticated(true);
       setIsLoading(false);
-      console.log('✅ Mini app wallet data found in dashboard');
+      console.log('âœ… Mini app wallet data found in dashboard');
     } else {
       // No wallet data - wait a bit for mini app setup, then redirect
-      console.log('⏳ Waiting for mini app wallet setup...');
+      console.log('â³ Waiting for mini app wallet setup...');
       const timeout = setTimeout(() => {
-        console.log('❌ No wallet data found, redirecting to home');
+        console.log('âŒ No wallet data found, redirecting to home');
         router.replace('/');
       }, 3000); // Give 3 seconds for mini app setup
       
@@ -166,8 +166,8 @@ function DashboardClient() {
         connectedAt: new Date().toISOString()
       });
 
-      console.log('🎯 Dashboard loaded with wallet:', currentWalletAddress);
-      console.log('📱 Connection status:', isConnected ? 'live' : 'cached');
+      console.log('ðŸŽ¯ Dashboard loaded with wallet:', currentWalletAddress);
+      console.log('ðŸ“± Connection status:', isConnected ? 'live' : 'cached');
     }
   }, [address, isConnected, wagmiHooks]);
 
@@ -311,7 +311,7 @@ function DashboardClient() {
                   <div className="font-medium">{userData.displayName}</div>
                   {userData.username && (
                     <div className="text-gray-500">
-                      @{userData.username} {userData.fid && `• FID: ${userData.fid}`}
+                      @{userData.username} {userData.fid && `â€¢ FID: ${userData.fid}`}
                     </div>
                   )}
                 </div>
@@ -334,7 +334,7 @@ function DashboardClient() {
         {userData && (
           <div className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950/30 dark:to-green-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <h2 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-1">
-              Welcome to Paycrypt, {userData.displayName}! 🎉
+              Welcome to Paycrypt, {userData.displayName}! ðŸŽ‰
             </h2>
             <p className="text-blue-700 dark:text-blue-200 text-sm">
               {connectionStatus === 'live' 
