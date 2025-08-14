@@ -42,7 +42,7 @@ export async function GET() {
       screenshotUrl: process.env.NEXT_PUBLIC_APP_SCREENSHOT_URLS,
       buttonTitle: process.env.NEXT_PUBLIC_APP_BUTTON_TITLE,
       imageUrl: process.env.NEXT_PUBLIC_APP_IMAGE_URL,
-      castshareUrl: process.env.NEXT_PUBLIC_APP_CAST_SHARE_URL,
+      castshareUrl: URL,
       tags: ["finance", "crypto", "utilities"],
 
       // use only while testing

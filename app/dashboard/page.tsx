@@ -3,193 +3,164 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from 'next/dynamic'
+import { useMiniKit } from '@coinbase/onchainkit/minikit'
 import { MainLayout } from "@/components/layout/main-layout"
 import { PortfolioOverview } from "@/components/dashboard/portfolio-overview"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 import RecentTransactions from "@/components/dashboard/recent-transactions"
 import { MarketData } from "@/components/dashboard/market-data"
 import { Button } from "@/components/ui/button"
-import { Menu, User, LogOut, Copy, CheckCircle, Wifi, WifiOff } from "lucide-react"
+import { Menu, Wallet, LogOut, Copy, CheckCircle, Wifi, WifiOff } from "lucide-react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Badge } from "@/components/ui/badge"
+import { 
+  useMiniAppWallet, 
+  connectWallet, 
+  disconnectWallet, 
+  getMiniAppContext,
+  autoConnectWallet 
+} from "@/hooks/useMiniAppWallet"
 
-interface UserData {
-  fid: string;
-  username: string;
-  displayName: string;
-  walletAddress: string;
-  pfpUrl: string;
-}
-
-interface FarcasterWallet {
+interface WalletData {
   address: string;
   chainId: string;
   connectedAt: string;
 }
 
-// Dashboard Component with Fixed Mobile/MiniApp Support
+// Dashboard Component - Production Ready for Farcaster and Base App
 function DashboardClient() {
   const router = useRouter();
+  const { context, isFrameReady } = useMiniKit();
+  const { address, isConnected, isLoading } = useMiniAppWallet();
+  
   const [mounted, setMounted] = useState(false);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [connectedWallet, setConnectedWallet] = useState<FarcasterWallet | null>(null);
+  const [connectedWallet, setConnectedWallet] = useState<WalletData | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'live' | 'cached' | 'connecting'>('connecting');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [checkComplete, setCheckComplete] = useState(false);
+  const [miniAppContext, setMiniAppContext] = useState<{
+    isMiniApp: boolean;
+    isWeb: boolean;
+    client: string;
+  }>({ isMiniApp: false, isWeb: true, client: 'web' });
 
-  // 🔧 Mount check
+  // Mount check
   useEffect(() => {
     setMounted(true);
+    setMiniAppContext(getMiniAppContext());
   }, []);
 
-  // 🔧 Enhanced wallet data loading with better mobile support
+  // Auto-connect wallet in mini app context
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || isLoading) return;
 
-    console.log('📊 Loading dashboard data...');
-
-    const checkWalletData = () => {
-      // Try multiple times for mobile - localStorage can be slow
-      let attempts = 0;
-      const maxAttempts = 5;
-      
-      const tryLoadData = () => {
-        const storedWalletAddress = localStorage.getItem('paycrypt_wallet_address');
-        const fid = localStorage.getItem('paycrypt_fid');
-        const username = localStorage.getItem('paycrypt_username');
-        const displayName = localStorage.getItem('paycrypt_display_name');
-        const pfpUrl = localStorage.getItem('paycrypt_pfp');
-
-        if (storedWalletAddress) {
-          console.log('✅ Found stored wallet data:', storedWalletAddress);
-          
-          // Set user data
-          setUserData({
-            fid: fid || '',
-            username: username || '',
-            displayName: displayName || username || 'User',
-            walletAddress: storedWalletAddress,
-            pfpUrl: pfpUrl || ''
-          });
-
-          // Create wallet object
-          setConnectedWallet({
-            address: storedWalletAddress,
-            chainId: '8453', // Base chain ID
-            connectedAt: new Date().toISOString()
-          });
-
-          setConnectionStatus('cached'); // Mini app connection
-          setIsAuthenticated(true);
-          setCheckComplete(true);
-          
-          console.log('✅ Dashboard data loaded successfully');
-          return true;
+    const tryAutoConnect = async () => {
+      if (miniAppContext.isMiniApp && !address) {
+        console.log('🔄 Attempting auto-connect in mini app...');
+        try {
+          const autoConnectedAddress = await autoConnectWallet();
+          if (autoConnectedAddress) {
+            console.log('✅ Auto-connected successfully');
+          }
+        } catch (error) {
+          console.log('⚠️ Auto-connect failed:', error);
         }
-
-        attempts++;
-        if (attempts < maxAttempts) {
-          console.log(`🔄 Attempt ${attempts}/${maxAttempts} - retrying in 500ms...`);
-          setTimeout(tryLoadData, 500);
-          return false;
-        } else {
-          console.log('⚠️ No wallet data found after all attempts, redirecting to home...');
-          setCheckComplete(true);
-          // Only redirect after multiple attempts fail
-          setTimeout(() => {
-            router.replace('/');
-          }, 2000);
-          return false;
-        }
-      };
-
-      tryLoadData();
-    };
-
-    checkWalletData();
-  }, [mounted, router]);
-
-  // 🔧 Try to detect miniapp context and create mock data if needed
-  useEffect(() => {
-    if (!mounted || isAuthenticated || checkComplete) return;
-
-    // Check if we're in a miniapp context without wallet data
-    const isMiniApp = window.parent && window.parent !== window;
-    const referrer = document.referrer || '';
-    const isFarcaster = referrer.includes('farcaster') || referrer.includes('warpcast');
-    const isBase = referrer.includes('base.org') || referrer.includes('coinbase');
-
-    if (isMiniApp && (isFarcaster || isBase)) {
-      console.log('🔧 Detected miniapp context without wallet data - creating mock session');
-      
-      // Create a temporary session for demo purposes
-      const mockAddress = '0x1234...5678'; // In production, this should come from the miniapp SDK
-      const mockUserData = {
-        fid: '12345',
-        username: 'demo_user',
-        displayName: 'Demo User',
-        walletAddress: mockAddress,
-        pfpUrl: ''
-      };
-
-      // Store mock data temporarily
-      localStorage.setItem('paycrypt_wallet_address', mockAddress);
-      localStorage.setItem('paycrypt_username', mockUserData.username);
-      localStorage.setItem('paycrypt_display_name', mockUserData.displayName);
-      localStorage.setItem('paycrypt_fid', mockUserData.fid);
-
-      setUserData(mockUserData);
-      setConnectedWallet({
-        address: mockAddress,
-        chainId: '8453',
-        connectedAt: new Date().toISOString()
-      });
-      setConnectionStatus('cached');
-      setIsAuthenticated(true);
-      setCheckComplete(true);
-
-      console.log('✅ Mock session created for miniapp demo');
-    }
-  }, [mounted, isAuthenticated, checkComplete]);
-
-  // 🔧 Try to get live wagmi connection (optional enhancement)
-  useEffect(() => {
-    if (!mounted || !isAuthenticated) return;
-
-    const tryLiveConnection = async () => {
-      try {
-        // Dynamically import and try wagmi
-        const { useAccount } = await import('wagmi');
-        console.log('📱 Wagmi available, using stored data for mini app');
-      } catch (error) {
-        console.log('📱 Wagmi not available, using stored data');
       }
     };
 
-    tryLiveConnection();
-  }, [mounted, isAuthenticated]);
+    tryAutoConnect();
+  }, [mounted, isLoading, miniAppContext.isMiniApp, address]);
 
-  const handleLogout = () => {
-    console.log('🚪 Logging out...');
-    localStorage.removeItem('paycrypt_wallet_address');
-    localStorage.removeItem('paycrypt_fid');
-    localStorage.removeItem('paycrypt_username');
-    localStorage.removeItem('paycrypt_display_name');
-    localStorage.removeItem('paycrypt_pfp');
-    router.replace('/');
+  // Load wallet data from hook
+  useEffect(() => {
+    if (!mounted || isLoading) return;
+
+    console.log('🔍 Loading wallet data...');
+    console.log('MiniKit context:', context);
+    console.log('Wallet address:', address);
+    console.log('Mini app context:', miniAppContext);
+
+    // If we have a wallet address from hook
+    if (address && isConnected) {
+      console.log('✅ Using wallet data:', address);
+      
+      setConnectedWallet({
+        address,
+        chainId: '8453', // Base chain ID
+        connectedAt: new Date().toISOString()
+      });
+      
+      // Determine connection status
+      // In mini apps, we consider it 'live' if we have context data
+      // Otherwise it's 'cached' from localStorage
+      if (context && miniAppContext.isMiniApp) {
+        setConnectionStatus('live');
+      } else {
+        setConnectionStatus('cached');
+      }
+      
+      setIsAuthenticated(true);
+      return;
+    }
+
+    // No wallet data found
+    console.log('❌ No wallet data found');
+    setIsAuthenticated(false);
+
+    // If in mini app context, stay on the page for wallet connection
+    if (miniAppContext.isMiniApp) {
+      console.log('📱 In mini app context, ready for wallet connection');
+    } else {
+      // Regular web app, redirect to home after delay
+      setTimeout(() => {
+        router.replace('/');
+      }, 3000);
+    }
+
+  }, [mounted, context, address, isConnected, isLoading, router, miniAppContext]);
+
+  const handleConnectWallet = async () => {
+    try {
+      console.log('🔗 Connecting wallet...');
+      const walletAddress = await connectWallet();
+      
+      if (walletAddress) {
+        setConnectedWallet({
+          address: walletAddress,
+          chainId: '8453',
+          connectedAt: new Date().toISOString()
+        });
+        setConnectionStatus('live');
+        setIsAuthenticated(true);
+      }
+    } catch (error) {
+      console.error('❌ Wallet connection failed:', error);
+      // You might want to show a toast/notification here
+    }
+  };
+
+  const handleDisconnect = () => {
+    console.log('🚪 Disconnecting wallet...');
+    disconnectWallet();
+    setConnectedWallet(null);
+    setIsAuthenticated(false);
+    setConnectionStatus('connecting');
+    
+    // Redirect to home if not in mini app
+    if (!miniAppContext.isMiniApp) {
+      router.replace('/');
+    }
   };
 
   const copyAddress = async () => {
-    if (userData?.walletAddress) {
+    if (connectedWallet?.address) {
       try {
-        await navigator.clipboard.writeText(userData.walletAddress);
+        await navigator.clipboard.writeText(connectedWallet.address);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (error) {
-        // Fallback for mobile
-        console.log('Clipboard not available, address:', userData.walletAddress);
+        console.log('Clipboard not available, address:', connectedWallet.address);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }
@@ -214,7 +185,7 @@ function DashboardClient() {
         return (
           <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0">
             <WifiOff className="h-3 w-3 mr-1" />
-            Mini App Connected
+            {miniAppContext.client === 'base' ? 'Base App Connected' : 'Mini App Connected'}
           </Badge>
         );
       default:
@@ -226,7 +197,30 @@ function DashboardClient() {
     }
   };
 
-  // 🔧 Show loading until mounted
+  const getClientBadge = () => {
+    switch (miniAppContext.client) {
+      case 'base':
+        return (
+          <Badge variant="outline" className="text-blue-700 border-blue-300 bg-blue-50">
+            🔵 Base App
+          </Badge>
+        );
+      case 'farcaster':
+        return (
+          <Badge variant="outline" className="text-purple-700 border-purple-300 bg-purple-50">
+            🟣 Farcaster
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline" className="text-gray-700 border-gray-300 bg-gray-50">
+            🌐 Web App
+          </Badge>
+        );
+    }
+  };
+
+  // Show loading until mounted
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -238,27 +232,58 @@ function DashboardClient() {
     );
   }
 
-  // 🔧 Show loading until check is complete
-  if (!checkComplete) {
+  // Show loading while checking wallet
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your wallet data...</p>
-          <p className="text-sm text-gray-500 mt-2">Checking miniapp connection...</p>
+          <p className="text-gray-600">Loading wallet data...</p>
+          <p className="text-sm text-gray-500 mt-2">
+            {!isFrameReady ? 'Initializing MiniKit...' : 'Checking wallet connection...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  // 🔧 Show loading if not authenticated after check
+  // Show wallet connection prompt if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Setting up your session...</p>
-          <p className="text-sm text-gray-500 mt-2">Redirecting to home...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="text-center max-w-md mx-auto px-4">
+          <img src="/paycrypt.png" alt="Paycrypt" className="h-20 w-20 mx-auto mb-6 rounded-2xl shadow-lg" />
+          
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Connect Your Wallet</h1>
+          <p className="text-gray-600 mb-6">
+            Connect your wallet to access Paycrypt and start converting crypto to utilities.
+          </p>
+          
+          <div className="flex justify-center space-x-2 mb-6">
+            {getClientBadge()}
+            <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50">
+              ⚡ Base Network
+            </Badge>
+          </div>
+
+          <Button 
+            onClick={handleConnectWallet}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg mb-4 shadow-lg hover:shadow-xl transition-all"
+          >
+            <Wallet className="h-5 w-5 mr-2" />
+            Connect Wallet
+          </Button>
+
+          {miniAppContext.isMiniApp ? (
+            <div className="text-sm text-gray-500 space-y-1">
+              <p>🔒 Secure connection via {miniAppContext.client}</p>
+              <p>Running on Base network</p>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">
+              Redirecting to home in a few seconds...
+            </p>
+          )}
         </div>
       </div>
     );
@@ -274,17 +299,15 @@ function DashboardClient() {
         />
       )}
 
-      {/* Your existing Sidebar component */}
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)} 
       />
 
       <div className="space-y-6">
-        {/* Enhanced Header Section with Mini App Status */}
+        {/* Header Section */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            {/* Toggle Button - Inline with header */}
             <Button
               variant="ghost"
               size="icon"
@@ -295,13 +318,14 @@ function DashboardClient() {
             </Button>
             
             <div className="flex flex-col space-y-2">
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 flex-wrap">
                 <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-                {userData && getConnectionBadge()}
+                {connectedWallet && getConnectionBadge()}
+                {getClientBadge()}
               </div>
               <div className="flex items-center space-x-4">
                 <p className="text-muted-foreground">
-                  {userData && connectedWallet
+                  {connectedWallet
                     ? (
                       <span className="flex items-center space-x-2">
                         <span>Base Wallet: {formatAddress(connectedWallet.address)}</span>
@@ -325,61 +349,49 @@ function DashboardClient() {
             </div>
           </div>
 
-          {/* User Profile Section */}
-          {userData && (
+          {/* Wallet Actions */}
+          {connectedWallet && (
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
-                {userData.pfpUrl ? (
-                  <img 
-                    src={userData.pfpUrl} 
-                    alt="Profile" 
-                    className="h-10 w-10 rounded-full object-cover border-2 border-blue-200"
-                  />
-                ) : (
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                    <User className="h-5 w-5 text-white" />
-                  </div>
-                )}
+                <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                  <Wallet className="h-5 w-5 text-white" />
+                </div>
                 <div className="text-sm">
-                  <div className="font-medium">{userData.displayName}</div>
-                  {userData.username && (
-                    <div className="text-gray-500">
-                      @{userData.username} {userData.fid && `• FID: ${userData.fid}`}
-                    </div>
-                  )}
+                  <div className="font-medium">Wallet Connected</div>
+                  <div className="text-gray-500">Base Network • {miniAppContext.client}</div>
                 </div>
               </div>
               
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleLogout}
+                onClick={handleDisconnect}
                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                Logout
+                Disconnect
               </Button>
             </div>
           )}
         </div>
 
-        {/* Welcome Message - Enhanced for Mini App */}
-        {userData && (
+        {/* Welcome Message */}
+        {connectedWallet && (
           <div className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950/30 dark:to-green-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <h2 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-1">
-              Welcome to Paycrypt, {userData.displayName}! 🎉
+              Welcome to Paycrypt! 🎉
             </h2>
             <p className="text-blue-700 dark:text-blue-200 text-sm">
               {connectionStatus === 'live' 
-                ? 'Your wallet is actively connected. All systems ready!'
-                : 'Connected via mini app. Your wallet is ready for secure transactions on Base network.'}
+                ? `Your wallet is actively connected via ${miniAppContext.client}. All systems ready!`
+                : `Connected via ${miniAppContext.client}. Your wallet is ready for secure transactions on Base network.`}
             </p>
           </div>
         )}
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Column - Portfolio Overview (Takes 3/4 width on lg screens) */}
+          {/* Left Column - Portfolio Overview */}
           <div className="lg:col-span-3 space-y-6">
             {/* Portfolio Overview Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -421,32 +433,24 @@ function DashboardClient() {
           {/* Right Sidebar - Quick Actions */}
           <div className="lg:col-span-1">
             <div className="space-y-6">
-              {/* Account Info Card */}
-              {userData && (
+              {/* Wallet Info Card */}
+              {connectedWallet && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                   <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                    Account Info
+                    Wallet Info
                   </h2>
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Display Name</label>
-                      <p className="font-medium">{userData.displayName}</p>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Wallet Address</label>
+                      <p className="font-mono text-sm break-all">{connectedWallet.address}</p>
                     </div>
-                    {userData.username && (
-                      <div>
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Username</label>
-                        <p className="font-medium">@{userData.username}</p>
-                      </div>
-                    )}
-                    {userData.fid && (
-                      <div>
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Farcaster ID</label>
-                        <p className="font-mono text-sm">{userData.fid}</p>
-                      </div>
-                    )}
                     <div>
                       <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Connected Network</label>
                       <Badge variant="outline" className="text-xs">Base Mainnet</Badge>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Client Platform</label>
+                      <Badge variant="outline" className="text-xs capitalize">{miniAppContext.client}</Badge>
                     </div>
                     <div>
                       <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Connection Status</label>
@@ -458,6 +462,10 @@ function DashboardClient() {
                         {connectionStatus === 'live' ? 'Live Connection' : 
                          connectionStatus === 'cached' ? 'Mini App' : 'Connecting...'}
                       </Badge>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Connected At</label>
+                      <p className="text-sm text-gray-600">{new Date(connectedWallet.connectedAt).toLocaleString()}</p>
                     </div>
                   </div>
                 </div>
@@ -488,7 +496,7 @@ const DashboardPage = dynamic(() => Promise.resolve(DashboardClient), {
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
         <p className="text-gray-600">Setting up Dashboard...</p>
-        <p className="text-sm text-gray-500 mt-2">Loading your mini app data...</p>
+        <p className="text-sm text-gray-500 mt-2">Loading wallet connection...</p>
       </div>
     </div>
   )

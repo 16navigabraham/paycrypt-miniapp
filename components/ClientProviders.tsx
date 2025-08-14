@@ -6,8 +6,9 @@ import { WagmiProvider, createConfig, http } from 'wagmi';
 import { base, baseSepolia } from 'wagmi/chains';
 import { coinbaseWallet, injected } from 'wagmi/connectors';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
+import { MiniKitProvider } from '@coinbase/onchainkit/minikit';
 
-// 🔧 Create wagmi config outside component to prevent recreation
+// Create wagmi config outside component to prevent recreation
 const wagmiConfig = createConfig({
   chains: [base, baseSepolia],
   connectors: [
@@ -25,7 +26,7 @@ const wagmiConfig = createConfig({
   ssr: false, // Important for mini apps
 });
 
-// 🔧 Create query client outside component to prevent recreation
+// Create query client outside component to prevent recreation
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -39,12 +40,12 @@ const queryClient = new QueryClient({
 export function ClientProviders({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
-  // 🔧 Only render providers after mounting to prevent SSR issues
+  // Only render providers after mounting to prevent SSR issues
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // 🔧 Show loading state until mounted
+  // Show loading state until mounted
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -75,7 +76,12 @@ export function ClientProviders({ children }: { children: ReactNode }) {
             },
           }}
         >
-          {children}
+          <MiniKitProvider
+            apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY || undefined}
+            chain={base}
+          >
+            {children}
+          </MiniKitProvider>
         </OnchainKitProvider>
       </WagmiProvider>
     </QueryClientProvider>
