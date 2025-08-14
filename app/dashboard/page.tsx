@@ -246,7 +246,7 @@ function DashboardClient() {
 
   return (
     <MainLayout>
-      {/* Desktop overlay when sidebar is open */}
+      {/* Desktop overlay when sidebar is open
       {sidebarOpen && (
         <div 
           className="fixed inset-0 z-30 bg-black/50 hidden lg:block" 
@@ -257,7 +257,7 @@ function DashboardClient() {
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)} 
-      />
+      /> */}
 
       <div className="space-y-6">
         {/* Header Section */}
