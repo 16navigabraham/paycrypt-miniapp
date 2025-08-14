@@ -10,7 +10,7 @@ import { Loader2, AlertCircle, CheckCircle, Wifi } from "lucide-react"
 import BackToDashboard from "@/components/BackToDashboard"
 import { Input } from "@/components/ui/input"
 
-import { useMiniAppWallet, sendTransaction, waitForTransaction } from '@/hooks/useMiniAppWallet';
+import { useMiniAppWallet, useTransactionWait } from '@/hooks/useMiniAppWallet';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
 import { ERC20_ABI } from "@/config/erc20Abi";
 import { parseUnits, toBytes, toHex, Hex, encodeFunctionData } from 'viem';
@@ -139,15 +139,62 @@ export default function TVPage() {
   const [backendMessage, setBackendMessage] = useState<string | null>(null);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [transactionHashForModal, setTransactionHashForModal] = useState<Hex | undefined>(undefined);
+  const [approvalHash, setApprovalHash] = useState<Hex | undefined>(undefined);
+  const [orderHash, setOrderHash] = useState<Hex | undefined>(undefined);
 
   const backendRequestSentRef = useRef<Hex | null>(null);
 
-  // Simple wallet hook
-  const { address, isConnected, isLoading: walletLoading } = useMiniAppWallet();
+  // Updated wallet hook usage - destructure the functions
+  const { 
+    address, 
+    isConnected, 
+    isLoading: walletLoading,
+    sendTransaction,
+    isOnBaseChain,
+    ensureBaseChain
+  } = useMiniAppWallet();
+
+  // Transaction waiting hooks
+  const approvalReceipt = useTransactionWait(approvalHash);
+  const orderReceipt = useTransactionWait(orderHash);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Monitor approval transaction
+  useEffect(() => {
+    if (approvalReceipt.isSuccess && txStatus === 'approving') {
+      setTxStatus('approvalSuccess');
+      toast.success("Token approved! Proceeding with payment...", { id: 'approval-status' });
+      
+      // Proceed with main transaction after a short delay
+      setTimeout(() => {
+        handleMainTransaction();
+      }, 2000);
+    } else if (approvalReceipt.isError && txStatus === 'approving') {
+      setTxStatus('error');
+      setTransactionError("Approval transaction failed");
+      toast.error("Approval transaction failed", { id: 'approval-status' });
+    }
+  }, [approvalReceipt.isSuccess, approvalReceipt.isError, txStatus]);
+
+  // Monitor order transaction
+  useEffect(() => {
+    if (orderReceipt.isSuccess && txStatus === 'confirming') {
+      setTxStatus('success');
+      toast.success("Payment confirmed! Processing order...", { id: 'tx-status' });
+      
+      // Process with backend
+      if (orderHash) {
+        handlePostTransaction(orderHash);
+      }
+    } else if (orderReceipt.isError && txStatus === 'confirming') {
+      setTxStatus('error');
+      setTransactionError("Payment transaction failed");
+      toast.error("Payment transaction failed", { id: 'tx-status' });
+    }
+  }, [orderReceipt.isSuccess, orderReceipt.isError, txStatus, orderHash]);
 
   // Derived values
   const selectedCrypto = activeTokens.find(c => c.address === selectedTokenAddress);
@@ -370,11 +417,46 @@ export default function TVPage() {
     }
   }, [requestId, smartCardNumber, provider, plan, amountNGN, cryptoNeeded, selectedCrypto?.symbol, selectedCrypto?.decimals, address]);
 
+  const handleMainTransaction = async () => {
+    try {
+      setTxStatus('waitingForSignature');
+      toast.info("Please confirm the payment transaction...");
+
+      const orderData = encodeFunctionData({
+        abi: CONTRACT_ABI,
+        functionName: 'createOrder',
+        args: [
+          bytes32RequestId,
+          selectedCrypto!.address as Hex,
+          tokenAmountForOrder,
+        ],
+      });
+
+      const orderTx = await sendTransaction({
+        to: CONTRACT_ADDRESS,
+        data: orderData,
+      });
+
+      setOrderHash(orderTx);
+      setTxStatus('confirming');
+      setTransactionHashForModal(orderTx);
+      toast.loading("Confirming payment on blockchain...", { id: 'tx-status' });
+
+    } catch (error: any) {
+      console.error("Main transaction error:", error);
+      setTransactionError(error.message);
+      setTxStatus('error');
+      toast.error(`Payment failed: ${error.message}`, { id: 'tx-status' });
+    }
+  };
+
   const handlePurchase = async () => {
     setShowTransactionModal(true);
     setTransactionError(null);
     setBackendMessage(null);
     setTxStatus('idle');
+    setApprovalHash(undefined);
+    setOrderHash(undefined);
     backendRequestSentRef.current = null;
 
     if (!isConnected || !address) {
@@ -416,10 +498,20 @@ export default function TVPage() {
       return;
     }
 
+    // Ensure we're on Base chain
+    try {
+      await ensureBaseChain();
+    } catch (error: any) {
+      toast.error(error.message);
+      setTxStatus('error');
+      return;
+    }
+
     console.log("--- Starting Mini App TV Payment ---");
     console.log("RequestId:", requestId);
     console.log("Token:", selectedCrypto.symbol);
     console.log("Amount:", cryptoNeeded);
+    console.log("Base Chain:", isOnBaseChain);
 
     if (!selectedCrypto.address) {
       toast.error("Selected crypto has no contract address.");
@@ -441,61 +533,14 @@ export default function TVPage() {
       });
 
       const approvalTx = await sendTransaction({
-        to: selectedCrypto.address,
+        to: selectedCrypto.address as Hex,
         data: approvalData,
       });
 
+      setApprovalHash(approvalTx);
       setTxStatus('approving');
       setTransactionHashForModal(approvalTx);
       toast.loading("Waiting for approval confirmation...", { id: 'approval-status' });
-
-      // Wait for approval
-      await waitForTransaction(approvalTx);
-      
-      setTxStatus('approvalSuccess');
-      toast.success("Token approved! Proceeding with payment...", { id: 'approval-status' });
-
-      // Step 2: Main Transaction
-      setTimeout(async () => {
-        try {
-          setTxStatus('waitingForSignature');
-          toast.info("Please confirm the payment transaction...");
-
-          const orderData = encodeFunctionData({
-            abi: CONTRACT_ABI,
-            functionName: 'createOrder',
-            args: [
-              bytes32RequestId,
-              selectedCrypto.address as Hex,
-              tokenAmountForOrder,
-            ],
-          });
-
-          const orderTx = await sendTransaction({
-            to: CONTRACT_ADDRESS,
-            data: orderData,
-          });
-
-          setTxStatus('confirming');
-          setTransactionHashForModal(orderTx);
-          toast.loading("Confirming payment on blockchain...", { id: 'tx-status' });
-
-          // Wait for confirmation
-          await waitForTransaction(orderTx);
-
-          setTxStatus('success');
-          toast.success("Payment confirmed! Processing order...", { id: 'tx-status' });
-
-          // Process with backend
-          await handlePostTransaction(orderTx);
-
-        } catch (error: any) {
-          console.error("Main transaction error:", error);
-          setTransactionError(error.message);
-          setTxStatus('error');
-          toast.error(`Payment failed: ${error.message}`, { id: 'tx-status' });
-        }
-      }, 2000);
 
     } catch (error: any) {
       console.error("Approval transaction error:", error);
@@ -520,6 +565,8 @@ export default function TVPage() {
     setTransactionError(null);
     setBackendMessage(null);
     setTransactionHashForModal(undefined);
+    setApprovalHash(undefined);
+    setOrderHash(undefined);
     backendRequestSentRef.current = null;
   }, [txStatus]);
 
@@ -575,6 +622,7 @@ export default function TVPage() {
             <Wifi className="w-4 h-4 text-green-500" />
             <span className="text-green-700">
               Wallet Connected: {address.slice(0, 6)}...{address.slice(-4)}
+              {isOnBaseChain && <span className="ml-2 text-xs">(Base Chain ✓)</span>}
             </span>
           </div>
         </div>
@@ -586,6 +634,18 @@ export default function TVPage() {
             <AlertCircle className="w-4 h-4 text-orange-500" />
             <span className="text-orange-700">
               No wallet connected. Please ensure you're accessing this through the mini app.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Base Chain Warning */}
+      {address && !isOnBaseChain && (
+        <div className="text-sm p-3 bg-red-50 border border-red-200 rounded-lg mb-6">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500" />
+            <span className="text-red-700">
+              Please switch to Base network to continue. Transactions will auto-switch when needed.
             </span>
           </div>
         </div>
