@@ -16,7 +16,6 @@
     "@farcaster/miniapp-sdk": "^0.1.8",
     "@farcaster/miniapp-wagmi-connector": "^1.0.0",
     "@hookform/resolvers": "^3.9.1",
-    "@privy-io/wagmi-connector": "^0.1.13",
     "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
     "@radix-ui/react-aspect-ratio": "latest",
