@@ -3,7 +3,7 @@
 import { MainLayout } from "@/components/layout/main-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { usePrivy, useWallets } from "@privy-io/react-auth"
+import { useMiniAppWallet } from "@/hooks/useMiniAppWallet"
 import {
   HelpCircle,
   AlertCircle,
@@ -11,10 +11,9 @@ import {
 } from "lucide-react"
 
 import BackToDashboard from "@/components/BackToDashboard"
+
 export default function SupportPage() {
-  const { authenticated } = usePrivy()
-  const { wallets } = useWallets()
-  const connectedWallet = wallets?.[0]
+  const { address, isConnected } = useMiniAppWallet()
 
   const openTypeform = () => {
     window.open('https://form.typeform.com/to/VmRP0ZHH', '_blank')
@@ -33,15 +32,15 @@ export default function SupportPage() {
         </div>
 
         {/* Connected Wallet Info */}
-        {authenticated && connectedWallet && (
+        {isConnected && address && (
           <Card className="bg-green-50 border-green-200">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 <div>
                   <p className="font-medium text-green-800">Wallet Connected</p>
-                  <code className="text-sm text-green-600">
-                    {connectedWallet.address}
+                  <code className="text-sm text-green-600 break-all">
+                    {address}
                   </code>
                   <p className="text-xs text-green-600 mt-1">
                     Please include this wallet address in your support request
@@ -53,7 +52,7 @@ export default function SupportPage() {
         )}
 
         {/* Not Connected Warning */}
-        {!authenticated && (
+        {!isConnected && (
           <Card className="bg-orange-50 border-orange-200">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
@@ -61,8 +60,16 @@ export default function SupportPage() {
                 <div>
                   <p className="font-medium text-orange-800">Wallet Not Connected</p>
                   <p className="text-sm text-orange-600">
-                    Please include your wallet address in the support form
+                    Please connect your wallet or include your wallet address in the support form
                   </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                    onClick={() => window.location.href = '/dashboard'}
+                  >
+                    Connect Wallet
+                  </Button>
                 </div>
               </div>
             </CardContent>

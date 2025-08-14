@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ClientProviders } from "@/components/ClientProviders"
-import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { Analytics } from "@vercel/analytics/next"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -67,11 +66,9 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/paycrypt.png" type="image/png" />
       </head>
       <body>
-        <ErrorBoundary>
-          <ClientProviders>
-            {children}
-          </ClientProviders>
-        </ErrorBoundary>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
         <Analytics />
       </body>
     </html>

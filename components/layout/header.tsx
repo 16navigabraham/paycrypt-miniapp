@@ -14,7 +14,6 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
-import { usePrivy } from "@privy-io/react-auth"
 import { useMiniAppWallet } from "@/hooks/useMiniAppWallet"
 
 interface HeaderProps {
@@ -33,19 +32,14 @@ export function Header({ onMenuClick }: HeaderProps) {
     connectorName 
   } = useMiniAppWallet()
 
-  const { logout } = usePrivy()
-
   const handleSignOut = async () => {
-    // Clear user email
+    // Clear any local storage data
     localStorage.removeItem("userEmail")
     
     // Disconnect wallet if connected (using proper Wagmi disconnect)
     if (isConnected) {
       disconnectWallet()
     }
-    
-    // Disconnect Privy wallet/session
-    await logout()
     
     // Redirect to app/page.tsx ("/" is the root)
     router.push("/")
@@ -122,7 +116,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <>
                   <div className="px-3 py-2 border-b">
                     <div className="text-sm font-medium">Wallet Connected</div>
-                    <div className="text-xs text-muted-foreground font-mono">
+                    <div className="text-xs text-muted-foreground font-mono break-all">
                       {formatAddress(address || '')}
                     </div>
                     <div className="flex items-center space-x-2 mt-1">
@@ -145,6 +139,9 @@ export function Header({ onMenuClick }: HeaderProps) {
                   <DropdownMenuItem onClick={() => window.open(`https://basescan.org/address/${address}`, '_blank')}>
                     View on BaseScan
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push("/wallet")}>
+                    Wallet Details
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={disconnectWallet}
@@ -156,10 +153,19 @@ export function Header({ onMenuClick }: HeaderProps) {
               ) : (
                 <div className="px-3 py-2">
                   <div className="text-sm text-muted-foreground">No wallet connected</div>
-                  {miniAppContext.isMiniApp && (
+                  {miniAppContext.isMiniApp ? (
                     <div className="text-xs text-muted-foreground mt-1">
                       Visit dashboard to connect
                     </div>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2 w-full"
+                      onClick={() => router.push('/dashboard')}
+                    >
+                      Connect Wallet
+                    </Button>
                   )}
                 </div>
               )}
@@ -183,18 +189,24 @@ export function Header({ onMenuClick }: HeaderProps) {
                   </div>
                 </>
               )}
+              <DropdownMenuItem onClick={() => router.push("/wallet")}>
+                Wallet
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/portfolio")}>
+                Portfolio
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push("/settings")}>
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/security")}>
-                Security
+              <DropdownMenuItem onClick={() => router.push("/support")}>
+                Support
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={handleSignOut}
                 className="text-red-600 focus:text-red-600"
               >
-                Sign out {isConnected && '& Disconnect Wallet'}
+                Sign out {isConnected && '& Disconnect'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

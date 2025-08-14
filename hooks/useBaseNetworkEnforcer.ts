@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { base } from 'wagmi/chains'; // Import the Base chain
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy } from '';
 import { toast } from 'sonner';
 
 /**
