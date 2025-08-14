@@ -13,13 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Menu, Wallet, Copy, CheckCircle, Wifi, WifiOff } from "lucide-react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Badge } from "@/components/ui/badge"
-import { 
-  useMiniAppWallet, 
-  connectWallet, 
-  disconnectWallet, 
-  getMiniAppContext,
-  autoConnectWallet 
-} from "@/hooks/useMiniAppWallet"
+import { useMiniAppWallet } from "@/hooks/useMiniAppWallet"
 
 interface WalletData {
   address: string;
@@ -27,63 +21,49 @@ interface WalletData {
   connectedAt: string;
 }
 
-// Dashboard Component - Production Ready for Farcaster and Base App
+// Dashboard Component - Using Proper Farcaster Mini App SDK
 function DashboardClient() {
   const router = useRouter();
-  const { context, isFrameReady } = useMiniKit();
-  const { address, isConnected, isLoading } = useMiniAppWallet();
+  const { isFrameReady } = useMiniKit();
+  const { 
+    address, 
+    isConnected, 
+    isLoading, 
+    connectWallet, 
+    disconnectWallet, 
+    miniAppContext,
+    farcasterContext,
+    hasConnector,
+    connectorName 
+  } = useMiniAppWallet();
   
   const [mounted, setMounted] = useState(false);
   const [connectedWallet, setConnectedWallet] = useState<WalletData | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'live' | 'cached' | 'connecting'>('connecting');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [miniAppContext, setMiniAppContext] = useState<{
-    isMiniApp: boolean;
-    isWeb: boolean;
-    client: string;
-  }>({ isMiniApp: false, isWeb: true, client: 'web' });
 
   // Mount check
   useEffect(() => {
     setMounted(true);
-    setMiniAppContext(getMiniAppContext());
   }, []);
 
-  // Auto-connect wallet in mini app context
+  // Update wallet state when connection changes
   useEffect(() => {
-    if (!mounted || isLoading) return;
+    if (!mounted) return;
 
-    const tryAutoConnect = async () => {
-      if (miniAppContext.isMiniApp && !address) {
-        console.log('🔄 Attempting auto-connect in mini app...');
-        try {
-          const autoConnectedAddress = await autoConnectWallet();
-          if (autoConnectedAddress) {
-            console.log('✅ Auto-connected successfully');
-          }
-        } catch (error) {
-          console.log('⚠️ Auto-connect failed:', error);
-        }
-      }
-    };
+    console.log('🔍 Wallet state changed:', {
+      address,
+      isConnected,
+      isLoading,
+      hasConnector,
+      connectorName,
+      miniAppContext,
+      farcasterContext
+    });
 
-    tryAutoConnect();
-  }, [mounted, isLoading, miniAppContext.isMiniApp, address]);
-
-  // Load wallet data from hook
-  useEffect(() => {
-    if (!mounted || isLoading) return;
-
-    console.log('🔍 Loading wallet data...');
-    console.log('MiniKit context:', context);
-    console.log('Wallet address:', address);
-    console.log('Mini app context:', miniAppContext);
-
-    // If we have a wallet address from hook
     if (address && isConnected) {
-      console.log('✅ Using wallet data:', address);
+      console.log('✅ Wallet connected via Farcaster SDK:', address);
       
       setConnectedWallet({
         address,
@@ -91,54 +71,33 @@ function DashboardClient() {
         connectedAt: new Date().toISOString()
       });
       
-      // Determine connection status
-      // In mini apps, we consider it 'live' if we have context data
-      // Otherwise it's 'cached' from localStorage
-      if (context && miniAppContext.isMiniApp) {
+      // Determine connection status based on context
+      if (farcasterContext && miniAppContext.isMiniApp) {
         setConnectionStatus('live');
       } else {
         setConnectionStatus('cached');
       }
-      
-      setIsAuthenticated(true);
-      return;
+    } else {
+      console.log('❌ No wallet connected');
+      setConnectedWallet(null);
+      setConnectionStatus('connecting');
     }
 
-    // No wallet data found
-    console.log('❌ No wallet data found');
-    setIsAuthenticated(false);
+  }, [mounted, address, isConnected, isLoading, farcasterContext, miniAppContext]);
 
-    // If in mini app context, stay on the page for wallet connection
-    if (miniAppContext.isMiniApp) {
-      console.log('📱 In mini app context, ready for wallet connection');
-    } else {
-      // Regular web app, redirect to home after delay
-      setTimeout(() => {
+  // Auto-redirect for web users without wallet
+  useEffect(() => {
+    if (!mounted || isLoading) return;
+
+    // If not in mini app and no wallet after 3 seconds, redirect
+    if (!miniAppContext.isMiniApp && !isConnected) {
+      const timer = setTimeout(() => {
         router.replace('/');
       }, 3000);
-    }
-
-  }, [mounted, context, address, isConnected, isLoading, router, miniAppContext]);
-
-  const handleConnectWallet = async () => {
-    try {
-      console.log('🔗 Connecting wallet...');
-      const walletAddress = await connectWallet();
       
-      if (walletAddress) {
-        setConnectedWallet({
-          address: walletAddress,
-          chainId: '8453',
-          connectedAt: new Date().toISOString()
-        });
-        setConnectionStatus('live');
-        setIsAuthenticated(true);
-      }
-    } catch (error) {
-      console.error('❌ Wallet connection failed:', error);
-      // You might want to show a toast/notification here
+      return () => clearTimeout(timer);
     }
-  };
+  }, [mounted, isLoading, miniAppContext.isMiniApp, isConnected, router]);
 
   const copyAddress = async () => {
     if (connectedWallet?.address) {
@@ -165,7 +124,7 @@ function DashboardClient() {
         return (
           <Badge className="bg-gradient-to-r from-green-500 to-blue-600 text-white border-0">
             <Wifi className="h-3 w-3 mr-1" />
-            Live Connection
+            {connectorName} Connected
           </Badge>
         );
       case 'cached':
@@ -234,8 +193,8 @@ function DashboardClient() {
     );
   }
 
-  // Show wallet connection prompt if not authenticated
-  if (!isAuthenticated) {
+  // Show wallet connection prompt if not connected
+  if (!isConnected) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="text-center max-w-md mx-auto px-4">
@@ -253,13 +212,22 @@ function DashboardClient() {
             </Badge>
           </div>
 
-          <Button 
-            onClick={handleConnectWallet}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg mb-4 shadow-lg hover:shadow-xl transition-all"
-          >
-            <Wallet className="h-5 w-5 mr-2" />
-            Connect Wallet
-          </Button>
+          {hasConnector ? (
+            <Button 
+              onClick={connectWallet}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg mb-4 shadow-lg hover:shadow-xl transition-all"
+            >
+              <Wallet className="h-5 w-5 mr-2" />
+              Connect via {connectorName}
+            </Button>
+          ) : (
+            <div className="text-center mb-4">
+              <p className="text-sm text-gray-500 mb-2">No wallet connector available</p>
+              <Badge variant="outline" className="text-red-700 border-red-300">
+                Mini App SDK Required
+              </Badge>
+            </div>
+          )}
 
           {miniAppContext.isMiniApp ? (
             <div className="text-sm text-gray-500 space-y-1">
@@ -345,7 +313,7 @@ function DashboardClient() {
             </h2>
             <p className="text-blue-700 dark:text-blue-200 text-sm">
               {connectionStatus === 'live' 
-                ? `Your wallet is actively connected via ${miniAppContext.client}. All systems ready!`
+                ? `Your wallet is actively connected via ${miniAppContext.client} using ${connectorName}. All systems ready!`
                 : `Connected via ${miniAppContext.client}. Your wallet is ready for secure transactions on Base network.`}
             </p>
           </div>

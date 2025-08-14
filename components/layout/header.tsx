@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { usePrivy } from "@privy-io/react-auth"
-import { useMiniAppWallet, disconnectWallet } from "@/hooks/useMiniAppWallet"
+import { useMiniAppWallet } from "@/hooks/useMiniAppWallet"
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -25,7 +25,13 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { theme, setTheme } = useTheme()
   const [notifications] = useState(0)
   const router = useRouter()
-  const { address, isConnected } = useMiniAppWallet()
+  const { 
+    address, 
+    isConnected, 
+    disconnectWallet, 
+    miniAppContext, 
+    connectorName 
+  } = useMiniAppWallet()
 
   const { logout } = usePrivy()
 
@@ -33,7 +39,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     // Clear user email
     localStorage.removeItem("userEmail")
     
-    // Disconnect wallet if connected
+    // Disconnect wallet if connected (using proper Wagmi disconnect)
     if (isConnected) {
       disconnectWallet()
     }
@@ -48,6 +54,16 @@ export function Header({ onMenuClick }: HeaderProps) {
   const formatAddress = (address: string) => {
     if (!address) return 'No Wallet';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  }
+
+  const getConnectionStatusText = () => {
+    if (!isConnected) return 'No wallet connected';
+    
+    if (miniAppContext.isMiniApp) {
+      return `Connected via ${miniAppContext.client} (${connectorName})`;
+    }
+    
+    return `Connected via ${connectorName}`;
   }
 
   return (
@@ -101,7 +117,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuContent align="end" className="w-72">
               {isConnected ? (
                 <>
                   <div className="px-3 py-2 border-b">
@@ -109,9 +125,19 @@ export function Header({ onMenuClick }: HeaderProps) {
                     <div className="text-xs text-muted-foreground font-mono">
                       {formatAddress(address || '')}
                     </div>
-                    <Badge variant="outline" className="text-xs mt-1">
-                      Base Network
-                    </Badge>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Badge variant="outline" className="text-xs">
+                        Base Network
+                      </Badge>
+                      {miniAppContext.isMiniApp && (
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {miniAppContext.client}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      via {connectorName}
+                    </div>
                   </div>
                   <DropdownMenuItem onClick={() => navigator.clipboard.writeText(address || '')}>
                     Copy Address
@@ -119,10 +145,22 @@ export function Header({ onMenuClick }: HeaderProps) {
                   <DropdownMenuItem onClick={() => window.open(`https://basescan.org/address/${address}`, '_blank')}>
                     View on BaseScan
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={disconnectWallet}
+                    className="text-red-600 focus:text-red-600"
+                  >
+                    Disconnect Wallet
+                  </DropdownMenuItem>
                 </>
               ) : (
                 <div className="px-3 py-2">
                   <div className="text-sm text-muted-foreground">No wallet connected</div>
+                  {miniAppContext.isMiniApp && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Visit dashboard to connect
+                    </div>
+                  )}
                 </div>
               )}
             </DropdownMenuContent>
@@ -138,9 +176,9 @@ export function Header({ onMenuClick }: HeaderProps) {
               {isConnected && (
                 <>
                   <div className="px-3 py-2 border-b">
-                    <div className="text-sm font-medium">Wallet Status</div>
+                    <div className="text-sm font-medium">Connection Status</div>
                     <div className="text-xs text-muted-foreground">
-                      Connected to Base Network
+                      {getConnectionStatusText()}
                     </div>
                   </div>
                 </>
