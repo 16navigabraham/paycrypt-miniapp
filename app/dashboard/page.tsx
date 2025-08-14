@@ -10,7 +10,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions"
 import RecentTransactions from "@/components/dashboard/recent-transactions"
 import { MarketData } from "@/components/dashboard/market-data"
 import { Button } from "@/components/ui/button"
-import { Menu, Wallet, LogOut, Copy, CheckCircle, Wifi, WifiOff } from "lucide-react"
+import { Menu, Wallet, Copy, CheckCircle, Wifi, WifiOff } from "lucide-react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Badge } from "@/components/ui/badge"
 import { 
@@ -137,19 +137,6 @@ function DashboardClient() {
     } catch (error) {
       console.error('❌ Wallet connection failed:', error);
       // You might want to show a toast/notification here
-    }
-  };
-
-  const handleDisconnect = () => {
-    console.log('🚪 Disconnecting wallet...');
-    disconnectWallet();
-    setConnectedWallet(null);
-    setIsAuthenticated(false);
-    setConnectionStatus('connecting');
-    
-    // Redirect to home if not in mini app
-    if (!miniAppContext.isMiniApp) {
-      router.replace('/');
     }
   };
 
@@ -348,31 +335,6 @@ function DashboardClient() {
               </div>
             </div>
           </div>
-
-          {/* Wallet Actions */}
-          {connectedWallet && (
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                  <Wallet className="h-5 w-5 text-white" />
-                </div>
-                <div className="text-sm">
-                  <div className="font-medium">Wallet Connected</div>
-                  <div className="text-gray-500">Base Network • {miniAppContext.client}</div>
-                </div>
-              </div>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDisconnect}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Disconnect
-              </Button>
-            </div>
-          )}
         </div>
 
         {/* Welcome Message */}
@@ -433,44 +395,6 @@ function DashboardClient() {
           {/* Right Sidebar - Quick Actions */}
           <div className="lg:col-span-1">
             <div className="space-y-6">
-              {/* Wallet Info Card */}
-              {connectedWallet && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                    Wallet Info
-                  </h2>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Wallet Address</label>
-                      <p className="font-mono text-sm break-all">{connectedWallet.address}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Connected Network</label>
-                      <Badge variant="outline" className="text-xs">Base Mainnet</Badge>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Client Platform</label>
-                      <Badge variant="outline" className="text-xs capitalize">{miniAppContext.client}</Badge>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Connection Status</label>
-                      <Badge variant="outline" className={`text-xs ${
-                        connectionStatus === 'live' ? 'bg-green-50 text-green-700' : 
-                        connectionStatus === 'cached' ? 'bg-blue-50 text-blue-700' : 
-                        'bg-yellow-50 text-yellow-700'
-                      }`}>
-                        {connectionStatus === 'live' ? 'Live Connection' : 
-                         connectionStatus === 'cached' ? 'Mini App' : 'Connecting...'}
-                      </Badge>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Connected At</label>
-                      <p className="text-sm text-gray-600">{new Date(connectedWallet.connectedAt).toLocaleString()}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Quick Actions Card */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-6">

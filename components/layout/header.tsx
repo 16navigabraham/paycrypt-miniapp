@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { usePrivy } from "@privy-io/react-auth"
+import { useMiniAppWallet, disconnectWallet } from "@/hooks/useMiniAppWallet"
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -24,13 +25,29 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { theme, setTheme } = useTheme()
   const [notifications] = useState(0)
   const router = useRouter()
+  const { address, isConnected } = useMiniAppWallet()
 
   const { logout } = usePrivy()
 
   const handleSignOut = async () => {
+    // Clear user email
     localStorage.removeItem("userEmail")
-    await logout() // Disconnect Privy wallet/session
-    router.push("/") // Redirect to app/page.tsx ("/" is the root)
+    
+    // Disconnect wallet if connected
+    if (isConnected) {
+      disconnectWallet()
+    }
+    
+    // Disconnect Privy wallet/session
+    await logout()
+    
+    // Redirect to app/page.tsx ("/" is the root)
+    router.push("/")
+  }
+
+  const formatAddress = (address: string) => {
+    if (!address) return 'No Wallet';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
   }
 
   return (
@@ -43,7 +60,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         <div className="flex items-center space-x-2 lg:space-x-4">
           <div className="flex items-center space-x-2">
             <img src="/paycrypt.png" alt="Paycrypt Logo" className="h-8 w-8 rounded-lg object-contain bg-white" />
-            <span className="font-bold text-lg hidden sm:block">aycrypt</span>
+            <span className="font-bold text-lg hidden sm:block">Paycrypt</span>
           </div>
         </div>
 
@@ -60,23 +77,56 @@ export function Header({ onMenuClick }: HeaderProps) {
             <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </Button>
 
-            <Button
+          <Button
             variant="ghost"
             size="icon"
             className="relative"
             onClick={() => router.push("/history")}
-            >
+          >
             <Bell className="h-5 w-5" />
             {notifications > 0 && (
               <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-              {notifications}
+                {notifications}
               </Badge>
             )}
-            </Button>
-
-          <Button variant="ghost" size="icon">
-            <Wallet className="h-5 w-5" />
           </Button>
+
+          {/* Wallet Status Button */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative">
+                <Wallet className="h-5 w-5" />
+                {isConnected && (
+                  <Badge className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500 border border-background" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              {isConnected ? (
+                <>
+                  <div className="px-3 py-2 border-b">
+                    <div className="text-sm font-medium">Wallet Connected</div>
+                    <div className="text-xs text-muted-foreground font-mono">
+                      {formatAddress(address || '')}
+                    </div>
+                    <Badge variant="outline" className="text-xs mt-1">
+                      Base Network
+                    </Badge>
+                  </div>
+                  <DropdownMenuItem onClick={() => navigator.clipboard.writeText(address || '')}>
+                    Copy Address
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.open(`https://basescan.org/address/${address}`, '_blank')}>
+                    View on BaseScan
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <div className="px-3 py-2">
+                  <div className="text-sm text-muted-foreground">No wallet connected</div>
+                </div>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -85,10 +135,29 @@ export function Header({ onMenuClick }: HeaderProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => router.push("/settings")}>Settings</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/security")}>Security</DropdownMenuItem>
+              {isConnected && (
+                <>
+                  <div className="px-3 py-2 border-b">
+                    <div className="text-sm font-medium">Wallet Status</div>
+                    <div className="text-xs text-muted-foreground">
+                      Connected to Base Network
+                    </div>
+                  </div>
+                </>
+              )}
+              <DropdownMenuItem onClick={() => router.push("/settings")}>
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/security")}>
+                Security
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>Sign out</DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={handleSignOut}
+                className="text-red-600 focus:text-red-600"
+              >
+                Sign out {isConnected && '& Disconnect Wallet'}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -96,4 +165,3 @@ export function Header({ onMenuClick }: HeaderProps) {
     </header>
   )
 }
-
