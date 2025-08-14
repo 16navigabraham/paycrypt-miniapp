@@ -38,7 +38,7 @@ export async function GET() {
       ogTitle: process.env.NEXT_PUBLIC_APP_OG_TITLE,
       ogDescription: process.env.NEXT_PUBLIC_APP_OG_DESCRIPTION,
       ogImageUrl: process.env.NEXT_PUBLIC_APP_OG_IMAGE_URL,
-      castShareUrl: process.env.NEXT_PUBLIC_APP_CAST_SHARE_URL,
+      castShareUrl: URL,
       screenshotUrl: process.env.NEXT_PUBLIC_APP_SCREENSHOT_URLS,
       buttonTitle: process.env.NEXT_PUBLIC_APP_BUTTON_TITLE,
       imageUrl: process.env.NEXT_PUBLIC_APP_IMAGE_URL,
