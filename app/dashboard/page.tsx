@@ -460,7 +460,20 @@ function DashboardClient() {
               <RecentTransactions wallet={connectedWallet} />
             </div>
 
-            {/* Market Data Card */}
+              {/* Quick Actions Card */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Quick Actions
+                  </h2>
+                </div>
+                <QuickActions wallet={connectedWallet} />
+              </div>
+
+          {/* Right Sidebar - Quick Actions */}
+          <div className="lg:col-span-1">
+            <div className="space-y-6">
+             {/* Market Data Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900">
@@ -472,21 +485,8 @@ function DashboardClient() {
               </div>
               <MarketData />
             </div>
-          </div>
-
-          {/* Right Sidebar - Quick Actions */}
-          <div className="lg:col-span-1">
-            <div className="space-y-6">
-              {/* Quick Actions Card */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Quick Actions
-                  </h2>
-                </div>
-                <QuickActions wallet={connectedWallet} />
-              </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
