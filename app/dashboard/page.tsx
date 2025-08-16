@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from 'next/dynamic'
+import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
 import { useMiniKit } from '@coinbase/onchainkit/minikit'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { MainLayout } from "@/components/layout/main-layout"
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Menu, Wallet, Copy, CheckCircle, Wifi, WifiOff, AlertTriangle } from "lucide-react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Badge } from "@/components/ui/badge"
+import sdk from "@farcaster/miniapp-sdk";
 
 interface WalletData {
   address: string;
@@ -31,6 +33,9 @@ function DashboardClient() {
   const { address, isConnected, isConnecting, chainId } = useAccount();
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
+  
+  // Farcaster mini app integration
+  const { addMiniApp, isAdded, isLoading: isFarcasterLoading, error: farcasterError } = useFarcasterMiniApp();
   
   // Safe MiniKit usage
   const { context, isFrameReady } = useMiniKit();
@@ -85,6 +90,18 @@ function DashboardClient() {
       if (miniAppContext.isMiniApp && connectors.length > 0) {
         console.log('🔄 Attempting auto-connect in mini app...');
         try {
+          // Add mini app to Farcaster if in Farcaster context
+          if (miniAppContext.client === 'farcaster') {
+            try {
+              console.log('📱 Adding mini app to Farcaster...');
+              await sdk.actions.addMiniApp();
+              console.log('✅ Mini app added to Farcaster successfully');
+            } catch (addError) {
+              console.log('⚠️ Failed to add mini app to Farcaster:', addError);
+              // Continue with connection even if add fails
+            }
+          }
+
           // Use the first available connector (should be Farcaster mini app connector)
           connect({ connector: connectors[0] });
         } catch (error) {
@@ -96,7 +113,7 @@ function DashboardClient() {
     // Delay auto-connect to ensure providers are ready
     const timer = setTimeout(tryAutoConnect, 1000);
     return () => clearTimeout(timer);
-  }, [mounted, miniAppContext.isMiniApp, connectors, connect, isConnecting, isPending, isConnected]);
+  }, [mounted, miniAppContext.isMiniApp, miniAppContext.client, connectors, connect, isConnecting, isPending, isConnected]);
 
   // Update wallet state when connection changes
   useEffect(() => {
@@ -160,6 +177,13 @@ function DashboardClient() {
     try {
       if (connectors.length > 0) {
         console.log('🔗 Connecting wallet...');
+        
+        // Add mini app to Farcaster if in Farcaster context and not already added
+        if (miniAppContext.client === 'farcaster' && !isAdded && !isFarcasterLoading) {
+          console.log('📱 Adding mini app to Farcaster...');
+          await addMiniApp();
+        }
+        
         connect({ connector: connectors[0] });
       }
     } catch (error) {
@@ -254,13 +278,13 @@ function DashboardClient() {
   };
 
   // Show error if there's a critical error
-  if (miniKitError) {
+  if (miniKitError || farcasterError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-white to-orange-50">
         <div className="text-center max-w-md mx-auto px-4">
           <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Connection Error</h1>
-          <p className="text-gray-600 mb-6">{miniKitError}</p>
+          <p className="text-gray-600 mb-6">{miniKitError || farcasterError}</p>
           <div className="space-y-3">
             <Button 
               onClick={() => window.location.reload()} 
@@ -294,14 +318,17 @@ function DashboardClient() {
   }
 
   // Show loading while checking wallet
-  if (isConnecting || isPending) {
+  if (isConnecting || isPending || isFarcasterLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Connecting to wallet...</p>
+          <p className="text-gray-600">
+            {isFarcasterLoading ? 'Adding to Farcaster...' : 'Connecting to wallet...'}
+          </p>
           <p className="text-sm text-gray-500 mt-2">
-            {!miniKitReady ? 'Initializing MiniKit...' : 'Establishing connection...'}
+            {!miniKitReady ? 'Initializing MiniKit...' : 
+             isFarcasterLoading ? 'Setting up mini app...' : 'Establishing connection...'}
           </p>
         </div>
       </div>
