@@ -465,7 +465,7 @@ function DashboardClient() {
           {/* Left Column - Portfolio Overview */}
           <div className="lg:col-span-3 space-y-6">
             {/* Portfolio Overview Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-sky-400 rounded-xl shadow-sm border border-sky-200 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900">
                   Portfolio Overview
@@ -478,7 +478,7 @@ function DashboardClient() {
             </div>
 
             {/* Recent Transactions Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-sky-400 rounded-xl shadow-sm border border-sky-200 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900">
                   Recent Transactions
@@ -488,7 +488,7 @@ function DashboardClient() {
             </div>
 
               {/* Quick Actions Card */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="bg-sky-400 rounded-xl shadow-sm border border-sky-200 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold text-gray-900">
                     Quick Actions
@@ -501,7 +501,7 @@ function DashboardClient() {
           <div className="lg:col-span-1">
             <div className="space-y-6">
              {/* Market Data Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-sky-400 rounded-xl shadow-sm border border-sky-200 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900">
                   Market Data
