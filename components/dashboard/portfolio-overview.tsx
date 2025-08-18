@@ -1,9 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { DollarSign, Wallet, Eye, EyeOff } from "lucide-react"
+import { DollarSign, Eye, EyeOff, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useMiniAppWallet } from "@/hooks/useMiniAppWallet"
 
@@ -179,163 +178,113 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
     // Helper function to format the value based on visibility and selected currency
     const formatValue = (value: number, currency: 'usd' | 'ngn') => {
         if (!showBalance) {
-            return "********"
+            return "••••••"
         }
         return currency === 'usd'
             ? `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
             : `₦${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
     }
 
-    // Toggle functions for the new states
+    // Calculate 24h change (mock data for now)
+    const change24h = 2.37; // This could come from your API
+    const isPositive = change24h > 0;
+
+    // Toggle functions
     const toggleBalanceVisibility = () => setShowBalance((prev) => !prev)
     const toggleCurrencyDisplay = () => setCurrencyDisplay((prev) => (prev === 'usd' ? 'ngn' : 'usd'))
 
 	// Don't render until mounted
 	if (!mounted) {
 		return (
-			<Card className="shadow-lg border-2 hover:shadow-xl transition-shadow">
-				<CardHeader>
-					<CardTitle className="flex items-center space-x-2">
-						<Wallet className="h-5 w-5 text-blue-600" />
-						<span>Portfolio Overview</span>
-					</CardTitle>
-					<CardDescription>Loading your portfolio...</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div className="animate-pulse space-y-4">
-						<div className="h-8 bg-gray-200 rounded"></div>
-						<div className="h-4 bg-gray-200 rounded"></div>
-					</div>
-				</CardContent>
-			</Card>
+			<div className="flex items-baseline space-x-2">
+				<div className="animate-pulse">
+					<div className="h-8 w-32 bg-white/20 rounded"></div>
+				</div>
+			</div>
 		);
 	}
 
 	// Show error state if there's an error
 	if (error) {
 		return (
-			<Card className="shadow-lg border-2 hover:shadow-xl transition-shadow border-red-200">
-				<CardHeader>
-					<CardTitle className="flex items-center space-x-2">
-						<Wallet className="h-5 w-5 text-red-600" />
-						<span>Portfolio Overview</span>
-					</CardTitle>
-					<CardDescription className="text-red-600">{error}</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div className="text-center py-4">
-						<Button onClick={() => window.location.reload()} variant="outline">
-							Retry
-						</Button>
-					</div>
-				</CardContent>
-			</Card>
+			<div className="flex items-baseline space-x-2">
+				<span className="text-2xl font-bold text-red-300">Error</span>
+				<span className="text-red-200 text-sm">Failed to load</span>
+			</div>
 		);
 	}
 
+	// Mobile-first inline display for dashboard header
 	return (
-        <Card className="shadow-lg border-2 hover:shadow-xl transition-shadow">
-            <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                        <Wallet className="h-5 w-5 text-blue-600" />
-                        <span>Portfolio Overview</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        {/* Toggle Balance Visibility Button */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={toggleBalanceVisibility}
-                            className="text-muted-foreground hover:text-blue-500"
-                            aria-label={showBalance ? "Hide Balance" : "Show Balance"}
-                        >
-                            {showBalance ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        </Button>
-                        {/* Toggle Currency Display Button */}
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={toggleCurrencyDisplay}
-                            className="text-sm font-semibold text-muted-foreground hover:text-blue-500"
-                            aria-label={`Switch to ${currencyDisplay === 'usd' ? 'Naira' : 'Dollar'}`}
-                        >
-                            {currencyDisplay === 'usd' ? "NGN" : "USD"}
-                        </Button>
-                    </div>
-                </CardTitle>
-                <CardDescription>Your cryptocurrency holdings and performance</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <div className="flex items-center space-x-2">
-                                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-2xl font-bold">
-                                    {loading
-                                        ? "Loading..."
-                                        : formatValue(
-                                              currencyDisplay === 'usd' ? totalValueUSD : totalValueNGN,
-                                              currencyDisplay
-                                          )}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-2">
-                        {balances.map((crypto) => {
-                            const token = supportedTokens.find((t) => t.symbol === crypto.symbol)
-                            const price = token ? prices[token.coingeckoId] : undefined
+		<div className="space-y-2">
+			{/* Main balance display */}
+			<div className="flex items-baseline space-x-2">
+				{loading ? (
+					<div className="animate-pulse">
+						<div className="h-8 w-32 bg-white/20 rounded"></div>
+					</div>
+				) : (
+					<>
+						<span className="text-3xl font-bold text-white">
+							{formatValue(
+								currencyDisplay === 'usd' ? totalValueUSD : totalValueNGN,
+								currencyDisplay
+							)}
+						</span>
+						{!loading && (
+							<span className={`text-sm font-medium ${isPositive ? 'text-green-300' : 'text-red-300'}`}>
+								{isPositive ? '+' : ''}{change24h}%
+							</span>
+						)}
+					</>
+				)}
+			</div>
 
-                            // Calculate value in both currencies for individual tokens
-                            const usdValue = price?.usd ? crypto.balance * price.usd : 0;
-                            const ngnValue = price?.ngn ? crypto.balance * price.ngn : 0;
+			{/* Currency toggle and quick stats */}
+			<div className="flex items-center justify-between">
+				<div className="flex items-center space-x-2">
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={toggleCurrencyDisplay}
+						className="text-xs text-blue-100 hover:text-white hover:bg-white/10 px-2 py-1 h-auto"
+					>
+						{currencyDisplay === 'usd' ? '→ NGN' : '→ USD'}
+					</Button>
+				</div>
+				
+				{!loading && (
+					<div className="text-xs text-blue-100">
+						{balances.filter(b => b.balance > 0).length} tokens
+					</div>
+				)}
+			</div>
 
-                            return (
-                                <div
-                                    key={crypto.symbol}
-                                    className="flex items-center justify-between p-3 rounded-lg border-2 hover:border-blue-200 dark:hover:border-blue-800 transition-colors bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"
-                                >
-                                    <div className="flex items-center space-x-3">
-                                        <div
-                                            className={`h-8 w-8 rounded-full bg-gradient-to-r ${crypto.color} flex items-center justify-center shadow-md`}
-                                        >
-                                            <span className="text-white font-bold text-xs">{crypto.symbol.slice(0, 2)}</span>
-                                        </div>
-                                        <div>
-                                            <div className="font-medium">{crypto.symbol}</div>
-                                            <div className="text-sm text-muted-foreground">
-                                                {showBalance 
-                                                    ? `${crypto.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${crypto.symbol}` 
-                                                    : "********"
-                                                }
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="font-medium">
-                                            {loading 
-                                                ? "--" 
-                                                : formatValue(currencyDisplay === 'usd' ? usdValue : ngnValue, currencyDisplay)
-                                            }
-                                        </div>
-                                        <Badge variant="default" className="text-xs mt-1">
-                                            {loading ? "--" : (
-                                                showBalance ? (
-                                                    currencyDisplay === 'usd'
-                                                        ? `₦${ngnValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-                                                        : `$${usdValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-                                                ) : "********"
-                                            )}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-    )
+			{/* Expanded view - token breakdown (optional, can be toggled) */}
+			{!loading && balances.some(b => b.balance > 0) && (
+				<div className="mt-3 pt-3 border-t border-white/20">
+					<div className="grid grid-cols-3 gap-2">
+						{balances.filter(b => b.balance > 0).slice(0, 3).map((crypto) => {
+							const token = supportedTokens.find((t) => t.symbol === crypto.symbol)
+							const price = token ? prices[token.coingeckoId] : undefined
+							const usdValue = price?.usd ? crypto.balance * price.usd : 0;
+							const ngnValue = price?.ngn ? crypto.balance * price.ngn : 0;
+
+							return (
+								<div key={crypto.symbol} className="text-center">
+									<div className="text-xs text-blue-100 font-medium">{crypto.symbol}</div>
+									<div className="text-sm text-white">
+										{showBalance 
+											? formatValue(currencyDisplay === 'usd' ? usdValue : ngnValue, currencyDisplay)
+											: "••••"
+										}
+									</div>
+								</div>
+							)
+						})}
+					</div>
+				</div>
+			)}
+		</div>
+	)
 }
