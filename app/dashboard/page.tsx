@@ -12,9 +12,25 @@ import { QuickActions } from "@/components/dashboard/quick-actions"
 import RecentTransactions from "@/components/dashboard/recent-transactions"
 import { MarketData } from "@/components/dashboard/market-data"
 import { Button } from "@/components/ui/button"
-import { Menu, Wallet, Copy, CheckCircle, Wifi, WifiOff, AlertTriangle } from "lucide-react"
-import { Sidebar } from "@/components/layout/sidebar"
 import { Badge } from "@/components/ui/badge"
+import { 
+  Wallet, 
+  Copy, 
+  CheckCircle, 
+  Wifi, 
+  WifiOff, 
+  AlertTriangle,
+  Eye,
+  EyeOff,
+  ChevronRight,
+  Activity,
+  Smartphone,
+  Tv,
+  Zap,
+  ArrowUpDown,
+  TrendingUp,
+  History
+} from "lucide-react"
 import sdk from "@farcaster/miniapp-sdk";
 
 interface WalletData {
@@ -23,13 +39,14 @@ interface WalletData {
   connectedAt: string;
 }
 
-// Dashboard Component - Using Farcaster Wagmi Connector
+// Mobile-First Dashboard Component
 function DashboardClient() {
   const router = useRouter();
   const [miniKitReady, setMiniKitReady] = useState(false);
   const [miniKitError, setMiniKitError] = useState<string | null>(null);
+  const [balanceVisible, setBalanceVisible] = useState(true);
   
-  // Use Wagmi hooks directly (they work with your Farcaster provider)
+  // Use Wagmi hooks
   const { address, isConnected, isConnecting, chainId } = useAccount();
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
@@ -42,7 +59,6 @@ function DashboardClient() {
   
   const [mounted, setMounted] = useState(false);
   const [connectedWallet, setConnectedWallet] = useState<WalletData | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'live' | 'cached' | 'connecting'>('connecting');
   const [miniAppContext, setMiniAppContext] = useState<{
@@ -65,12 +81,10 @@ function DashboardClient() {
     const referrer = document.referrer || '';
     const userAgent = window.navigator.userAgent || '';
     
-    // Detect Base App specifically
     const isBaseApp = userAgent.includes('Base') || 
                       referrer.includes('base.org') || 
                       referrer.includes('coinbase');
     
-    // Detect Farcaster clients
     const isFarcaster = userAgent.includes('Farcaster') || 
                         referrer.includes('farcaster') || 
                         referrer.includes('warpcast');
@@ -88,29 +102,21 @@ function DashboardClient() {
 
     const tryAutoConnect = async () => {
       if (miniAppContext.isMiniApp && connectors.length > 0) {
-        console.log('🔄 Attempting auto-connect in mini app...');
         try {
-          // Add mini app to Farcaster if in Farcaster context
           if (miniAppContext.client === 'farcaster') {
             try {
-              console.log('📱 Adding mini app to Farcaster...');
               await sdk.actions.addMiniApp();
-              console.log('✅ Mini app added to Farcaster successfully');
             } catch (addError) {
-              console.log('⚠️ Failed to add mini app to Farcaster:', addError);
-              // Continue with connection even if add fails
+              console.log('Failed to add mini app to Farcaster:', addError);
             }
           }
-
-          // Use the first available connector (should be Farcaster mini app connector)
           connect({ connector: connectors[0] });
         } catch (error) {
-          console.log('⚠️ Auto-connect failed:', error);
+          console.log('Auto-connect failed:', error);
         }
       }
     };
 
-    // Delay auto-connect to ensure providers are ready
     const timer = setTimeout(tryAutoConnect, 1000);
     return () => clearTimeout(timer);
   }, [mounted, miniAppContext.isMiniApp, miniAppContext.client, connectors, connect, isConnecting, isPending, isConnected]);
@@ -120,32 +126,19 @@ function DashboardClient() {
     if (!mounted) return;
 
     try {
-      console.log('🔍 Wallet state changed:', {
-        address,
-        isConnected,
-        isConnecting,
-        chainId,
-        context,
-        miniAppContext
-      });
-
       if (address && isConnected) {
-        console.log('✅ Wallet connected via Farcaster Connector:', address);
-        
         setConnectedWallet({
           address,
           chainId: chainId?.toString() || '8453',
           connectedAt: new Date().toISOString()
         });
         
-        // Determine connection status based on context
         if (context && miniAppContext.isMiniApp) {
           setConnectionStatus('live');
         } else {
           setConnectionStatus('cached');
         }
       } else {
-        console.log('⌛ No wallet connected');
         setConnectedWallet(null);
         setConnectionStatus('connecting');
       }
@@ -159,10 +152,8 @@ function DashboardClient() {
     if (!mounted || isConnecting || isPending) return;
 
     try {
-      // If not in mini app and no wallet after 5 seconds, redirect
       if (!miniAppContext.isMiniApp && !isConnected) {
         const timer = setTimeout(() => {
-          console.log('Redirecting to home - no wallet connection in web mode');
           router.replace('/');
         }, 5000);
         
@@ -176,18 +167,13 @@ function DashboardClient() {
   const handleConnectWallet = async () => {
     try {
       if (connectors.length > 0) {
-        console.log('🔗 Connecting wallet...');
-        
-        // Add mini app to Farcaster if in Farcaster context and not already added
         if (miniAppContext.client === 'farcaster' && !isAdded && !isFarcasterLoading) {
-          console.log('📱 Adding mini app to Farcaster...');
           await addMiniApp();
         }
-        
         connect({ connector: connectors[0] });
       }
     } catch (error) {
-      console.error('❌ Wallet connection failed:', error);
+      console.error('Wallet connection failed:', error);
       setMiniKitError(`Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -199,7 +185,6 @@ function DashboardClient() {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (error) {
-        console.log('Clipboard not available, address:', connectedWallet.address);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }
@@ -216,30 +201,29 @@ function DashboardClient() {
       switch (connectionStatus) {
         case 'live':
           return (
-            <Badge className="bg-gradient-to-r from-green-500 to-blue-600 text-white border-0">
+            <Badge className="bg-green-100 text-green-800 border-green-200 text-xs dark:bg-green-900/30 dark:text-green-400">
               <Wifi className="h-3 w-3 mr-1" />
-              Farcaster Connected
+              Live
             </Badge>
           );
         case 'cached':
           return (
-            <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0">
+            <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs dark:bg-blue-900/30 dark:text-blue-400">
               <WifiOff className="h-3 w-3 mr-1" />
-              {miniAppContext.client === 'base' ? 'Base App Connected' : 'Mini App Connected'}
+              Connected
             </Badge>
           );
         default:
           return (
-            <Badge variant="outline" className="text-yellow-700 border-yellow-300">
+            <Badge variant="outline" className="text-yellow-700 border-yellow-300 text-xs">
               Connecting...
             </Badge>
           );
       }
     } catch (error) {
-      console.error('Error in getConnectionBadge:', error);
       return (
-        <Badge variant="outline" className="text-red-700 border-red-300">
-          Connection Error
+        <Badge variant="outline" className="text-red-700 border-red-300 text-xs">
+          Error
         </Badge>
       );
     }
@@ -250,53 +234,77 @@ function DashboardClient() {
       switch (miniAppContext.client) {
         case 'base':
           return (
-            <Badge variant="outline" className="text-blue-700 border-blue-300 bg-blue-50">
-              🔵 Base App
+            <Badge variant="outline" className="text-blue-700 border-blue-300 bg-blue-50 text-xs dark:bg-blue-900/30 dark:text-blue-400">
+              🔵 Base
             </Badge>
           );
         case 'farcaster':
           return (
-            <Badge variant="outline" className="text-purple-700 border-purple-300 bg-purple-50">
+            <Badge variant="outline" className="text-purple-700 border-purple-300 bg-purple-50 text-xs dark:bg-purple-900/30 dark:text-purple-400">
               🟣 Farcaster
             </Badge>
           );
         default:
           return (
-            <Badge variant="outline" className="text-gray-700 border-gray-300 bg-gray-50">
-              🌐 Web App
+            <Badge variant="outline" className="text-gray-700 border-gray-300 bg-gray-50 text-xs dark:bg-gray-800 dark:text-gray-400">
+              🌐 Web
             </Badge>
           );
       }
     } catch (error) {
-      console.error('Error in getClientBadge:', error);
       return (
-        <Badge variant="outline" className="text-red-700 border-red-300 bg-red-50">
+        <Badge variant="outline" className="text-red-700 border-red-300 bg-red-50 text-xs">
           Error
         </Badge>
       );
     }
   };
 
+  // Utility services for quick actions
+  const utilityServices = [
+    { 
+      name: "Airtime", 
+      icon: Smartphone, 
+      href: "/airtime", 
+      gradient: "from-purple-500 to-pink-500",
+      description: "Top up mobile"
+    },
+    { 
+      name: "Internet", 
+      icon: Wifi, 
+      href: "/internet", 
+      gradient: "from-blue-500 to-cyan-500",
+      description: "Data bundles"
+    },
+    { 
+      name: "TV", 
+      icon: Tv, 
+      href: "/tv", 
+      gradient: "from-orange-500 to-red-500",
+      description: "Cable & streaming"
+    },
+    { 
+      name: "Electricity", 
+      icon: Zap, 
+      href: "/electricity", 
+      gradient: "from-yellow-500 to-orange-500",
+      description: "Power bills"
+    },
+  ];
+
   // Show error if there's a critical error
   if (miniKitError || farcasterError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-white to-orange-50">
-        <div className="text-center max-w-md mx-auto px-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-white to-orange-50 p-4">
+        <div className="text-center max-w-sm mx-auto">
           <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Connection Error</h1>
-          <p className="text-gray-600 mb-6">{miniKitError || farcasterError}</p>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Connection Error</h1>
+          <p className="text-gray-600 mb-6 text-sm">{miniKitError || farcasterError}</p>
           <div className="space-y-3">
-            <Button 
-              onClick={() => window.location.reload()} 
-              className="w-full"
-            >
+            <Button onClick={() => window.location.reload()} className="w-full">
               Reload Page
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.href = '/'}
-              className="w-full"
-            >
+            <Button variant="outline" onClick={() => window.location.href = '/'} className="w-full">
               Go to Home
             </Button>
           </div>
@@ -308,10 +316,10 @@ function DashboardClient() {
   // Show loading until mounted
   if (!mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Initializing Dashboard...</p>
+          <p className="text-gray-600 dark:text-gray-400">Initializing Dashboard...</p>
         </div>
       </div>
     );
@@ -320,10 +328,10 @@ function DashboardClient() {
   // Show loading while checking wallet
   if (isConnecting || isPending || isFarcasterLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             {isFarcasterLoading ? 'Adding to Farcaster...' : 'Connecting to wallet...'}
           </p>
           <p className="text-sm text-gray-500 mt-2">
@@ -338,18 +346,18 @@ function DashboardClient() {
   // Show wallet connection prompt if not connected
   if (!isConnected) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <div className="text-center max-w-md mx-auto px-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-blue-950 dark:via-gray-900 dark:to-purple-950 p-4">
+        <div className="text-center max-w-sm mx-auto">
           <img src="/paycrypt.png" alt="Paycrypt" className="h-20 w-20 mx-auto mb-6 rounded-2xl shadow-lg" />
           
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Connect Your Wallet</h1>
-          <p className="text-gray-600 mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Connect Your Wallet</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             Connect your wallet to access Paycrypt and start converting crypto to utilities.
           </p>
           
-          <div className="flex justify-center space-x-2 mb-6">
+          <div className="flex justify-center flex-wrap gap-2 mb-6">
             {getClientBadge()}
-            <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50">
+            <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50 text-xs dark:bg-green-900/30 dark:text-green-400">
               ⚡ Base Network
             </Badge>
           </div>
@@ -372,12 +380,12 @@ function DashboardClient() {
           )}
 
           {miniAppContext.isMiniApp ? (
-            <div className="text-sm text-gray-500 space-y-1">
+            <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
               <p>🔒 Secure connection via {miniAppContext.client}</p>
               <p>Running on Base network</p>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Redirecting to home in a few seconds...
             </p>
           )}
@@ -388,133 +396,155 @@ function DashboardClient() {
 
   return (
     <MainLayout>
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-30 bg-black/50 hidden lg:block" 
-          onClick={() => setSidebarOpen(false)} 
-        />
-      )}
-
-      <Sidebar 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
-      />
-
-      <div className="space-y-6">
-        {/* Header Section */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+      <div className="space-y-4 pb-20 lg:pb-6">
+        {/* Mobile Header Card - Balance Overview */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <h1 className="text-lg font-semibold">Portfolio</h1>
+              {getConnectionBadge()}
+            </div>
             <Button
               variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="bg-background border shadow-md hover:bg-accent"
+              size="sm"
+              onClick={() => setBalanceVisible(!balanceVisible)}
+              className="text-white/80 hover:text-white hover:bg-white/10"
             >
-              <Menu className="h-5 w-5" />
+              {balanceVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </Button>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex items-center space-x-4">
+              <div className="text-xs text-blue-100 uppercase tracking-wide">Total Balance</div>
+              {connectedWallet && (
+                <div className="flex items-center space-x-1">
+                  <span className="text-xs text-blue-100 font-mono">
+                    {formatAddress(connectedWallet.address)}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={copyAddress}
+                    className="h-5 w-5 p-0 text-blue-200 hover:text-white"
+                  >
+                    {copied ? (
+                      <CheckCircle className="h-3 w-3" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
             
-            <div className="flex flex-col space-y-2">
-              <div className="flex items-center space-x-3 flex-wrap">
-                <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-                {connectedWallet && getConnectionBadge()}
-                {getClientBadge()}
-              </div>
-              <div className="flex items-center space-x-4">
-                <p className="text-muted-foreground">
-                  {connectedWallet ? (
-                    <span className="flex items-center space-x-2">
-                      <span>Base Wallet: {formatAddress(connectedWallet.address)}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={copyAddress}
-                        className="h-6 w-6 p-0"
-                      >
-                        {copied ? (
-                          <CheckCircle className="h-3 w-3 text-green-600" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </span>
-                  ) : (
-                    "Setting up your wallet connection..."
-                  )}
-                </p>
-              </div>
+            <div className="flex items-baseline space-x-2">
+              <PortfolioOverview wallet={connectedWallet} />
             </div>
           </div>
+          
+          <div className="flex justify-center space-x-1 mt-4">
+            {getClientBadge()}
+          </div>
+        </div>
+
+        {/* Quick Actions Grid */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Utilities</h2>
+            <Button variant="ghost" size="sm" onClick={() => router.push('/convert')}>
+              View All
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {utilityServices.map((service) => (
+              <Button
+                key={service.name}
+                variant="ghost"
+                className="h-auto p-4 flex flex-col items-center space-y-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:shadow-md transition-all"
+                onClick={() => router.push(service.href)}
+              >
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${service.gradient} text-white`}>
+                  <service.icon className="h-6 w-6" />
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-sm text-gray-900 dark:text-white">
+                    {service.name}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {service.description}
+                  </div>
+                </div>
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick Actions Component */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h3>
+          </div>
+          <QuickActions wallet={connectedWallet} />
+        </div>
+
+        {/* Market Data - Mobile Optimized */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Market Data</h3>
+            <Activity className="h-5 w-5 text-gray-400" />
+          </div>
+          <MarketData />
+        </div>
+
+        {/* Recent Transactions */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Transactions</h3>
+            <Button variant="ghost" size="sm" onClick={() => router.push('/history')}>
+              View All
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+          <RecentTransactions wallet={connectedWallet} />
         </div>
 
         {/* Welcome Message */}
         {connectedWallet && (
-          <div className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950/30 dark:to-green-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <h2 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-1">
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/30 dark:to-blue-950/30 border border-green-200 dark:border-green-800 rounded-xl p-4">
+            <h2 className="text-base font-semibold text-green-900 dark:text-green-100 mb-1">
               Welcome to Paycrypt! 🎉
             </h2>
-            <p className="text-blue-700 dark:text-blue-200 text-sm">
+            <p className="text-green-700 dark:text-green-200 text-sm">
               {connectionStatus === 'live' 
-                ? `Your wallet is actively connected via ${miniAppContext.client} using Farcaster SDK. All systems ready!`
-                : `Connected via ${miniAppContext.client}. Your wallet is ready for secure transactions on Base network.`}
+                ? `Your wallet is actively connected via ${miniAppContext.client}. All systems ready!`
+                : `Connected via ${miniAppContext.client}. Your wallet is ready for secure transactions.`}
             </p>
           </div>
         )}
+      </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Column - Portfolio Overview */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Portfolio Overview Card */}
-            <div className="bg-sky-400 rounded-xl shadow-sm border border-sky-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900">
-                  Portfolio Overview
-                </h2>
-                <div className="text-sm text-gray-500">
-                  Last updated: {new Date().toLocaleTimeString()}
-                </div>
-              </div>
-              <PortfolioOverview wallet={connectedWallet} />
-            </div>
-
-            {/* Recent Transactions Card */}
-            <div className="bg-sky-400 rounded-xl shadow-sm border border-sky-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900">
-                  Recent Transactions
-                </h2>
-              </div>
-              <RecentTransactions wallet={connectedWallet} />
-            </div>
-
-              {/* Quick Actions Card */}
-              <div className="bg-sky-400 rounded-xl shadow-sm border border-sky-200 p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Quick Actions
-                  </h2>
-                </div>
-                <QuickActions wallet={connectedWallet} />
-              </div>
-
-          {/* Right Sidebar - Quick Actions */}
-          <div className="lg:col-span-1">
-            <div className="space-y-6">
-             {/* Market Data Card */}
-            <div className="bg-sky-400 rounded-xl shadow-sm border border-sky-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900">
-                  Market Data
-                </h2>
-                <div className="text-sm text-gray-500">
-                  Real-time data
-                </div>
-              </div>
-              <MarketData />
-            </div>
-            </div>
-          </div>
-          </div>
+      {/* Mobile Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 py-2 z-40">
+        <div className="flex justify-around items-center">
+          <Button variant="ghost" size="sm" className="flex flex-col items-center space-y-1 p-2" onClick={() => router.push('/')}>
+            <TrendingUp className="h-5 w-5" />
+            <span className="text-xs">Dashboard</span>
+          </Button>
+          <Button variant="ghost" size="sm" className="flex flex-col items-center space-y-1 p-2" onClick={() => router.push('/convert')}>
+            <ArrowUpDown className="h-5 w-5" />
+            <span className="text-xs">Convert</span>
+          </Button>
+          <Button variant="ghost" size="sm" className="flex flex-col items-center space-y-1 p-2" onClick={() => router.push('/portfolio')}>
+            <Wallet className="h-5 w-5" />
+            <span className="text-xs">Portfolio</span>
+          </Button>
+          <Button variant="ghost" size="sm" className="flex flex-col items-center space-y-1 p-2" onClick={() => router.push('/history')}>
+            <History className="h-5 w-5" />
+            <span className="text-xs">History</span>
+          </Button>
         </div>
       </div>
     </MainLayout>
@@ -525,10 +555,10 @@ function DashboardClient() {
 const DashboardPage = dynamic(() => Promise.resolve(DashboardClient), {
   ssr: false,
   loading: () => (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Setting up Dashboard...</p>
+        <p className="text-gray-600 dark:text-gray-400">Setting up Dashboard...</p>
         <p className="text-sm text-gray-500 mt-2">Loading wallet connection...</p>
       </div>
     </div>
