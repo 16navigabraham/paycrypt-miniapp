@@ -378,10 +378,7 @@ function DashboardClient() {
             
             <div className="flex items-baseline space-x-2">
               {balanceVisible ? (
-                <>
-                  <span className="text-3xl font-bold">$1,247.68</span>
-                  <span className="text-green-300 text-sm font-medium">+2.37%</span>
-                </>
+                <PortfolioOverview wallet={connectedWallet} />
               ) : (
                 <span className="text-3xl font-bold">••••••</span>
               )}
