@@ -229,68 +229,7 @@ function DashboardClient() {
     }
   };
 
-  const getClientBadge = () => {
-    try {
-      switch (miniAppContext.client) {
-        case 'base':
-          return (
-            <Badge variant="outline" className="text-blue-700 border-blue-300 bg-blue-50 text-xs dark:bg-blue-900/30 dark:text-blue-400">
-              🔵 Base
-            </Badge>
-          );
-        case 'farcaster':
-          return (
-            <Badge variant="outline" className="text-purple-700 border-purple-300 bg-purple-50 text-xs dark:bg-purple-900/30 dark:text-purple-400">
-              🟣 Farcaster
-            </Badge>
-          );
-        default:
-          return (
-            <Badge variant="outline" className="text-gray-700 border-gray-300 bg-gray-50 text-xs dark:bg-gray-800 dark:text-gray-400">
-              🌐 Web
-            </Badge>
-          );
-      }
-    } catch (error) {
-      return (
-        <Badge variant="outline" className="text-red-700 border-red-300 bg-red-50 text-xs">
-          Error
-        </Badge>
-      );
-    }
-  };
 
-  // Utility services for quick actions
-  const utilityServices = [
-    { 
-      name: "Airtime", 
-      icon: Smartphone, 
-      href: "/airtime", 
-      gradient: "from-purple-500 to-pink-500",
-      description: "Top up mobile"
-    },
-    { 
-      name: "Internet", 
-      icon: Wifi, 
-      href: "/internet", 
-      gradient: "from-blue-500 to-cyan-500",
-      description: "Data bundles"
-    },
-    { 
-      name: "TV", 
-      icon: Tv, 
-      href: "/tv", 
-      gradient: "from-orange-500 to-red-500",
-      description: "Cable & streaming"
-    },
-    { 
-      name: "Electricity", 
-      icon: Zap, 
-      href: "/electricity", 
-      gradient: "from-yellow-500 to-orange-500",
-      description: "Power bills"
-    },
-  ];
 
   // Show error if there's a critical error
   if (miniKitError || farcasterError) {
@@ -356,7 +295,6 @@ function DashboardClient() {
           </p>
           
           <div className="flex justify-center flex-wrap gap-2 mb-6">
-            {getClientBadge()}
             <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50 text-xs dark:bg-green-900/30 dark:text-green-400">
               ⚡ Base Network
             </Badge>
@@ -439,68 +377,31 @@ function DashboardClient() {
             </div>
             
             <div className="flex items-baseline space-x-2">
-              <PortfolioOverview wallet={connectedWallet} />
+              {balanceVisible ? (
+                <>
+                  <span className="text-3xl font-bold">$1,247.68</span>
+                  <span className="text-green-300 text-sm font-medium">+2.37%</span>
+                </>
+              ) : (
+                <span className="text-3xl font-bold">••••••</span>
+              )}
             </div>
           </div>
           
           <div className="flex justify-center space-x-1 mt-4">
-            {getClientBadge()}
           </div>
         </div>
 
-        {/* Quick Actions Grid */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Utilities</h2>
-            <Button variant="ghost" size="sm" onClick={() => router.push('/convert')}>
-              View All
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            {utilityServices.map((service) => (
-              <Button
-                key={service.name}
-                variant="ghost"
-                className="h-auto p-4 flex flex-col items-center space-y-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:shadow-md transition-all"
-                onClick={() => router.push(service.href)}
-              >
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${service.gradient} text-white`}>
-                  <service.icon className="h-6 w-6" />
-                </div>
-                <div className="text-center">
-                  <div className="font-medium text-sm text-gray-900 dark:text-white">
-                    {service.name}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {service.description}
-                  </div>
-                </div>
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {/* Quick Actions Component */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+        {/* Mobile-Optimized Quick Actions Component */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h3>
           </div>
           <QuickActions wallet={connectedWallet} />
         </div>
 
-        {/* Market Data - Mobile Optimized */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Market Data</h3>
-            <Activity className="h-5 w-5 text-gray-400" />
-          </div>
-          <MarketData />
-        </div>
-
         {/* Recent Transactions */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Transactions</h3>
             <Button variant="ghost" size="sm" onClick={() => router.push('/history')}>
@@ -513,7 +414,7 @@ function DashboardClient() {
 
         {/* Welcome Message */}
         {connectedWallet && (
-          <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/30 dark:to-blue-950/30 border border-green-200 dark:border-green-800 rounded-xl p-4">
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/30 dark:to-blue-950/30 border border-green-200 dark:border-green-800 rounded-2xl p-4 shadow-sm">
             <h2 className="text-base font-semibold text-green-900 dark:text-green-100 mb-1">
               Welcome to Paycrypt! 🎉
             </h2>
@@ -524,28 +425,6 @@ function DashboardClient() {
             </p>
           </div>
         )}
-      </div>
-
-      {/* Mobile Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 py-2 z-40">
-        <div className="flex justify-around items-center">
-          <Button variant="ghost" size="sm" className="flex flex-col items-center space-y-1 p-2" onClick={() => router.push('/')}>
-            <TrendingUp className="h-5 w-5" />
-            <span className="text-xs">Dashboard</span>
-          </Button>
-          <Button variant="ghost" size="sm" className="flex flex-col items-center space-y-1 p-2" onClick={() => router.push('/convert')}>
-            <ArrowUpDown className="h-5 w-5" />
-            <span className="text-xs">Convert</span>
-          </Button>
-          <Button variant="ghost" size="sm" className="flex flex-col items-center space-y-1 p-2" onClick={() => router.push('/portfolio')}>
-            <Wallet className="h-5 w-5" />
-            <span className="text-xs">Portfolio</span>
-          </Button>
-          <Button variant="ghost" size="sm" className="flex flex-col items-center space-y-1 p-2" onClick={() => router.push('/history')}>
-            <History className="h-5 w-5" />
-            <span className="text-xs">History</span>
-          </Button>
-        </div>
       </div>
     </MainLayout>
   )
