@@ -67,64 +67,64 @@ export function TransactionStatusModal({
   let iconColor = "";
 
   if (isWaitingForApprovalSignature) {
-    title = "Awaiting Approval Signature";
+    title = "Awaiting Approval";
     description = "Please approve the token spend in your wallet to continue.";
-    icon = <KeyRound className="w-12 h-12 animate-pulse text-blue-500" />;
+    icon = <KeyRound className="w-8 h-8 animate-pulse text-blue-500" />;
     iconColor = "text-blue-500";
   } else if (isApproving) {
     title = "Approving Token";
-    description = "Your token approval transaction is being processed on the blockchain.";
-    icon = <Loader2 className="w-12 h-12 animate-spin text-yellow-500" />;
+    description = "Your approval transaction is being processed.";
+    icon = <Loader2 className="w-8 h-8 animate-spin text-yellow-500" />;
     iconColor = "text-yellow-500";
   } else if (isApprovalSuccess) {
     title = "Token Approved!";
-    description = "Your token has been successfully approved. Proceeding with payment...";
-    icon = <CheckCircle className="w-12 h-12 text-green-500" />;
+    description = "Approved successfully. Proceeding with payment...";
+    icon = <CheckCircle className="w-8 h-8 text-green-500" />;
     iconColor = "text-green-500";
   } else if (isApprovalError) {
-    title = "Token Approval Failed";
-    description = errorMessage || "The token approval transaction could not be completed.";
-    icon = <XCircle className="w-12 h-12 text-red-500" />;
+    title = "Approval Failed";
+    description = errorMessage || "The approval transaction could not be completed.";
+    icon = <XCircle className="w-8 h-8 text-red-500" />;
     iconColor = "text-red-500";
   } else if (displayStatus === 'waitingForSignature') {
-    title = "Awaiting Wallet Signature";
+    title = "Awaiting Signature";
     description = "Please confirm the transaction in your wallet.";
-    icon = <Loader2 className="w-12 h-12 animate-spin text-blue-500" />;
+    icon = <Loader2 className="w-8 h-8 animate-spin text-blue-500" />;
     iconColor = "text-blue-500";
   } else if (displayStatus === 'sending') {
     title = "Transaction Sent";
-    description = "Your transaction is being processed on the blockchain. Waiting for confirmation...";
-    icon = <Loader2 className="w-12 h-12 animate-spin text-yellow-500" />;
+    description = "Processing on blockchain. Waiting for confirmation...";
+    icon = <Loader2 className="w-8 h-8 animate-spin text-yellow-500" />;
     iconColor = "text-yellow-500";
   } else if (displayStatus === 'confirming') {
     title = "Confirming Transaction";
-    description = "Your transaction is on the blockchain and awaiting final confirmation.";
-    icon = <Loader2 className="w-12 h-12 animate-spin text-purple-500" />;
+    description = "On blockchain, awaiting final confirmation.";
+    icon = <Loader2 className="w-8 h-8 animate-spin text-purple-500" />;
     iconColor = "text-purple-500";
   } else if (isErrorBlockchain) {
-    title = "Blockchain Transaction Failed";
-    description = errorMessage || "The blockchain transaction could not be completed. Check the explorer for details.";
-    icon = <XCircle className="w-12 h-12 text-red-500" />;
+    title = "Transaction Failed";
+    description = errorMessage || "The blockchain transaction could not be completed.";
+    icon = <XCircle className="w-8 h-8 text-red-500" />;
     iconColor = "text-red-500";
   } else if (isSuccessBlockchainConfirmed) {
     title = "Blockchain Confirmed!";
-    description = "Now processing your order with our payment provider...";
-    icon = <Clock className="w-12 h-12 animate-spin text-green-500" />;
+    description = "Now processing with payment provider...";
+    icon = <Clock className="w-8 h-8 animate-spin text-green-500" />;
     iconColor = "text-green-500";
   } else if (isBackendProcessing) {
     title = "Processing Payment";
-    description = backendMessage || "Our system is processing your payment with the service provider.";
-    icon = <Loader2 className="w-12 h-12 animate-spin text-orange-500" />;
+    description = backendMessage || "Processing payment with service provider.";
+    icon = <Loader2 className="w-8 h-8 animate-spin text-orange-500" />;
     iconColor = "text-orange-500";
   } else if (isBackendSuccess) {
     title = "Payment Successful!";
-    description = backendMessage || "Your payment has been successfully processed and delivered!";
-    icon = <CheckCircle className="w-12 h-12 text-green-600" />;
+    description = backendMessage || "Your payment has been successfully processed!";
+    icon = <CheckCircle className="w-8 h-8 text-green-600" />;
     iconColor = "text-green-600";
   } else if (isBackendError) {
     title = "Payment Failed";
-    description = backendMessage || errorMessage || "The payment could not be completed by the service provider. Contact support with your transaction hash.";
-    icon = <XCircle className="w-12 h-12 text-red-600" />;
+    description = backendMessage || errorMessage || "Payment could not be completed. Contact support with your transaction hash.";
+    icon = <XCircle className="w-8 h-8 text-red-600" />;
     iconColor = "text-red-600";
   }
 
@@ -168,25 +168,25 @@ export function TransactionStatusModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px] p-6 text-center">
-        <DialogHeader className="flex flex-col items-center">
-          <div className={`mb-4 ${iconColor}`}>{icon}</div>
-          <DialogTitle className="text-2xl font-bold">{title}</DialogTitle>
-          <DialogDescription className="text-center text-muted-foreground mt-2">{description}</DialogDescription>
+      <DialogContent className="w-[95vw] max-w-[350px] p-4 text-center rounded-lg">
+        <DialogHeader className="flex flex-col items-center space-y-2">
+          <div className={`mb-2 ${iconColor}`}>{icon}</div>
+          <DialogTitle className="text-lg font-bold leading-tight">{title}</DialogTitle>
+          <DialogDescription className="text-center text-muted-foreground text-sm leading-snug px-2">{description}</DialogDescription>
         </DialogHeader>
 
         {transactionHash && (
-          <div className="mt-4 text-sm break-words">
-            <p className="font-medium">Transaction Hash:</p>
-            <div className="flex items-center justify-center gap-2 mt-1">
-              <Link href={explorerLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                {transactionHash.substring(0, 6)}...{transactionHash.substring(transactionHash.length - 4)}
+          <div className="mt-3 text-xs space-y-1">
+            <p className="font-medium text-sm">Transaction Hash:</p>
+            <div className="flex items-center justify-center gap-1 bg-gray-50 dark:bg-gray-800 rounded-md p-2">
+              <Link href={explorerLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs font-mono">
+                {transactionHash.substring(0, 8)}...{transactionHash.substring(transactionHash.length - 6)}
               </Link>
               {showCopyButtons && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-6 w-6 p-0"
+                  className="h-5 w-5 p-0 ml-1"
                   onClick={() => copyToClipboard(transactionHash, 'hash')}
                 >
                   {copiedHash ? (
@@ -199,16 +199,17 @@ export function TransactionStatusModal({
             </div>
           </div>
         )}
+        
         {requestId && (displayStatus !== 'idle' && displayStatus !== 'waitingForSignature' && !isWaitingForApprovalSignature) && (
-          <div className="mt-4 text-sm break-words">
-            <p className="font-medium">Request ID:</p>
-            <div className="flex items-center justify-center gap-2 mt-1">
-              <span className="text-muted-foreground font-mono text-xs">{requestId}</span>
+          <div className="mt-3 text-xs space-y-1">
+            <p className="font-medium text-sm">Request ID:</p>
+            <div className="flex items-center justify-center gap-1 bg-gray-50 dark:bg-gray-800 rounded-md p-2">
+              <span className="text-muted-foreground font-mono text-xs truncate max-w-[200px]">{requestId}</span>
               {showCopyButtons && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-6 w-6 p-0"
+                  className="h-5 w-5 p-0 ml-1 flex-shrink-0"
                   onClick={() => copyToClipboard(requestId, 'requestId')}
                 >
                   {copiedRequestId ? (
@@ -231,20 +232,20 @@ export function TransactionStatusModal({
           <p><strong>Message:</strong> {backendMessage || errorMessage || "N/A"}</p>
         </div>
 
-        <DialogFooter className="mt-6 flex justify-center gap-4">
+        <DialogFooter className="mt-4 flex flex-col gap-2">
           {isBackendSuccess && (
-            <>
-              <Button variant="secondary" onClick={printReceipt}>
-                <Printer className="w-4 h-4 mr-2" /> Print Receipt
+            <div className="flex flex-col gap-2 w-full">
+              <Button variant="secondary" onClick={printReceipt} className="w-full text-sm h-9">
+                <Printer className="w-3 h-3 mr-2" /> Print Receipt
               </Button>
-              <Button variant="outline" asChild>
+              <Button variant="outline" asChild className="w-full text-sm h-9">
                 <Link href="https://forms.gle/voDtR5vBsJtisDEL7" target="_blank" rel="noopener noreferrer">
-                  <MessageSquare className="w-4 h-4 mr-2" /> Give Feedback
+                  <MessageSquare className="w-3 h-3 mr-2" /> Give Feedback
                 </Link>
               </Button>
-            </>
+            </div>
           )}
-          <Button onClick={handleClose}>
+          <Button onClick={handleClose} className="w-full text-sm h-9">
             {isBackendSuccess || isBackendError || isErrorBlockchain || isApprovalError ? "Done" : "Close"}
           </Button>
         </DialogFooter>
