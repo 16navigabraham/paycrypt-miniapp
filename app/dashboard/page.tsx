@@ -336,7 +336,7 @@ function DashboardClient() {
     <MainLayout>
       <div className="space-y-4 pb-20 lg:pb-6">
         {/* Mobile Header Card - Balance Overview */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
+        <div className="bg-[#040b34] rounded-2xl p-6 text-white shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <h1 className="text-lg font-semibold">Portfolio</h1>
