@@ -12,6 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Copy, MessageCircle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
+// Import native SDKs (install these packages):
+// npm install @coinbase/onchainkit @farcaster/miniapp-sdk
+// import { useComposeCast } from '@coinbase/onchainkit/minikit';
+// import { sdk } from '@farcaster/miniapp-sdk';
 import Image from "next/image";
 
 interface ReceiptProps {
@@ -35,8 +39,10 @@ interface ReceiptProps {
 }
 
 export function TransactionReceiptModal({ isOpen, onClose, order }: ReceiptProps) {
-  const printRef = useRef<HTMLDivElement>(null);
   const [hashCopied, setHashCopied] = useState(false);
+  
+  // Uncomment when you have the SDKs installed:
+  // const { composeCast } = useComposeCast(); // Base MiniKit
 
   const shareToCast = async () => {
     if (!order) {
@@ -58,16 +64,54 @@ Status: ${formatStatus(order.vtpassStatus)}
 
 #PayCrypt #Crypto #Web3Payments #Onchain`;
 
-      // Copy the cast text to clipboard
-      await navigator.clipboard.writeText(castText);
+      // URL encode the text for sharing
+      const encodedText = encodeURIComponent(castText);
       
-      toast.success("Cast text copied! You can now paste it in Farcaster or Base to share your transaction.");
+      // Try Farcaster first
+      const farcasterUrl = `https://warpcast.com/~/compose?text=${encodedText}`;
+      
+      // Try Base app second (if they have a similar URL scheme)
+      const baseUrl = `https://base.org/compose?text=${encodedText}`;
+      
+      // Try to open Farcaster composer
+      try {
+        window.open(farcasterUrl, '_blank');
+        toast.success("Opening Farcaster cast composer...");
+        return;
+      } catch (farcasterError) {
+        console.log("Farcaster direct link failed, trying Base...");
+      }
+
+      // Fallback: Try Base app
+      try {
+        window.open(baseUrl, '_blank');
+        toast.success("Opening Base cast composer...");
+        return;
+      } catch (baseError) {
+        console.log("Base direct link failed, falling back to copy...");
+      }
+
+      // Final fallback: Copy to clipboard
+      await navigator.clipboard.writeText(castText);
+      toast.success("Cast text copied! Open Farcaster or Base app and paste to share.");
       
     } catch (error) {
-      console.error('Copy cast text error:', error);
+      console.error('Share cast error:', error);
       
-      // Fallback for older browsers
+      // Last resort fallback for older browsers
       try {
+        const castText = `✅ Just completed a crypto payment with https://miniapp.paycrypt.org
+
+💰 Service: ${order.serviceType.toUpperCase()}
+📱 Amount: ₦${order.amountNaira.toLocaleString()}
+🪙 Paid: ${order.cryptoUsed} ${order.cryptoSymbol}
+
+Status: ${formatStatus(order.vtpassStatus)}
+
+🔗 ${order.transactionHash.slice(0, 10)}...${order.transactionHash.slice(-8)}
+
+#PayCrypt #Crypto #Web3Payments #Onchain`;
+
         const textArea = document.createElement('textarea');
         textArea.value = castText;
         document.body.appendChild(textArea);
@@ -76,9 +120,9 @@ Status: ${formatStatus(order.vtpassStatus)}
         document.execCommand('copy');
         document.body.removeChild(textArea);
         
-        toast.success("Cast text copied! You can now paste it in Farcaster or Base to share your transaction.");
+        toast.success("Cast text copied! Open Farcaster or Base app and paste to share.");
       } catch (fallbackError) {
-        toast.error("Failed to copy cast text");
+        toast.error("Failed to prepare cast. Please try again.");
       }
     }
   };
@@ -229,75 +273,13 @@ Status: ${formatStatus(order.vtpassStatus)}
               </div>
             </div>
 
-            {/* Print-only version */}
-            <div ref={printRef} className="hidden">
-              <div className="receipt-container">
-                <div className="receipt-header">
-                  <div className="logo">PC</div>
-                  <h2 style={{ margin: '0 0 5px 0', fontSize: '18px', fontWeight: 'bold' }}>PayCrypt</h2>
-                  <p style={{ margin: '0', fontSize: '12px', opacity: '0.9' }}>Crypto Payment Receipt</p>
-                  <div className="status-badge">{formatStatus(order.vtpassStatus)}</div>
-                </div>
-                
-                <div className="receipt-body">
-                  <div className="receipt-row highlight">
-                    <span>Service:</span>
-                    <span>{order.serviceType.toUpperCase()} - {order.serviceID}</span>
-                  </div>
-                  
-                  {order.variationCode && (
-                    <div className="receipt-row">
-                      <span>Plan:</span>
-                      <span>{order.variationCode}</span>
-                    </div>
-                  )}
-                  
-                  <div className="receipt-row">
-                    <span>Customer:</span>
-                    <span>{order.customerIdentifier}</span>
-                  </div>
-                  
-                  <div className="divider"></div>
-                  
-                  <div className="receipt-row highlight">
-                    <span>Amount:</span>
-                    <span>₦{order.amountNaira.toLocaleString()}</span>
-                  </div>
-                  
-                  <div className="receipt-row">
-                    <span>Paid:</span>
-                    <span>{order.cryptoUsed} {order.cryptoSymbol}</span>
-                  </div>
-                  
-                  <div className="divider"></div>
-                  
-                  <div className="receipt-row">
-                    <span>Request ID:</span>
-                    <span>{order.requestId}</span>
-                  </div>
-                  
-                  <div className="receipt-row">
-                    <span>Blockchain:</span>
-                    <span>{formatStatus(order.onChainStatus)}</span>
-                  </div>
-                  
-                  <div className="receipt-row">
-                    <span>Date:</span>
-                    <span>{new Date(order.createdAt).toLocaleString()}</span>
-                  </div>
-                  
-                  <div className="divider"></div>
-                  
-                  <div style={{ marginTop: '10px' }}>
-                    <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '5px' }}>Transaction Hash:</div>
-                    <div className="hash-text">{order.transactionHash}</div>
-                  </div>
-                </div>
-                
-                <div className="receipt-footer">
-                  <p>Thank you for using PayCrypt!</p>
-                  <p>Keep this receipt for your records</p>
-                </div>
+            {/* Hidden print content for legacy support - can be removed */}
+            <div className="hidden">
+              <div className="receipt-content">
+                <h2>PayCrypt Receipt</h2>
+                <p>Service: {order.serviceType.toUpperCase()}</p>
+                <p>Amount: ₦{order.amountNaira.toLocaleString()}</p>
+                <p>Hash: {order.transactionHash}</p>
               </div>
             </div>
           </div>
