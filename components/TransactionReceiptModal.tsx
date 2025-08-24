@@ -188,7 +188,7 @@ Status: ${formatStatus(order.vtpassStatus)}
         {order && (
           <div className="receipt-display">
             {/* Screen Display */}
-            <div className="bg-gradient-to-br from-blue-500 via-purple-500 to-purple-600 text-white p-4 text-center">
+            <div className="bg-gradient-to-br from-blue-500 via-sky-500 to-sky-600 text-white p-4 text-center">
               <div className="w-12 h-12 mx-auto mb-2 bg-white rounded-full flex items-center justify-center">
                 <Image 
                   src="/paycrypt.png" 
