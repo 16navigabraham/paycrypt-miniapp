@@ -9,9 +9,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Copy, Download, CheckCircle } from "lucide-react";
+import { Copy, MessageCircle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
-import { useRef } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 
 interface ReceiptProps {
@@ -36,234 +36,64 @@ interface ReceiptProps {
 
 export function TransactionReceiptModal({ isOpen, onClose, order }: ReceiptProps) {
   const printRef = useRef<HTMLDivElement>(null);
+  const [hashCopied, setHashCopied] = useState(false);
 
-  const handleDownload = () => {
+  const shareToCast = async () => {
     if (!order) {
-      toast.error("No order data available for download");
+      toast.error("No order data available");
       return;
     }
-    
+
     try {
-      // Format status for display
-      const formatStatusForDownload = (status: string) => {
-        return status.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-      };
+      // Create a Farcaster/Base app friendly cast text
+      const castText = `✅ Just completed a crypto payment with https://miniapp.paycrypt.org
 
-      const receiptContent = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PayCrypt Receipt - ${order.requestId}</title>
-    <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            margin: 0; 
-            padding: 20px; 
-            background: #f5f5f5;
-            min-height: 100vh;
-        }
-        .receipt-container {
-            max-width: 350px;
-            margin: 0 auto;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            background: white;
-        }
-        .receipt-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 24px;
-            text-align: center;
-        }
-        .logo {
-            width: 64px;
-            height: 64px;
-            margin: 0 auto 12px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: #667eea;
-            font-size: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .receipt-body {
-            padding: 24px;
-            background: white;
-        }
-        .status-badge {
-            background: #10b981;
-            color: white;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            display: inline-block;
-            margin: 12px 0;
-        }
-        .divider {
-            border-top: 2px dashed #e5e7eb;
-            margin: 20px 0;
-        }
-        .receipt-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin: 12px 0;
-            font-size: 13px;
-            line-height: 1.4;
-        }
-        .receipt-row.highlight {
-            font-weight: 600;
-            font-size: 15px;
-            color: #1f2937;
-        }
-        .receipt-row .label {
-            color: #6b7280;
-            font-weight: 500;
-        }
-        .receipt-row .value {
-            text-align: right;
-            max-width: 60%;
-            word-break: break-word;
-        }
-        .receipt-footer {
-            text-align: center;
-            color: #6b7280;
-            font-size: 11px;
-            padding: 20px;
-            border-top: 1px solid #f3f4f6;
-            background: #fafafa;
-        }
-        .hash-section {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 12px;
-            margin: 16px 0;
-        }
-        .hash-text {
-            word-break: break-all;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-            font-size: 11px;
-            color: #374151;
-            line-height: 1.5;
-        }
-        .company-name {
-            font-size: 20px;
-            font-weight: 700;
-            margin: 0;
-        }
-        .company-tagline {
-            font-size: 12px;
-            opacity: 0.9;
-            margin: 4px 0 0 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="receipt-container">
-        <div class="receipt-header">
-            <div class="logo">PC</div>
-            <h1 class="company-name">PayCrypt</h1>
-            <p class="company-tagline">Crypto Payment Receipt</p>
-            <div class="status-badge">${formatStatusForDownload(order.vtpassStatus)}</div>
-        </div>
-        
-        <div class="receipt-body">
-            <div class="receipt-row highlight">
-                <span class="label">Service:</span>
-                <span class="value">${order.serviceType.toUpperCase()} - ${order.serviceID}</span>
-            </div>
-            
-            ${order.variationCode ? `
-            <div class="receipt-row">
-                <span class="label">Plan:</span>
-                <span class="value">${order.variationCode}</span>
-            </div>` : ''}
-            
-            <div class="receipt-row">
-                <span class="label">Customer:</span>
-                <span class="value">${order.customerIdentifier}</span>
-            </div>
-            
-            <div class="divider"></div>
-            
-            <div class="receipt-row highlight">
-                <span class="label">Amount:</span>
-                <span class="value">₦${order.amountNaira.toLocaleString()}</span>
-            </div>
-            
-            <div class="receipt-row">
-                <span class="label">Paid:</span>
-                <span class="value">${order.cryptoUsed} ${order.cryptoSymbol}</span>
-            </div>
-            
-            <div class="divider"></div>
-            
-            <div class="receipt-row">
-                <span class="label">Request ID:</span>
-                <span class="value">${order.requestId}</span>
-            </div>
-            
-            <div class="receipt-row">
-                <span class="label">Blockchain:</span>
-                <span class="value">${formatStatusForDownload(order.onChainStatus)}</span>
-            </div>
-            
-            <div class="receipt-row">
-                <span class="label">Date:</span>
-                <span class="value">${new Date(order.createdAt).toLocaleString()}</span>
-            </div>
-            
-            <div class="hash-section">
-                <div style="font-size: 11px; color: #6b7280; margin-bottom: 6px; font-weight: 500;">Transaction Hash:</div>
-                <div class="hash-text">${order.transactionHash}</div>
-            </div>
-        </div>
-        
-        <div class="receipt-footer">
-            <p style="margin: 0 0 8px 0; font-weight: 500;">Thank you for using PayCrypt!</p>
-            <p style="margin: 0; opacity: 0.8;">Keep this receipt for your records</p>
-            <p style="margin: 8px 0 0 0; opacity: 0.6;">Generated on ${new Date().toLocaleString()}</p>
-        </div>
-    </div>
-</body>
-</html>`;
+💰 Service: ${order.serviceType.toUpperCase()}
+📱 Amount: ₦${order.amountNaira.toLocaleString()}
+🪙 Paid: ${order.cryptoUsed} ${order.cryptoSymbol}
 
-      // Create and download the file
-      const blob = new Blob([receiptContent], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `paycrypt-receipt-${order.requestId.slice(-8)}.html`;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
+Status: ${formatStatus(order.vtpassStatus)}
+
+🔗 ${order.transactionHash.slice(0, 10)}...${order.transactionHash.slice(-8)}
+
+#PayCrypt #Crypto #Web3Payments #Onchain`;
+
+      // Copy the cast text to clipboard
+      await navigator.clipboard.writeText(castText);
       
-      // Clean up
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
-      
-      toast.success("Receipt downloaded successfully!");
+      toast.success("Cast text copied! You can now paste it in Farcaster or Base to share your transaction.");
       
     } catch (error) {
-      console.error('Download error:', error);
-      toast.error("Failed to download receipt");
+      console.error('Copy cast text error:', error);
+      
+      // Fallback for older browsers
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = castText;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        toast.success("Cast text copied! You can now paste it in Farcaster or Base to share your transaction.");
+      } catch (fallbackError) {
+        toast.error("Failed to copy cast text");
+      }
     }
   };
 
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
+      setHashCopied(true);
       toast.success("Copied to clipboard!");
+      
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setHashCopied(false);
+      }, 2000);
+      
     } catch (err) {
       console.error('Failed to copy: ', err);
       // Fallback for older browsers
@@ -274,7 +104,12 @@ export function TransactionReceiptModal({ isOpen, onClose, order }: ReceiptProps
       textArea.select();
       try {
         document.execCommand('copy');
+        setHashCopied(true);
         toast.success("Copied to clipboard!");
+        
+        setTimeout(() => {
+          setHashCopied(false);
+        }, 2000);
       } catch (fallbackErr) {
         toast.error("Failed to copy to clipboard");
       }
@@ -471,10 +306,10 @@ export function TransactionReceiptModal({ isOpen, onClose, order }: ReceiptProps
         <DialogFooter className="p-3 bg-gray-50 flex flex-col gap-2 border-t">
           <div className="flex gap-2 w-full">
             <Button variant="outline" onClick={() => copyToClipboard(order?.transactionHash || "")} className="flex-1 text-xs h-8"> 
-              <Copy className="w-3 h-3 mr-1" /> Copy Hash
+              <Copy className="w-3 h-3 mr-1" /> {hashCopied ? "Copied!" : "Copy Hash"}
             </Button>
-            <Button variant="outline" onClick={handleDownload} className="flex-1 text-xs h-8">
-              <Download className="w-3 h-3 mr-1" /> Download
+            <Button variant="outline" onClick={shareToCast} className="flex-1 text-xs h-8">
+              <MessageCircle className="w-3 h-3 mr-1" /> Share Cast
             </Button>
           </div>
           <Button onClick={onClose} className="w-full text-xs h-8">Close</Button>
