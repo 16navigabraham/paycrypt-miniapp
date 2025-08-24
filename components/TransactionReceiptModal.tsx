@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Copy, Printer, CheckCircle } from "lucide-react";
+import { Copy, Download, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useRef } from "react";
 import Image from "next/image";
@@ -37,105 +37,249 @@ interface ReceiptProps {
 export function TransactionReceiptModal({ isOpen, onClose, order }: ReceiptProps) {
   const printRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = () => {
-    if (printRef.current) {
-      const printContents = printRef.current.innerHTML;
-      const printWindow = window.open("", "", "height=700,width=400");
-      if (printWindow) {
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Transaction Receipt</title>
-              <style>
-                body { 
-                  font-family: Arial, sans-serif; 
-                  margin: 0; 
-                  padding: 20px; 
-                  background: white;
-                  font-size: 12px;
-                  line-height: 1.4;
-                }
-                .receipt-container {
-                  max-width: 350px;
-                  margin: 0 auto;
-                  border: 1px solid #ddd;
-                  border-radius: 8px;
-                  overflow: hidden;
-                }
-                .receipt-header {
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                  color: white;
-                  padding: 20px;
-                  text-align: center;
-                }
-                .logo {
-                  width: 60px;
-                  height: 60px;
-                  margin: 0 auto 10px;
-                  background: white;
-                  border-radius: 50%;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  font-weight: bold;
-                  color: #667eea;
-                }
-                .receipt-body {
-                  padding: 20px;
-                  background: white;
-                }
-                .status-badge {
-                  background: #10b981;
-                  color: white;
-                  padding: 4px 12px;
-                  border-radius: 20px;
-                  font-size: 11px;
-                  display: inline-block;
-                  margin: 10px 0;
-                }
-                .divider {
-                  border-top: 1px dashed #ddd;
-                  margin: 15px 0;
-                }
-                .receipt-row {
-                  display: flex;
-                  justify-content: space-between;
-                  margin: 8px 0;
-                  font-size: 11px;
-                }
-                .receipt-row.highlight {
-                  font-weight: bold;
-                  font-size: 12px;
-                  color: #1f2937;
-                }
-                .receipt-footer {
-                  text-align: center;
-                  color: #6b7280;
-                  font-size: 10px;
-                  padding: 15px;
-                  border-top: 1px solid #f3f4f6;
-                }
-                .hash-text {
-                  word-break: break-all;
-                  font-family: monospace;
-                  font-size: 10px;
-                }
-              </style>
-            </head>
-            <body>${printContents}</body>
-          </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-      }
+  const handleDownload = () => {
+    if (!order) {
+      toast.error("No order data available for download");
+      return;
+    }
+    
+    try {
+      // Format status for display
+      const formatStatusForDownload = (status: string) => {
+        return status.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+      };
+
+      const receiptContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayCrypt Receipt - ${order.requestId}</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        .receipt-container {
+            max-width: 350px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            background: white;
+        }
+        .receipt-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+        .logo {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 12px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #667eea;
+            font-size: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .receipt-body {
+            padding: 24px;
+            background: white;
+        }
+        .status-badge {
+            background: #10b981;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin: 12px 0;
+        }
+        .divider {
+            border-top: 2px dashed #e5e7eb;
+            margin: 20px 0;
+        }
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin: 12px 0;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .receipt-row.highlight {
+            font-weight: 600;
+            font-size: 15px;
+            color: #1f2937;
+        }
+        .receipt-row .label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .receipt-row .value {
+            text-align: right;
+            max-width: 60%;
+            word-break: break-word;
+        }
+        .receipt-footer {
+            text-align: center;
+            color: #6b7280;
+            font-size: 11px;
+            padding: 20px;
+            border-top: 1px solid #f3f4f6;
+            background: #fafafa;
+        }
+        .hash-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 16px 0;
+        }
+        .hash-text {
+            word-break: break-all;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 11px;
+            color: #374151;
+            line-height: 1.5;
+        }
+        .company-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0;
+        }
+        .company-tagline {
+            font-size: 12px;
+            opacity: 0.9;
+            margin: 4px 0 0 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt-container">
+        <div class="receipt-header">
+            <div class="logo">PC</div>
+            <h1 class="company-name">PayCrypt</h1>
+            <p class="company-tagline">Crypto Payment Receipt</p>
+            <div class="status-badge">${formatStatusForDownload(order.vtpassStatus)}</div>
+        </div>
+        
+        <div class="receipt-body">
+            <div class="receipt-row highlight">
+                <span class="label">Service:</span>
+                <span class="value">${order.serviceType.toUpperCase()} - ${order.serviceID}</span>
+            </div>
+            
+            ${order.variationCode ? `
+            <div class="receipt-row">
+                <span class="label">Plan:</span>
+                <span class="value">${order.variationCode}</span>
+            </div>` : ''}
+            
+            <div class="receipt-row">
+                <span class="label">Customer:</span>
+                <span class="value">${order.customerIdentifier}</span>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="receipt-row highlight">
+                <span class="label">Amount:</span>
+                <span class="value">₦${order.amountNaira.toLocaleString()}</span>
+            </div>
+            
+            <div class="receipt-row">
+                <span class="label">Paid:</span>
+                <span class="value">${order.cryptoUsed} ${order.cryptoSymbol}</span>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="receipt-row">
+                <span class="label">Request ID:</span>
+                <span class="value">${order.requestId}</span>
+            </div>
+            
+            <div class="receipt-row">
+                <span class="label">Blockchain:</span>
+                <span class="value">${formatStatusForDownload(order.onChainStatus)}</span>
+            </div>
+            
+            <div class="receipt-row">
+                <span class="label">Date:</span>
+                <span class="value">${new Date(order.createdAt).toLocaleString()}</span>
+            </div>
+            
+            <div class="hash-section">
+                <div style="font-size: 11px; color: #6b7280; margin-bottom: 6px; font-weight: 500;">Transaction Hash:</div>
+                <div class="hash-text">${order.transactionHash}</div>
+            </div>
+        </div>
+        
+        <div class="receipt-footer">
+            <p style="margin: 0 0 8px 0; font-weight: 500;">Thank you for using PayCrypt!</p>
+            <p style="margin: 0; opacity: 0.8;">Keep this receipt for your records</p>
+            <p style="margin: 8px 0 0 0; opacity: 0.6;">Generated on ${new Date().toLocaleString()}</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+      // Create and download the file
+      const blob = new Blob([receiptContent], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `paycrypt-receipt-${order.requestId.slice(-8)}.html`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      toast.success("Receipt downloaded successfully!");
+      
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error("Failed to download receipt");
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard!");
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copied to clipboard!");
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        toast.success("Copied to clipboard!");
+      } catch (fallbackErr) {
+        toast.error("Failed to copy to clipboard");
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   const formatStatus = (status: string) => {
@@ -157,7 +301,7 @@ export function TransactionReceiptModal({ isOpen, onClose, order }: ReceiptProps
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-[400px] p-0 overflow-hidden">
+      <DialogContent className="w-[90vw] max-w-[320px] p-0 overflow-hidden max-h-[85vh]">
         <DialogHeader className="sr-only">
           <DialogTitle>Transaction Receipt</DialogTitle>
         </DialogHeader>
@@ -165,13 +309,13 @@ export function TransactionReceiptModal({ isOpen, onClose, order }: ReceiptProps
         {order && (
           <div className="receipt-display">
             {/* Screen Display */}
-            <div className="bg-gradient-to-br from-blue-500 via-purple-500 to-purple-600 text-white p-6 text-center">
-              <div className="w-16 h-16 mx-auto mb-3 bg-white rounded-full flex items-center justify-center">
+            <div className="bg-gradient-to-br from-blue-500 via-purple-500 to-purple-600 text-white p-4 text-center">
+              <div className="w-12 h-12 mx-auto mb-2 bg-white rounded-full flex items-center justify-center">
                 <Image 
                   src="/paycrypt.png" 
                   alt="PayCrypt" 
-                  width={40} 
-                  height={40}
+                  width={28} 
+                  height={28}
                   className="rounded-full"
                   onError={(e) => {
                     // Fallback if logo fails to load
@@ -182,56 +326,56 @@ export function TransactionReceiptModal({ isOpen, onClose, order }: ReceiptProps
                     }
                   }}
                 />
-                <div className="logo-fallback text-blue-600 font-bold text-lg hidden">PC</div>
+                <div className="logo-fallback text-blue-600 font-bold text-sm hidden">PC</div>
               </div>
-              <h2 className="text-xl font-bold mb-1">PayCrypt</h2>
-              <p className="text-blue-100 text-sm">Crypto Payment Receipt</p>
-              <div className="flex items-center justify-center gap-1 mt-2">
-                <CheckCircle className="w-4 h-4" />
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.vtpassStatus)} text-white`}>
+              <h2 className="text-lg font-bold mb-1">PayCrypt</h2>
+              <p className="text-blue-100 text-xs">Crypto Payment Receipt</p>
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <CheckCircle className="w-3 h-3" />
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.vtpassStatus)} text-white`}>
                   {formatStatus(order.vtpassStatus)}
                 </span>
               </div>
             </div>
 
-            <div className="p-6 space-y-4 bg-white">
+            <div className="p-4 space-y-3 bg-white max-h-[40vh] overflow-y-auto">
               {/* Transaction Details */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex justify-between items-start">
-                  <span className="text-gray-600 text-sm">Service</span>
+                  <span className="text-gray-600 text-xs">Service</span>
                   <div className="text-right">
-                    <div className="font-medium text-sm">{order.serviceType.toUpperCase()}</div>
+                    <div className="font-medium text-xs">{order.serviceType.toUpperCase()}</div>
                     <div className="text-gray-500 text-xs">{order.serviceID}</div>
                   </div>
                 </div>
 
                 {order.variationCode && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600 text-sm">Plan</span>
-                    <span className="font-medium text-sm">{order.variationCode}</span>
+                    <span className="text-gray-600 text-xs">Plan</span>
+                    <span className="font-medium text-xs">{order.variationCode}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between">
-                  <span className="text-gray-600 text-sm">Customer</span>
-                  <span className="font-medium text-sm font-mono">{order.customerIdentifier}</span>
+                  <span className="text-gray-600 text-xs">Customer</span>
+                  <span className="font-medium text-xs font-mono">{order.customerIdentifier}</span>
                 </div>
 
-                <div className="border-t border-dashed border-gray-200 pt-3 mt-3">
+                <div className="border-t border-dashed border-gray-200 pt-2 mt-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 text-sm">Amount</span>
-                    <span className="font-bold text-lg">₦{order.amountNaira.toLocaleString()}</span>
+                    <span className="text-gray-600 text-xs">Amount</span>
+                    <span className="font-bold text-sm">₦{order.amountNaira.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center mt-1">
                     <span className="text-gray-500 text-xs">Paid with</span>
-                    <span className="text-gray-700 text-sm font-medium">{order.cryptoUsed} {order.cryptoSymbol}</span>
+                    <span className="text-gray-700 text-xs font-medium">{order.cryptoUsed} {order.cryptoSymbol}</span>
                   </div>
                 </div>
 
-                <div className="border-t border-dashed border-gray-200 pt-3 space-y-2">
+                <div className="border-t border-dashed border-gray-200 pt-2 space-y-1">
                   <div className="flex justify-between">
                     <span className="text-gray-600 text-xs">Request ID</span>
-                    <span className="font-mono text-xs text-gray-700">{order.requestId}</span>
+                    <span className="font-mono text-xs text-gray-700 truncate ml-2 max-w-[50%]">{order.requestId}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 text-xs">Blockchain</span>
@@ -239,11 +383,11 @@ export function TransactionReceiptModal({ isOpen, onClose, order }: ReceiptProps
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 text-xs">Date</span>
-                    <span className="text-xs">{new Date(order.createdAt).toLocaleString()}</span>
+                    <span className="text-xs">{new Date(order.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-3">
+                <div className="bg-gray-50 rounded-md p-2">
                   <div className="text-gray-600 text-xs mb-1">Transaction Hash</div>
                   <div className="font-mono text-xs text-gray-800 break-all">{order.transactionHash}</div>
                 </div>
@@ -324,16 +468,16 @@ export function TransactionReceiptModal({ isOpen, onClose, order }: ReceiptProps
           </div>
         )}
 
-        <DialogFooter className="p-4 bg-gray-50 flex flex-col gap-2">
+        <DialogFooter className="p-3 bg-gray-50 flex flex-col gap-2 border-t">
           <div className="flex gap-2 w-full">
-            <Button variant="outline" onClick={() => copyToClipboard(order?.transactionHash || "")} className="flex-1 text-sm h-9"> 
-              <Copy className="w-3 h-3 mr-2" /> Copy Hash
+            <Button variant="outline" onClick={() => copyToClipboard(order?.transactionHash || "")} className="flex-1 text-xs h-8"> 
+              <Copy className="w-3 h-3 mr-1" /> Copy Hash
             </Button>
-            <Button variant="outline" onClick={handlePrint} className="flex-1 text-sm h-9">
-              <Printer className="w-3 h-3 mr-2" /> Print
+            <Button variant="outline" onClick={handleDownload} className="flex-1 text-xs h-8">
+              <Download className="w-3 h-3 mr-1" /> Download
             </Button>
           </div>
-          <Button onClick={onClose} className="w-full text-sm h-9">Close</Button>
+          <Button onClick={onClose} className="w-full text-xs h-8">Close</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
