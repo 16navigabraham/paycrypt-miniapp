@@ -100,7 +100,7 @@ Status: ${formatStatus(order.vtpassStatus)}
       
       // Last resort fallback for older browsers
       try {
-        const castText = `✅ Just completed a crypto payment with https://miniapp.paycrypt.org
+        const castText = `✅ Just completed a crypto payment with  https://miniapp.paycrypt.org
 
 💰 Service: ${order.serviceType.toUpperCase()}
 📱 Amount: ₦${order.amountNaira.toLocaleString()}
