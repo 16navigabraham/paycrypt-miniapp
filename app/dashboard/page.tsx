@@ -13,6 +13,7 @@ import RecentTransactions from "@/components/dashboard/recent-transactions"
 import { MarketData } from "@/components/dashboard/market-data"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { 
   Wallet, 
   Copy, 
@@ -29,7 +30,8 @@ import {
   Zap,
   ArrowUpDown,
   TrendingUp,
-  History
+  History,
+  Plus
 } from "lucide-react"
 import sdk from "@farcaster/miniapp-sdk";
 
@@ -37,6 +39,106 @@ interface WalletData {
   address: string;
   chainId: string;
   connectedAt: string;
+}
+
+// Mini App Add Component
+function MiniAppPrompt() {
+  const [isAdding, setIsAdding] = useState(false);
+  const [addStatus, setAddStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleAddMiniApp = async () => {
+    setIsAdding(true);
+    setAddStatus('idle');
+    setErrorMessage('');
+
+    try {
+      // Check if running in Farcaster context first
+      const context = await sdk.context;
+      if (!context) {
+        throw new Error('Not running in Farcaster Mini App context');
+      }
+      
+      await sdk.actions.addMiniApp();
+      setAddStatus('success');
+      console.log('Mini app added successfully!');
+    } catch (error: any) {
+      setAddStatus('error');
+      console.error('Failed to add mini app:', error);
+      
+      // Handle specific error types
+      if (error.name === 'RejectedByUser') {
+        setErrorMessage('You rejected the request to add this app.');
+      } else if (error.name === 'InvalidDomainManifestJson') {
+        setErrorMessage('Invalid domain or manifest configuration. Make sure you\'re on the production domain.');
+      } else if (error.message?.includes('Not running in Farcaster')) {
+        setErrorMessage('This feature only works when accessed through Farcaster.');
+      } else {
+        setErrorMessage(error.message || 'Failed to add mini app. Please try again.');
+      }
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  return (
+    <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border border-purple-200 dark:border-purple-800 rounded-2xl p-6 shadow-sm">
+      <div className="flex items-start space-x-4">
+        <div className="flex-shrink-0">
+          <div className="h-12 w-12 rounded-full bg-gradient-to-r from-purple-500 to-blue-600 flex items-center justify-center">
+            <Smartphone className="h-6 w-6 text-white" />
+          </div>
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-2">
+            Add to Your Farcaster Apps
+          </h3>
+          <p className="text-purple-700 dark:text-purple-200 text-sm mb-4">
+            Add PayCrypt to your Farcaster apps for quick access to pay bills with crypto directly from your feed.
+          </p>
+          
+          {addStatus === 'success' && (
+            <Alert className="mb-4 border-green-200 bg-green-50 text-green-800 dark:bg-green-950/30 dark:border-green-700 dark:text-green-200">
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>
+                App added successfully! You can now find PayCrypt in your Farcaster apps.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {addStatus === 'error' && (
+            <Alert className="mb-4 border-red-200 bg-red-50 text-red-800 dark:bg-red-950/30 dark:border-red-700 dark:text-red-200">
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+          
+          <Button
+            onClick={handleAddMiniApp}
+            disabled={isAdding || addStatus === 'success'}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200"
+          >
+            {isAdding ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Adding to Apps...
+              </>
+            ) : addStatus === 'success' ? (
+              <>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Added to Apps
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4 mr-2" />
+                Add to Farcaster Apps
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // Mobile-First Dashboard Component
@@ -229,8 +331,6 @@ function DashboardClient() {
     }
   };
 
-
-
   // Show error if there's a critical error
   if (miniKitError || farcasterError) {
     return (
@@ -335,6 +435,9 @@ function DashboardClient() {
   return (
     <MainLayout>
       <div className="space-y-4 pb-20 lg:pb-6">
+        {/* Mini App Add Prompt - Only show if not already in mini app context */}
+        {!miniAppContext.isMiniApp && <MiniAppPrompt />}
+
         {/* Mobile Header Card - Balance Overview */}
         <div className="bg-[#040b34] rounded-2xl p-6 text-white shadow-xl">
           <div className="flex items-center justify-between mb-4">
