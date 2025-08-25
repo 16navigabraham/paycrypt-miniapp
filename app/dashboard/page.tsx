@@ -46,6 +46,41 @@ function MiniAppPrompt() {
   const [isAdding, setIsAdding] = useState(false);
   const [addStatus, setAddStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [shouldShow, setShouldShow] = useState(false);
+
+  // Check if app should prompt user to add mini app
+  useEffect(() => {
+    const checkShouldPrompt = async () => {
+      try {
+        // Only check when dashboard is ready and connected
+        if (typeof window === 'undefined') return;
+
+        // Check if running in Farcaster context
+        const context = await sdk.context;
+        if (!context) {
+          setShouldShow(false);
+          return;
+        }
+
+        // Check if already added (you can store this in localStorage if needed)
+        const isAlreadyAdded = sessionStorage.getItem('paycrypt_mini_app_added') === 'true';
+        if (isAlreadyAdded) {
+          setShouldShow(false);
+          return;
+        }
+
+        // Show prompt if in Farcaster but not added yet
+        setShouldShow(true);
+      } catch (error) {
+        console.log('Not in Farcaster context or SDK not available');
+        setShouldShow(false);
+      }
+    };
+
+    // Delay check to ensure dashboard is fully ready
+    const timer = setTimeout(checkShouldPrompt, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleAddMiniApp = async () => {
     setIsAdding(true);
@@ -61,6 +96,8 @@ function MiniAppPrompt() {
       
       await sdk.actions.addMiniApp();
       setAddStatus('success');
+      // Mark as added so we don't prompt again
+      sessionStorage.setItem('paycrypt_mini_app_added', 'true');
       console.log('Mini app added successfully!');
     } catch (error: any) {
       setAddStatus('error');
@@ -69,6 +106,8 @@ function MiniAppPrompt() {
       // Handle specific error types
       if (error.name === 'RejectedByUser') {
         setErrorMessage('You rejected the request to add this app.');
+        // Mark as rejected so we don't keep prompting
+        sessionStorage.setItem('paycrypt_mini_app_rejected', 'true');
       } else if (error.name === 'InvalidDomainManifestJson') {
         setErrorMessage('Invalid domain or manifest configuration. Make sure you\'re on the production domain.');
       } else if (error.message?.includes('Not running in Farcaster')) {
@@ -81,6 +120,15 @@ function MiniAppPrompt() {
     }
   };
 
+  const handleDismiss = () => {
+    setShouldShow(false);
+    // Mark as dismissed for this session
+    sessionStorage.setItem('paycrypt_mini_app_dismissed', 'true');
+  };
+
+  // Don't show if not needed
+  if (!shouldShow) return null;
+
   return (
     <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border border-purple-200 dark:border-purple-800 rounded-2xl p-6 shadow-sm">
       <div className="flex items-start space-x-4">
@@ -91,9 +139,19 @@ function MiniAppPrompt() {
         </div>
         
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-2">
-            Add to Your Farcaster Apps
-          </h3>
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100">
+              Add to Your Farcaster Apps
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDismiss}
+              className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-200 -mt-1"
+            >
+              ×
+            </Button>
+          </div>
           <p className="text-purple-700 dark:text-purple-200 text-sm mb-4">
             Add PayCrypt to your Farcaster apps for quick access to pay bills with crypto directly from your feed.
           </p>
@@ -113,28 +171,40 @@ function MiniAppPrompt() {
             </Alert>
           )}
           
-          <Button
-            onClick={handleAddMiniApp}
-            disabled={isAdding || addStatus === 'success'}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200"
-          >
-            {isAdding ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Adding to Apps...
-              </>
-            ) : addStatus === 'success' ? (
-              <>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Added to Apps
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4 mr-2" />
-                Add to Farcaster Apps
-              </>
+          <div className="flex space-x-3">
+            <Button
+              onClick={handleAddMiniApp}
+              disabled={isAdding || addStatus === 'success'}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 flex-1"
+            >
+              {isAdding ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Adding...
+                </>
+              ) : addStatus === 'success' ? (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Added to Apps
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add to Apps
+                </>
+              )}
+            </Button>
+            
+            {addStatus !== 'success' && (
+              <Button
+                variant="outline"
+                onClick={handleDismiss}
+                className="text-purple-600 border-purple-300 hover:bg-purple-50 dark:text-purple-400 dark:border-purple-600 dark:hover:bg-purple-950/30"
+              >
+                Maybe Later
+              </Button>
             )}
-          </Button>
+          </div>
         </div>
       </div>
     </div>
