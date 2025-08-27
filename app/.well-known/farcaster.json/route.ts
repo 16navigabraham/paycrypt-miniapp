@@ -49,12 +49,10 @@ export async function GET() {
       signature: process.env.FARCASTER_SIGNATURE,
       
     },
-    frame: {
-      ...frameConfig,
-      // Base Builder configuration
-      baseBuilder: {
-        allowedAddresses: ["0x3467fb5aA0E65923Bc0a46317b4ECEDAfeE2305a"]
-      }
-    },
+    frame: frameConfig,
+    // Base Builder configuration at root level
+    baseBuilder: {
+      allowedAddresses: ["0x3467fb5aA0E65923Bc0a46317b4ECEDAfeE2305a"]
+    }
   });
 }
