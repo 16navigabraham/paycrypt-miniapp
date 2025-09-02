@@ -15,9 +15,9 @@ export default function PrivacyPage() {
             <Shield className="h-16 w-16 text-primary mb-4" />
           </div>
           <h1 className="text-4xl font-bold tracking-tight">Privacy Policy</h1>
-          <p className="text-xl text-muted-foreground">
-            Last Updated: January 31, 2025
-          </p>
+          {/* <p className="text-xl text-muted-foreground">
+            Last Updated: september 02, 2025
+          </p> */}
         </div>
 
         <Card>
