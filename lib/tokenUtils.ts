@@ -22,27 +22,54 @@ export async function fetchActiveTokensWithMetadata(): Promise<TokenConfig[]> {
     }) as Address[];
 
     // Get details for each token
-    const tokens = await Promise.all(
+    const tokensWithNull = await Promise.all(
       tokenAddresses.map(async (address) => {
-        const details = await publicClient.readContract({
-          address: CONTRACT_ADDRESS,
-          abi: CONTRACT_ABI,
-          functionName: 'getTokenDetails',
-          args: [address]
-        });
+        try {
+          // Get token details from contract
+          const details = await publicClient.readContract({
+            address: CONTRACT_ADDRESS,
+            abi: CONTRACT_ABI,
+            functionName: 'getTokenDetails',
+            args: [address]
+          });
 
-        return {
-          address,
-          symbol: details.name.slice(0, 6), // Use abbreviated name as symbol
-          name: details.name,
-          decimals: Number(details.decimals),
-          coingeckoId: '', // Optional
-          tokenType: details.isActive ? 1 : 0,
-          contract: address
-        } as TokenConfig;
+          // Get ERC20 token details directly from token contract
+          const erc20Abi = [
+            { "inputs": [], "name": "symbol", "outputs": [{ "type": "string" }], "stateMutability": "view", "type": "function" },
+            { "inputs": [], "name": "name", "outputs": [{ "type": "string" }], "stateMutability": "view", "type": "function" },
+            { "inputs": [], "name": "decimals", "outputs": [{ "type": "uint8" }], "stateMutability": "view", "type": "function" }
+          ] as const;
+
+          const [symbol, name, decimals] = await Promise.all([
+            publicClient.readContract({ address, abi: erc20Abi, functionName: 'symbol' }),
+            publicClient.readContract({ address, abi: erc20Abi, functionName: 'name' }),
+            publicClient.readContract({ address, abi: erc20Abi, functionName: 'decimals' })
+          ]);
+
+          const coingeckoMap: Record<string, string> = {
+            'USDC': 'usd-coin',
+            'USDT': 'tether',
+            'DAI': 'dai',
+            // Add more mappings as needed
+          };
+
+          return {
+            address,
+            symbol,
+            name,
+            decimals: Number(decimals),
+            coingeckoId: coingeckoMap[symbol] || '',
+            tokenType: details.isActive ? 1 : 0,
+            contract: address
+          } as TokenConfig;
+        } catch (error) {
+          console.error(`Error fetching details for token ${address}:`, error);
+          return null;
+        }
       })
     );
 
+    const tokens = tokensWithNull.filter((token): token is TokenConfig => token !== null);
     const activeTokens = tokens.filter(token => token.tokenType > 0);
     console.log(`Loaded ${activeTokens.length} active tokens from contract`);
     return activeTokens;
