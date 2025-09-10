@@ -62,20 +62,37 @@ function MiniAppPrompt() {
           return;
         }
 
-        // Check if already added (you can store this in localStorage if needed)
-        const isAlreadyAdded = sessionStorage.getItem('paycrypt_mini_app_added') === 'true';
-        if (isAlreadyAdded) {
+        // Check various conditions before showing prompt
+        const isAlreadyAdded = localStorage.getItem('paycrypt_mini_app_added') === 'true';
+        const isDismissedRecently = sessionStorage.getItem('paycrypt_mini_app_dismissed') === 'true';
+        const lastPromptTime = localStorage.getItem('paycrypt_last_prompt_time');
+        const hasRecentlyPrompted = lastPromptTime && (Date.now() - parseInt(lastPromptTime) < 24 * 60 * 60 * 1000);
+        
+        if (isAlreadyAdded || isDismissedRecently || hasRecentlyPrompted) {
           setShouldShow(false);
           return;
         }
 
-        // Show prompt if in Farcaster but not added yet
+        // Additional checks for user engagement
+        const pageLoadTime = sessionStorage.getItem('paycrypt_page_load_time');
+        const minTimeOnSite = 10000; // 10 seconds
+        if (!pageLoadTime || Date.now() - parseInt(pageLoadTime) < minTimeOnSite) {
+          return;
+        }
+
+        // Show prompt if all conditions are met
         setShouldShow(true);
+        localStorage.setItem('paycrypt_last_prompt_time', Date.now().toString());
       } catch (error) {
         console.log('Not in Farcaster context or SDK not available');
         setShouldShow(false);
       }
     };
+
+    // Set initial page load time
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('paycrypt_page_load_time', Date.now().toString());
+    }
 
     // Delay check to ensure dashboard is fully ready
     const timer = setTimeout(checkShouldPrompt, 2000);
@@ -88,32 +105,46 @@ function MiniAppPrompt() {
     setErrorMessage('');
 
     try {
-      // Check if running in Farcaster context first
+      // Verify we're in Farcaster context
       const context = await sdk.context;
       if (!context) {
-        throw new Error('Not running in Farcaster Mini App context');
+        throw new Error('NOT_FARCASTER_CONTEXT');
       }
-      
+
+      // Attempt to add the mini app
       await sdk.actions.addMiniApp();
+      
+      // On success, update storage and state
+      localStorage.setItem('paycrypt_mini_app_added', 'true');
+      localStorage.setItem('paycrypt_add_timestamp', Date.now().toString());
       setAddStatus('success');
-      // Mark as added so we don't prompt again
-      sessionStorage.setItem('paycrypt_mini_app_added', 'true');
-      console.log('Mini app added successfully!');
+      
+      // Hide prompt after short delay
+      setTimeout(() => {
+        setShouldShow(false);
+      }, 2000);
+
     } catch (error: any) {
       setAddStatus('error');
-      console.error('Failed to add mini app:', error);
+      console.error('[AddMiniApp Error]:', error);
       
-      // Handle specific error types
-      if (error.name === 'RejectedByUser') {
-        setErrorMessage('You rejected the request to add this app.');
-        // Mark as rejected so we don't keep prompting
-        sessionStorage.setItem('paycrypt_mini_app_rejected', 'true');
-      } else if (error.name === 'InvalidDomainManifestJson') {
-        setErrorMessage('Invalid domain or manifest configuration. Make sure you\'re on the production domain.');
-      } else if (error.message?.includes('Not running in Farcaster')) {
-        setErrorMessage('This feature only works when accessed through Farcaster.');
-      } else {
-        setErrorMessage(error.message || 'Failed to add mini app. Please try again.');
+      // Handle specific Farcaster error cases
+      switch(error.name) {
+        case 'RejectedByUser':
+          setErrorMessage('You chose not to add PayCrypt. You can always add it later from any PayCrypt frame.');
+          sessionStorage.setItem('paycrypt_mini_app_dismissed', 'true');
+          break;
+        
+        case 'InvalidDomainManifestJson':
+          setErrorMessage('Please make sure you\'re accessing PayCrypt from Warpcast.');
+          break;
+        
+        default:
+          if (error.message?.includes('NOT_FARCASTER_CONTEXT')) {
+            setErrorMessage('PayCrypt needs to be accessed through Warpcast to be added.');
+          } else {
+            setErrorMessage('Unable to add PayCrypt right now. Please try again.');
+          }
       }
     } finally {
       setIsAdding(false);
@@ -129,86 +160,68 @@ function MiniAppPrompt() {
   // Don't show if not needed
   if (!shouldShow) return null;
 
-  return (
-    <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border border-purple-200 dark:border-purple-800 rounded-2xl p-6 shadow-sm">
-      <div className="flex items-start space-x-4">
-        <div className="flex-shrink-0">
-          <div className="h-12 w-12 rounded-full bg-gradient-to-r from-purple-500 to-blue-600 flex items-center justify-center">
-            <Smartphone className="h-6 w-6 text-white" />
+  return shouldShow ? (
+    <div className="fixed bottom-0 inset-x-0 p-4 z-50">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-lg mx-auto shadow-2xl animate-slide-up border border-purple-100 dark:border-purple-900">
+        <div className="p-4 flex items-center space-x-4">
+          <div className="flex-shrink-0">
+            <div className="h-12 w-12 rounded-xl bg-gradient-to-r from-[#855DCD] to-[#6339C3] flex items-center justify-center">
+              <img src="/paycrypt.png" alt="PayCrypt" className="h-8 w-8 rounded-lg" />
+            </div>
           </div>
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-2">
-            <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100">
-              Add to Your Farcaster Apps
+          
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+              Add PayCrypt to Farcaster
             </h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDismiss}
-              className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-200 -mt-1"
-            >
-              ×
-            </Button>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Pay bills with crypto directly from your Warpcast feed
+            </p>
           </div>
-          <p className="text-purple-700 dark:text-purple-200 text-sm mb-4">
-            Add PayCrypt to your Farcaster apps for quick access to pay bills with crypto directly from your feed.
-          </p>
           
-          {addStatus === 'success' && (
-            <Alert className="mb-4 border-green-200 bg-green-50 text-green-800 dark:bg-green-950/30 dark:border-green-700 dark:text-green-200">
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                App added successfully! You can now find PayCrypt in your Farcaster apps.
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          {addStatus === 'error' && (
-            <Alert className="mb-4 border-red-200 bg-red-50 text-red-800 dark:bg-red-950/30 dark:border-red-700 dark:text-red-200">
-              <AlertDescription>{errorMessage}</AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="flex space-x-3">
-            <Button
-              onClick={handleAddMiniApp}
-              disabled={isAdding || addStatus === 'success'}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 flex-1"
-            >
-              {isAdding ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Adding...
-                </>
-              ) : addStatus === 'success' ? (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Added to Apps
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add to Apps
-                </>
-              )}
-            </Button>
-            
-            {addStatus !== 'success' && (
-              <Button
-                variant="outline"
-                onClick={handleDismiss}
-                className="text-purple-600 border-purple-300 hover:bg-purple-50 dark:text-purple-400 dark:border-purple-600 dark:hover:bg-purple-950/30"
-              >
-                Maybe Later
-              </Button>
+          <div className="flex-shrink-0 flex items-center space-x-2">
+            {addStatus === 'success' ? (
+              <Badge className="bg-green-100 text-green-800 border-green-200">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Added
+              </Badge>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDismiss}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  Dismiss
+                </Button>
+                <Button
+                  onClick={handleAddMiniApp}
+                  disabled={isAdding}
+                  className="bg-[#855DCD] hover:bg-[#6339C3] text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all"
+                >
+                  {isAdding ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  <span>Add</span>
+                </Button>
+              </>
             )}
           </div>
         </div>
+        
+        {addStatus === 'error' && (
+          <div className="px-4 pb-4">
+            <Alert className="border-red-200 bg-red-50 text-red-800 dark:bg-red-950/30 dark:border-red-700 dark:text-red-200">
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          </div>
+        )}
       </div>
     </div>
-  );
+  ) : null;
 }
 
 // Mobile-First Dashboard Component

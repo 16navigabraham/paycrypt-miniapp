@@ -9,27 +9,75 @@ export interface TokenConfig {
   contract?: string; // ERC20 contract address (undefined for ETH)
 }
 
-// Base Chain Token Configurations
-export const TOKEN_LIST: TokenConfig[] = [
-  {
-    address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
-    symbol: "USDC",
-    name: "USD Coin",
-    decimals: 6,
-    coingeckoId: "usd-coin",
-    tokenType: 1,
-    contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-  },
-  {
-    address: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2", // USDT on Base
-    symbol: "USDT",
-    name: "Tether USD",
-    decimals: 6,
-    coingeckoId: "tether",
-    tokenType: 2,
-    contract: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
-  },
-];
+import { createPublicClient, http, getContract, Address, PublicClient } from 'viem';
+import { base } from 'viem/chains';
+import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/config/contract';
+
+interface ContractTokenDetails {
+  tokenAddress: `0x${string}`;
+  orderLimit: bigint;
+  totalVolume: bigint;
+  successfulOrders: bigint;
+  failedOrders: bigint;
+  name: string;
+  decimals: number;
+  isActive: boolean;
+}
+
+// Initialize public client
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http()
+});
+
+// Get contract instance
+const contract = getContract({
+  address: CONTRACT_ADDRESS,
+  abi: CONTRACT_ABI,
+  client: publicClient,
+});
+
+// Dynamic token list that will be populated from contract
+export let TOKEN_LIST: TokenConfig[] = [];
+
+// Function to fetch tokens from contract
+export async function initializeTokenList(): Promise<TokenConfig[]> {
+  try {
+    // Get supported tokens from contract
+    const tokenAddresses = await publicClient.readContract({
+      address: CONTRACT_ADDRESS,
+      abi: CONTRACT_ABI,
+      functionName: 'getSupportedTokens'
+    }) as Address[];
+    
+    // Fetch details for each token
+    const tokenPromises = tokenAddresses.map(async (address: Address) => {
+      const details = await publicClient.readContract({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: 'getTokenDetails',
+        args: [address]
+      }) as ContractTokenDetails;
+      
+      return {
+        address: details.tokenAddress,
+        symbol: '', // Will be fetched from token contract
+        name: details.name,
+        decimals: details.decimals,
+        coingeckoId: '', // Can be mapped separately if needed
+        tokenType: details.isActive ? 1 : 0,
+        contract: details.tokenAddress,
+      };
+    });
+
+    TOKEN_LIST = await Promise.all(tokenPromises);
+    console.log('Tokens loaded from contract:', TOKEN_LIST.length);
+    return TOKEN_LIST;
+  } catch (error) {
+    console.error('Error loading tokens from contract:', error);
+    return [];
+  }
+}
 
 // Helper function to get token by address
 export function getTokenByAddress(address: string): TokenConfig | undefined {
