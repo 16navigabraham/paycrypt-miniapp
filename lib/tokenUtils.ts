@@ -4,10 +4,29 @@ import { base } from 'viem/chains';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/config/contract';
 import { TokenConfig } from "./tokenlist";
 
-const publicClient = createPublicClient({
-  chain: base,
-  transport: http()
-});
+// Configure multiple RPC endpoints for fallback
+const RPC_URLS = [
+  'https://mainnet.base.org',
+  'https://base.blockpi.network/v1/rpc/public',
+  'https://1rpc.io/base',
+  'https://base.meowrpc.com'
+];
+
+let currentRpcIndex = 0;
+function getNextRpcUrl() {
+  currentRpcIndex = (currentRpcIndex + 1) % RPC_URLS.length;
+  return RPC_URLS[currentRpcIndex];
+}
+
+// Create public client with fallback capability
+function createClientWithFallback() {
+  return createPublicClient({
+    chain: base,
+    transport: http(RPC_URLS[currentRpcIndex]),
+  });
+}
+
+let publicClient = createClientWithFallback();
 
 /**
  * Reusable utility to fetch active tokens from contract
@@ -17,14 +36,24 @@ let tokenMetadataCache: TokenConfig[] | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 let lastFetchTime = 0;
 
-async function retryOperation<T>(operation: () => Promise<T>, maxRetries = 3): Promise<T> {
+async function retryOperation<T>(operation: () => Promise<T>, maxRetries = 5): Promise<T> {
   let lastError;
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await operation();
-    } catch (error) {
+    } catch (error: any) {
       lastError = error;
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i))); // Exponential backoff
+      
+      // Check if error is rate limit (429)
+      if (error?.message?.includes('429') || error?.message?.toLowerCase().includes('rate limit')) {
+        // Switch RPC endpoint
+        publicClient = createClientWithFallback();
+        console.log(`Switching to RPC endpoint: ${RPC_URLS[currentRpcIndex]}`);
+      }
+      
+      // Increased delay between retries (2s, 4s, 8s, 16s, 32s)
+      const delay = 2000 * Math.pow(2, i);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
   throw lastError;
@@ -52,8 +81,8 @@ export async function fetchActiveTokensWithMetadata(): Promise<TokenConfig[]> {
       return addresses;
     });
 
-    // Process tokens in smaller batches to prevent RPC overload
-    const batchSize = 3;
+    // Process tokens in smaller batches with larger delay to prevent rate limits
+    const batchSize = 2; // Reduced batch size
     const tokenBatches = [];
     for (let i = 0; i < tokenAddresses.length; i += batchSize) {
       const batch = tokenAddresses.slice(i, i + batchSize);
@@ -63,6 +92,10 @@ export async function fetchActiveTokensWithMetadata(): Promise<TokenConfig[]> {
     let allTokens = [];
     for (const batch of tokenBatches) {
       try {
+        // Add delay between batches
+        if (allTokens.length > 0) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
         const batchResults = await Promise.all(
           batch.map(async (address) => {
             try {
