@@ -516,7 +516,7 @@
 //               </p>
 //               <div className="flex space-x-4 mt-2">
 //                 <a 
-//                   href="https://x.com/paycrypt_org" 
+//                   href="https://x.com/Paycrypt_org1" 
 //                   target="_blank" 
 //                   rel="noopener noreferrer" 
 //                   aria-label="X (Twitter)"
