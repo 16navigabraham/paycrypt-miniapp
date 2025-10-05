@@ -334,6 +334,13 @@ export default function ElectricityPage() {
   const tokenAmountForOrder: bigint = selectedTokenObj ? parseUnits(cryptoNeeded.toFixed(selectedTokenObj.decimals), selectedTokenObj.decimals) : BigInt(0);
   const bytes32RequestId: Hex = toHex(toBytes(requestId || ""), { size: 32 });
 
+  // Update backendMessage state to include details
+  const [backendDetails, setBackendDetails] = useState<{
+    token?: string;
+    units?: string;
+    amount?: number;
+  } | null>(null);
+
   // Backend processing after blockchain confirmation
   const handlePostTransaction = useCallback(async (transactionHash: Hex) => {
     if (backendRequestSentRef.current === transactionHash) {
@@ -360,8 +367,14 @@ export default function ElectricityPage() {
         userAddress: address!
       });
 
+      if (response.status === 'success' && response.details) {
+        setBackendDetails(response.details);
+        setBackendMessage(
+          `Payment successful! ${response.details.token ? 'Your prepaid token has been generated.' : ''}`
+        );
+      }
+
       setTxStatus('backendSuccess');
-      setBackendMessage("Electricity bill paid successfully!");
       toast.success("Electricity bill paid successfully!", { id: 'backend-status' });
 
       // Reset form after successful payment with delay
@@ -382,6 +395,7 @@ export default function ElectricityPage() {
       }, 3000); 
 
     } catch (error: any) {
+      setBackendDetails(null);
       setTxStatus('backendError');
       let errorMessage = error.message;
       
@@ -866,6 +880,7 @@ export default function ElectricityPage() {
         errorMessage={transactionError}
         backendMessage={backendMessage}
         requestId={requestId}
+        backendDetails={backendDetails}  // Add this prop
       />
     </div>
   )

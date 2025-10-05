@@ -16,6 +16,11 @@ interface TransactionStatusModalProps {
   explorerUrl?: string;
   backendMessage?: string | null;
   requestId?: string;
+  backendDetails?: {
+    token?: string;
+    units?: string;
+    amount?: number;
+  };
 }
 
 export function TransactionStatusModal({
@@ -26,7 +31,8 @@ export function TransactionStatusModal({
   errorMessage,
   explorerUrl = "https://basescan.org",
   backendMessage,
-  requestId
+  requestId,
+  backendDetails,
 }: TransactionStatusModalProps) {
   const [copiedHash, setCopiedHash] = useState(false);
   const [copiedRequestId, setCopiedRequestId] = useState(false);
@@ -239,6 +245,30 @@ export function TransactionStatusModal({
           <p><strong>Explorer:</strong> {explorerLink}</p>
           <p><strong>Message:</strong> {backendMessage || errorMessage || "N/A"}</p>
         </div>
+
+        {isBackendSuccess && backendDetails && backendDetails.token && (
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-left space-y-2">
+            <h3 className="font-medium text-green-800">Prepaid Token Details</h3>
+            <div className="text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Token:</span>
+                <span className="font-mono">{backendDetails.token}</span>
+              </div>
+              {backendDetails.units && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Units:</span>
+                  <span>{backendDetails.units}</span>
+                </div>
+              )}
+              {backendDetails.amount && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Amount:</span>
+                  <span>₦{backendDetails.amount.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <DialogFooter className="mt-4 flex flex-col gap-2">
           {isBackendSuccess && (
