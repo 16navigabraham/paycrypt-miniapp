@@ -167,7 +167,15 @@ export function TransactionStatusModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog 
+      open={isOpen} 
+      onOpenChange={(open) => {
+        // Only allow closing if in a final state
+        if (!open && (isBackendSuccess || isBackendError || isErrorBlockchain || isApprovalError)) {
+          handleClose();
+        }
+      }}
+    >
       <DialogContent className="w-[95vw] max-w-[350px] p-4 text-center rounded-lg">
         <DialogHeader className="flex flex-col items-center space-y-2">
           <div className={`mb-2 ${iconColor}`}>{icon}</div>
@@ -245,9 +253,12 @@ export function TransactionStatusModal({
               </Button>
             </div>
           )}
-          <Button onClick={handleClose} className="w-full text-sm h-9">
-            {isBackendSuccess || isBackendError || isErrorBlockchain || isApprovalError ? "Done" : "Close"}
-          </Button>
+          {/* Only show close button for final states */}
+          {(isBackendSuccess || isBackendError || isErrorBlockchain || isApprovalError) && (
+            <Button onClick={handleClose} className="w-full text-sm h-9">
+              Done
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

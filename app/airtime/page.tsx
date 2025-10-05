@@ -322,12 +322,15 @@ export default function AirtimePage() {
       setTxStatus('waitingForApprovalSignature');
       toast.info("Please approve token spending...");
 
-      const unlimitedApproval = parseUnits('115792089237316195423570985008687907853269984665640564039457584007913129639935', 0);
-      
+      // Approve only the required amount for the transaction
+      const requiredApproval = tokenAmountForOrder; // Use the exact amount needed for the transaction
+
+      console.log("Approving the required amount for this transaction:", requiredApproval.toString());
+
       const approvalData = encodeFunctionData({
         abi: ERC20_ABI,
         functionName: 'approve',
-        args: [CONTRACT_ADDRESS, unlimitedApproval],
+        args: [CONTRACT_ADDRESS, requiredApproval],
       });
 
       const approvalTx = await sendTransaction({
