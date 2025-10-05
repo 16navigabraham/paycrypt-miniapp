@@ -35,7 +35,10 @@ interface ReceiptProps {
     onChainStatus: string;
     vtpassStatus: string;
     createdAt: string;
-    Token: number;
+    prepaid_token: string;
+    units: string;
+    customer_name: string;
+    customer_address: string
   } | null;
 }
 
