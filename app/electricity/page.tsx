@@ -339,7 +339,7 @@ export default function ElectricityPage() {
     token?: string;
     units?: string;
     amount?: number;
-  } | null>(null);
+  } | undefined>(undefined);
 
   // Backend processing after blockchain confirmation
   const handlePostTransaction = useCallback(async (transactionHash: Hex) => {
