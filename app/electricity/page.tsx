@@ -395,7 +395,7 @@ export default function ElectricityPage() {
       }, 3000); 
 
     } catch (error: any) {
-      setBackendDetails(null);
+      setBackendDetails(undefined);
       setTxStatus('backendError');
       let errorMessage = error.message;
       
