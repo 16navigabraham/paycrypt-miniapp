@@ -260,6 +260,41 @@ Status: ${formatStatus(order.vtpassStatus)}
                     <span className="text-gray-600 text-xs">Request ID</span>
                     <span className="font-mono text-xs text-gray-700 truncate ml-2 max-w-[50%]">{order.requestId}</span>
                   </div>
+                  
+                  {/* Add Token Details Section */}
+                  {order.prepaid_token && (
+                    <div className="bg-green-50 rounded-md p-2 mt-2 space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 text-xs">Token</span>
+                        <span className="font-mono text-xs text-gray-700 font-bold">{order.prepaid_token}</span>
+                      </div>
+                      {order.units && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 text-xs">Units</span>
+                          <span className="text-xs text-gray-700">{order.units}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Add Customer Details Section */}
+                  {(order.customer_name || order.customer_address) && (
+                    <div className="border-t border-dashed border-gray-200 pt-2 mt-2 space-y-1">
+                      {order.customer_name && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 text-xs">Name</span>
+                          <span className="text-xs text-gray-700">{order.customer_name}</span>
+                        </div>
+                      )}
+                      {order.customer_address && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 text-xs">Address</span>
+                          <span className="text-xs text-gray-700 text-right max-w-[60%]">{order.customer_address}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex justify-between">
                     <span className="text-gray-600 text-xs">Blockchain</span>
                     <span className="text-xs">{formatStatus(order.onChainStatus)}</span>
