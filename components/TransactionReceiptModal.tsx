@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 // Import native SDKs (install these packages):
 // npm install @coinbase/onchainkit @farcaster/miniapp-sdk
 // import { useComposeCast } from '@coinbase/onchainkit/minikit';
-// import { sdk } from '@farcaster/miniapp-sdk';
+import { sdk } from '@farcaster/miniapp-sdk';
 import Image from "next/image";
 
 interface ReceiptProps {
@@ -55,8 +55,8 @@ export function TransactionReceiptModal({ isOpen, onClose, order }: ReceiptProps
     }
 
     try {
-      // Create a Farcaster/Base app friendly cast text
-      const castText = `✅ Just completed a crypto payment with https://miniapp.paycrypt.org
+      // Create a Farcaster app friendly cast text
+      const castText = `✅ Just completed a crypto payment with PayCrypt
 
 💰 Service: ${order.serviceType.toUpperCase()}
 📱 Amount: ₦${order.amountNaira.toLocaleString()}
@@ -68,43 +68,54 @@ Status: ${formatStatus(order.vtpassStatus)}
 
 #PayCrypt #Crypto #Web3Payments #Onchain`;
 
-      // URL encode the text for sharing
+      // Try Farcaster SDK first (works well on iOS)
+      try {
+        const result = await sdk.actions.composeCast({
+          text: castText,
+          embeds: ["https://miniapp.paycrypt.org"]
+        });
+        
+        if (result?.cast) {
+          toast.success("Cast created successfully!");
+          console.log("Cast hash:", result.cast.hash);
+        } else {
+          toast.info("Cast composer opened");
+        }
+        return;
+      } catch (sdkError) {
+        console.log("Farcaster SDK failed, trying fallback methods...", sdkError);
+      }
+
+      // Fallback to native share API (works on iOS)
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            text: castText,
+            url: 'https://miniapp.paycrypt.org'
+          });
+          toast.success("Sharing content...");
+          return;
+        } catch (shareError) {
+          console.log("Native share failed, trying URL methods...");
+        }
+      }
+
+      // URL encode the text for direct links
       const encodedText = encodeURIComponent(castText);
       
-      // Try Farcaster first
+      // Try Farcaster URL scheme
       const farcasterUrl = `https://warpcast.com/~/compose?text=${encodedText}`;
       
-      // Try Base app second (if they have a similar URL scheme)
-      const baseUrl = `https://base.org/compose?text=${encodedText}`;
-      
-      // Try to open Farcaster composer
-      try {
-        window.open(farcasterUrl, '_blank');
-        toast.success("Opening Farcaster cast composer...");
-        return;
-      } catch (farcasterError) {
-        console.log("Farcaster direct link failed, trying Base...");
-      }
+      // Try to open in new window/tab
+      window.open(farcasterUrl, '_blank');
+      toast.success("Opening Farcaster...");
 
-      // Fallback: Try Base app
-      try {
-        window.open(baseUrl, '_blank');
-        toast.success("Opening Base cast composer...");
-        return;
-      } catch (baseError) {
-        console.log("Base direct link failed, falling back to copy...");
-      }
-
-      // Final fallback: Copy to clipboard
-      await navigator.clipboard.writeText(castText);
-      toast.success("Cast text copied! Open Farcaster or Base app and paste to share.");
-      
     } catch (error) {
       console.error('Share cast error:', error);
       
-      // Last resort fallback for older browsers
+      // Final fallback: Copy to clipboard
       try {
-        const castText = `✅ Just completed a crypto payment with       https://miniapp.paycrypt.org
+        const castText = `✅ Just completed a crypto payment with PayCrypt
 
 💰 Service: ${order.serviceType.toUpperCase()}
 📱 Amount: ₦${order.amountNaira.toLocaleString()}
@@ -116,17 +127,10 @@ Status: ${formatStatus(order.vtpassStatus)}
 
 #PayCrypt #Crypto #Web3Payments #Onchain`;
 
-        const textArea = document.createElement('textarea');
-        textArea.value = castText;
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        
-        toast.success("Cast text copied! Open Farcaster or Base app and paste to share.");
-      } catch (fallbackError) {
-        toast.error("Failed to prepare cast. Please try again.");
+        await navigator.clipboard.writeText(castText);
+        toast.success("Cast text copied! Open Farcaster app and paste to share.");
+      } catch (clipboardError) {
+        toast.error("Failed to share. Please try again.");
       }
     }
   };
@@ -264,9 +268,19 @@ Status: ${formatStatus(order.vtpassStatus)}
                   {/* Add Token Details Section */}
                   {order.prepaid_token && (
                     <div className="bg-green-50 rounded-md p-2 mt-2 space-y-1">
-                      <div className="flex justify-between">
+                      <div className="flex justify-between items-center">
                         <span className="text-gray-600 text-xs">Token</span>
-                        <span className="font-mono text-xs text-gray-700 font-bold">{order.prepaid_token}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="font-mono text-xs text-gray-700 font-bold">{order.prepaid_token}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 w-5 p-0 hover:bg-green-200"
+                            onClick={() => copyToClipboard(order.prepaid_token)}
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
                       {order.units && (
                         <div className="flex justify-between">
