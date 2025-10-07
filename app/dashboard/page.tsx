@@ -31,8 +31,10 @@ import {
   ArrowUpDown,
   TrendingUp,
   History,
-  Plus
+  Plus,
+  X
 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import sdk from "@farcaster/miniapp-sdk";
 
 interface WalletData {
@@ -43,6 +45,7 @@ interface WalletData {
 
 // Mini App Add Component
 function MiniAppPrompt() {
+  const [showModal, setShowModal] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [addStatus, setAddStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -99,6 +102,12 @@ function MiniAppPrompt() {
       // Mark as added so we don't prompt again
       sessionStorage.setItem('paycrypt_mini_app_added', 'true');
       console.log('Mini app added successfully!');
+      
+      // Auto-close modal after success
+      setTimeout(() => {
+        setShowModal(false);
+        setShouldShow(false);
+      }, 2000);
     } catch (error: any) {
       setAddStatus('error');
       console.error('Failed to add mini app:', error);
@@ -126,88 +135,130 @@ function MiniAppPrompt() {
     sessionStorage.setItem('paycrypt_mini_app_dismissed', 'true');
   };
 
+  const handleOpenModal = () => {
+    setShowModal(true);
+    setAddStatus('idle');
+    setErrorMessage('');
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+  };
+
   // Don't show if not needed
   if (!shouldShow) return null;
 
   return (
-    <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border border-purple-200 dark:border-purple-800 rounded-2xl p-6 shadow-sm">
-      <div className="flex items-start space-x-4">
-        <div className="flex-shrink-0">
-          <div className="h-12 w-12 rounded-full bg-gradient-to-r from-purple-500 to-blue-600 flex items-center justify-center">
-            <Smartphone className="h-6 w-6 text-white" />
+    <>
+      {/* Compact Banner */}
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border border-purple-200 dark:border-purple-800 rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-500 to-blue-600 flex items-center justify-center">
+              <Smartphone className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-purple-900 dark:text-purple-100">
+                Add to Farcaster Apps
+              </h3>
+              <p className="text-xs text-purple-700 dark:text-purple-200">
+                Quick access from your feed
+              </p>
+            </div>
           </div>
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-2">
-            <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100">
-              Add to Your Farcaster Apps
-            </h3>
+          
+          <div className="flex items-center space-x-2">
+            <Button
+              onClick={handleOpenModal}
+              size="sm"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add
+            </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleDismiss}
-              className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-200 -mt-1"
+              className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-200"
             >
-              ×
+              <X className="h-4 w-4" />
             </Button>
-          </div>
-          <p className="text-purple-700 dark:text-purple-200 text-sm mb-4">
-            Add PayCrypt to your Farcaster apps for quick access to pay bills with crypto directly from your feed.
-          </p>
-          
-          {addStatus === 'success' && (
-            <Alert className="mb-4 border-green-200 bg-green-50 text-green-800 dark:bg-green-950/30 dark:border-green-700 dark:text-green-200">
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                App added successfully! You can now find PayCrypt in your Farcaster apps.
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          {addStatus === 'error' && (
-            <Alert className="mb-4 border-red-200 bg-red-50 text-red-800 dark:bg-red-950/30 dark:border-red-700 dark:text-red-200">
-              <AlertDescription>{errorMessage}</AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="flex space-x-3">
-            <Button
-              onClick={handleAddMiniApp}
-              disabled={isAdding || addStatus === 'success'}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 flex-1"
-            >
-              {isAdding ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Adding...
-                </>
-              ) : addStatus === 'success' ? (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Added to Apps
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add to Apps
-                </>
-              )}
-            </Button>
-            
-            {addStatus !== 'success' && (
-              <Button
-                variant="outline"
-                onClick={handleDismiss}
-                className="text-purple-600 border-purple-300 hover:bg-purple-50 dark:text-purple-400 dark:border-purple-600 dark:hover:bg-purple-950/30"
-              >
-                Maybe Later
-              </Button>
-            )}
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Modal Overlay */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="w-[90vw] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-600 flex items-center justify-center">
+                <Smartphone className="h-4 w-4 text-white" />
+              </div>
+              <span>Add to Farcaster Apps</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
+              Add PayCrypt to your Farcaster apps for quick access to pay bills with crypto directly from your feed.
+            </p>
+            
+            {addStatus === 'success' && (
+              <Alert className="border-green-200 bg-green-50 text-green-800 dark:bg-green-950/30 dark:border-green-700 dark:text-green-200">
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  App added successfully! You can now find PayCrypt in your Farcaster apps. This dialog will close automatically.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {addStatus === 'error' && (
+              <Alert className="border-red-200 bg-red-50 text-red-800 dark:bg-red-950/30 dark:border-red-700 dark:text-red-200">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+            
+            <div className="flex space-x-3">
+              <Button
+                onClick={handleAddMiniApp}
+                disabled={isAdding || addStatus === 'success'}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 flex-1"
+              >
+                {isAdding ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Adding...
+                  </>
+                ) : addStatus === 'success' ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Added to Apps
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add to Apps
+                  </>
+                )}
+              </Button>
+              
+              {addStatus !== 'success' && (
+                <Button
+                  variant="outline"
+                  onClick={handleCloseModal}
+                  className="text-purple-600 border-purple-300 hover:bg-purple-50 dark:text-purple-400 dark:border-purple-600 dark:hover:bg-purple-950/30"
+                >
+                  Cancel
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
