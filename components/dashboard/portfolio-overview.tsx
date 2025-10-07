@@ -185,10 +185,6 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
             : `₦${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
     }
 
-    // Calculate 24h change (mock data for now)
-    const change24h = 2.37; // This could come from your API
-    const isPositive = change24h > 0;
-
     // Toggle functions
     const toggleBalanceVisibility = () => setShowBalance((prev) => !prev)
     const toggleCurrencyDisplay = () => setCurrencyDisplay((prev) => (prev === 'usd' ? 'ngn' : 'usd'))
@@ -231,11 +227,6 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
 								currencyDisplay
 							)}
 						</span>
-						{!loading && (
-							<span className={`text-sm font-medium ${isPositive ? 'text-green-300' : 'text-red-300'}`}>
-								{isPositive ? '+' : ''}{change24h}%
-							</span>
-						)}
 					</>
 				)}
 			</div>
