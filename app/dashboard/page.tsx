@@ -630,9 +630,9 @@ function DashboardClient() {
 
         {/* Recent Transactions */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
-          <div className="mb-4">
+          {/* <div className="mb-4">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">Recent Transactions</h3>
-          </div>
+          </div> */}
           <RecentTransactions wallet={connectedWallet} />
         </div>
 

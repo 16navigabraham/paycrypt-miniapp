@@ -876,7 +876,7 @@ export default function ElectricityPage() {
         errorMessage={transactionError}
         backendMessage={backendMessage}
         requestId={requestId}
-        backendDetails={backendDetails}  // Add this prop
+        backendDetails={backendDetails}
       />
     </div>
   )
