@@ -400,10 +400,6 @@ export default function AirtimePage() {
   return (
     <div className="container py-10 max-w-xl mx-auto">
       <BackToDashboard />
-      <h1 className="text-3xl font-bold mb-4">Buy Airtime</h1>
-      <p className="text-muted-foreground mb-8">
-        Purchase airtime using supported ERC20 cryptocurrencies on Base chain.
-      </p>
 
       <Card>
         <CardHeader>

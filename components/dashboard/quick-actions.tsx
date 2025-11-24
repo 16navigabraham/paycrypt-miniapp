@@ -17,21 +17,21 @@ export function QuickActions({ wallet }: { wallet: any }) {
 	return (
 		<div className="space-y-4">
 			{/* Mobile-style grid layout - 4 columns to match Figma */}
-			<div className="grid grid-cols-4 gap-4">
+			<div className="grid grid-cols-4 gap-3">
 				{actions.map((action) => (
 					<Button
 						key={action.name}
 						variant="ghost"
-						className="h-auto p-0 flex flex-col items-center space-y-2 hover:bg-transparent border-0 transition-all group"
+						className="h-auto p-0 flex flex-col items-center space-y-1.5 hover:bg-transparent border-0 transition-all group"
 						asChild
 					>
-						<a href={action.href + (wallet?.address ? `?wallet=${wallet.address}` : "")}>
+						<a href={action.href + (wallet?.address ? `?wallet=${wallet.address}` : "")} className="w-full">
 							<div
-								className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${action.color} flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all`}
+								className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${action.color} flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all mx-auto`}
 							>
 								<action.icon className="h-7 w-7 text-white" />
 							</div>
-							<span className="text-xs font-medium text-center text-gray-900 dark:text-gray-100 leading-tight max-w-[60px]">
+							<span className="text-[10px] font-medium text-center text-gray-900 dark:text-gray-100 leading-tight w-full block px-1">
 								{action.name.replace('Pay ', '').replace(' Bills', '')}
 							</span>
 						</a>

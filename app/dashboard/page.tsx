@@ -566,22 +566,16 @@ function DashboardClient() {
 
         {/* Mobile Header Card - Balance Overview */}
         <div className="bg-gradient-to-br from-purple-700 via-purple-600 to-indigo-700 rounded-3xl p-6 text-white shadow-2xl">
-          {/* Top Bar with Menu, Avatar and Notification */}
+          {/* Top Bar with Menu and Hide Balance */}
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(true)}
-                className="h-12 w-12 rounded-full bg-white/20 hover:bg-white/30 text-white p-0"
-              >
-                <Menu className="h-6 w-6" />
-              </Button>
-              <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center overflow-hidden border-2 border-white/30">
-                <Wallet className="h-6 w-6 text-white" />
-              </div>
-              {getConnectionBadge()}
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+              className="h-12 w-12 rounded-full bg-white/20 hover:bg-white/30 text-white p-0"
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"

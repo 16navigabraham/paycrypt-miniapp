@@ -478,15 +478,11 @@ export default function InternetPage() {
         );
     }
 
-    return (
+  return (
         <div className="container py-10 max-w-xl mx-auto">
             <BackToDashboard />
-            <h1 className="text-3xl font-bold mb-4">Buy Internet Data</h1>
-            <p className="text-muted-foreground mb-8">
-                Purchase internet data bundles using supported ERC20 cryptocurrencies on Base chain.
-            </p>
 
-            {/* Connection Status */}
+            {/* Connection Status */
             {address && (
                 <div className="text-sm p-3 bg-green-50 border border-green-200 rounded-lg mb-6">
                     <div className="flex items-center gap-2">
