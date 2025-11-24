@@ -93,20 +93,11 @@ export default function HistoryPage() {
     <AuthGuard>
       <div className="container py-10">
         <BackToDashboard />
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Transaction History</h1>
-            <p className="text-muted-foreground">
-              Here are your past transactions for wallet: {address?.slice(0, 6)}...{address?.slice(-4)}
-            </p>
-          </div>
-          {address && (
-            <div className="text-sm text-muted-foreground">
-              <div className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                {address}
-              </div>
-            </div>
-          )}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold mb-2">Transaction History</h1>
+          <p className="text-muted-foreground">
+            Here are your past transactions
+          </p>
         </div>
 
         {loading && (

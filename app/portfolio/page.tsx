@@ -36,20 +36,11 @@ export default function PortfolioPage() {
   return (
     <div className="container py-10">
       <BackToDashboard />
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Portfolio</h1>
-          <p className="text-muted-foreground">
-            View your real-time crypto balances and value on Base chain.
-          </p>
-        </div>
-        {address && (
-          <div className="text-sm text-muted-foreground">
-            <div className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-              {address}
-            </div>
-          </div>
-        )}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">Portfolio</h1>
+        <p className="text-muted-foreground">
+          View your real-time crypto balances and value on Base chain.
+        </p>
       </div>
       
       <PortfolioOverview wallet={connectedWallet} />

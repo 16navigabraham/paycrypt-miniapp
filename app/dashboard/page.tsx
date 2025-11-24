@@ -560,90 +560,130 @@ function DashboardClient() {
         {!miniAppContext.isMiniApp && <MiniAppPrompt />}
 
         {/* Mobile Header Card - Balance Overview */}
-        <div className="bg-[#040b34] rounded-2xl p-6 text-white shadow-xl">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <h1 className="text-lg font-semibold">Portfolio</h1>
+        <div className="bg-gradient-to-br from-purple-700 via-purple-600 to-indigo-700 rounded-3xl p-6 text-white shadow-2xl">
+          {/* Top Bar with Avatar and Notification */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center overflow-hidden border-2 border-white/30">
+                <Wallet className="h-6 w-6 text-white" />
+              </div>
               {getConnectionBadge()}
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setBalanceVisible(!balanceVisible)}
-              className="text-white/80 hover:text-white hover:bg-white/10"
+              className="h-10 w-10 rounded-full bg-white/20 hover:bg-white/30 text-white p-0"
             >
-              {balanceVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              {balanceVisible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
             </Button>
           </div>
           
-          <div className="space-y-2">
-            <div className="flex items-center space-x-4">
-              <div className="text-xs text-blue-100 uppercase tracking-wide">Total Balance</div>
-              {connectedWallet && (
-                <div className="flex items-center space-x-1">
-                  <span className="text-xs text-blue-100 font-mono">
-                    {formatAddress(connectedWallet.address)}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={copyAddress}
-                    className="h-5 w-5 p-0 text-blue-200 hover:text-white"
-                  >
-                    {copied ? (
-                      <CheckCircle className="h-3 w-3" />
-                    ) : (
-                      <Copy className="h-3 w-3" />
-                    )}
-                  </Button>
-                </div>
-              )}
-            </div>
+          {/* Centered Balance Display */}
+          <div className="text-center space-y-2">
+            <div className="text-sm text-purple-100 font-medium tracking-wide">Available Balance</div>
             
-            <div className="flex items-baseline space-x-2">
+            <div className="flex items-center justify-center">
               {balanceVisible ? (
                 <PortfolioOverview wallet={connectedWallet} />
               ) : (
-                <span className="text-3xl font-bold">••••••</span>
+                <span className="text-4xl font-bold">••••••</span>
               )}
             </div>
+            
+            {connectedWallet && (
+              <div className="flex items-center justify-center space-x-2 pt-2">
+                <span className="text-xs text-purple-200 font-mono">
+                  {formatAddress(connectedWallet.address)}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={copyAddress}
+                  className="h-5 w-5 p-0 text-purple-200 hover:text-white hover:bg-white/10"
+                >
+                  {copied ? (
+                    <CheckCircle className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
           
-          <div className="flex justify-center space-x-1 mt-4">
+          {/* Horizontal Quick Actions - Existing Features Only */}
+          <div className="mt-6 bg-white rounded-3xl p-4 shadow-lg">
+            <div className="grid grid-cols-3 gap-3">
+              <Button
+                variant="ghost"
+                className="flex flex-col items-center space-y-2 h-auto p-3 hover:bg-purple-50 rounded-2xl"
+                asChild
+              >
+                <a href="/convert">
+                  <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
+                    <ArrowUpDown className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <span className="text-xs font-medium text-gray-700">Convert</span>
+                </a>
+              </Button>
+              <Button
+                variant="ghost"
+                className="flex flex-col items-center space-y-2 h-auto p-3 hover:bg-purple-50 rounded-2xl"
+                asChild
+              >
+                <a href="/history">
+                  <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
+                    <History className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <span className="text-xs font-medium text-gray-700">History</span>
+                </a>
+              </Button>
+              <Button
+                variant="ghost"
+                className="flex flex-col items-center space-y-2 h-auto p-3 hover:bg-purple-50 rounded-2xl"
+                asChild
+              >
+                <a href="/services">
+                  <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
+                    <Activity className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <span className="text-xs font-medium text-gray-700">Services</span>
+                </a>
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Mobile-Optimized Quick Actions Component */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+        {/* Payment List - Quick Actions Component */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Payment List</h3>
           </div>
           <QuickActions wallet={connectedWallet} />
         </div>
 
-        {/* Recent Transactions */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Transactions</h3>
-            <Button variant="ghost" size="sm" onClick={() => router.push('/history')}>
-              View All
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
+        {/* Promo & Discount - Recent Transactions */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
+          <div className="mb-4">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Promo & Discount</h3>
           </div>
           <RecentTransactions wallet={connectedWallet} />
         </div>
 
-        {/* Welcome Message */}
+        {/* Special Offer Card */}
         {connectedWallet && (
-          <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/30 dark:to-blue-950/30 border border-green-200 dark:border-green-800 rounded-2xl p-4 shadow-sm">
-            <h2 className="text-base font-semibold text-green-900 dark:text-green-100 mb-1">
-              Welcome to Paycrypt! 🎉
-            </h2>
-            <p className="text-green-700 dark:text-green-200 text-sm">
-              {connectionStatus === 'live' 
-                ? `Your wallet is actively connected via ${miniAppContext.client}. All systems ready!`
-                : `Connected via ${miniAppContext.client}. Your wallet is ready for secure transactions.`}
-            </p>
+          <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <div className="absolute bottom-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-8 -mb-8"></div>
+            <div className="relative z-10">
+              <h2 className="text-xl font-bold text-white mb-2">
+                Special Offer for Today's Top Up
+              </h2>
+              <p className="text-purple-200 text-sm">
+                Get discount for every top up and bill payment
+              </p>
+            </div>
           </div>
         )}
       </div>

@@ -16,23 +16,23 @@ const actions = [
 export function QuickActions({ wallet }: { wallet: any }) {
 	return (
 		<div className="space-y-4">
-			{/* Mobile-style grid layout */}
-			<div className="grid grid-cols-3 gap-3">
+			{/* Mobile-style grid layout - 4 columns to match Figma */}
+			<div className="grid grid-cols-4 gap-4">
 				{actions.map((action) => (
 					<Button
 						key={action.name}
 						variant="ghost"
-						className="h-auto p-3 flex flex-col items-center space-y-2 bg-gray-50 dark:bg-gray-700/30 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-2xl border-0 transition-all group"
+						className="h-auto p-0 flex flex-col items-center space-y-2 hover:bg-transparent border-0 transition-all group"
 						asChild
 					>
 						<a href={action.href + (wallet?.address ? `?wallet=${wallet.address}` : "")}>
 							<div
-								className={`h-12 w-12 rounded-2xl bg-gradient-to-r ${action.color} flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform`}
+								className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${action.color} flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all`}
 							>
-								<action.icon className="h-6 w-6 text-white" />
+								<action.icon className="h-7 w-7 text-white" />
 							</div>
-							<span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 leading-tight">
-								{action.name}
+							<span className="text-xs font-medium text-center text-gray-900 dark:text-gray-100 leading-tight max-w-[60px]">
+								{action.name.replace('Pay ', '').replace(' Bills', '')}
 							</span>
 						</a>
 					</Button>

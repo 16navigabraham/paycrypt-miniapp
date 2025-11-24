@@ -210,72 +210,36 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
 		);
 	}
 
-	// Mobile-first inline display for dashboard header
+	// Centered balance display for dashboard header matching Figma design
 	return (
-		<div className="space-y-2">
-			{/* Main balance display */}
-			<div className="flex items-baseline space-x-2">
+		<div className="w-full">
+			{/* Main balance display - Large and centered */}
+			<div className="flex flex-col items-center justify-center space-y-3">
 				{loading ? (
 					<div className="animate-pulse">
-						<div className="h-8 w-32 bg-white/20 rounded"></div>
+						<div className="h-12 w-40 bg-white/20 rounded"></div>
 					</div>
 				) : (
 					<>
-						<span className="text-3xl font-bold text-white">
+						<span className="text-5xl font-bold text-white tracking-tight">
 							{formatValue(
 								currencyDisplay === 'usd' ? totalValueUSD : totalValueNGN,
 								currencyDisplay
 							)}
 						</span>
+						
+						{/* Currency toggle button */}
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={toggleCurrencyDisplay}
+							className="text-sm text-purple-200 hover:text-white hover:bg-white/10 px-3 py-1 h-auto rounded-full"
+						>
+							{currencyDisplay === 'usd' ? 'Switch to ₦ NGN' : 'Switch to $ USD'}
+						</Button>
 					</>
 				)}
 			</div>
-
-			{/* Currency toggle and quick stats */}
-			<div className="flex items-center justify-between">
-				<div className="flex items-center space-x-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={toggleCurrencyDisplay}
-						className="text-xs text-blue-100 hover:text-white hover:bg-white/10 px-2 py-1 h-auto"
-					>
-						{currencyDisplay === 'usd' ? '→ NGN' : '→ USD'}
-					</Button>
-				</div>
-				
-				{!loading && (
-					<div className="text-xs text-blue-100">
-						{balances.filter(b => b.balance > 0).length} tokens
-					</div>
-				)}
-			</div>
-
-			{/* Expanded view - token breakdown (optional, can be toggled) */}
-			{!loading && balances.some(b => b.balance > 0) && (
-				<div className="mt-3 pt-3 border-t border-white/20">
-					<div className="grid grid-cols-3 gap-2">
-						{balances.filter(b => b.balance > 0).slice(0, 3).map((crypto) => {
-							const token = supportedTokens.find((t) => t.symbol === crypto.symbol)
-							const price = token ? prices[token.coingeckoId] : undefined
-							const usdValue = price?.usd ? crypto.balance * price.usd : 0;
-							const ngnValue = price?.ngn ? crypto.balance * price.ngn : 0;
-
-							return (
-								<div key={crypto.symbol} className="text-center">
-									<div className="text-xs text-blue-100 font-medium">{crypto.symbol}</div>
-									<div className="text-sm text-white">
-										{showBalance 
-											? formatValue(currencyDisplay === 'usd' ? usdValue : ngnValue, currencyDisplay)
-											: "••••"
-										}
-									</div>
-								</div>
-							)
-						})}
-					</div>
-				</div>
-			)}
 		</div>
 	)
 }

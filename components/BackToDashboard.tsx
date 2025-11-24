@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { ChevronLeft } from 'lucide-react'
 
 export default function BackToDashboard() {
   const router = useRouter()
@@ -8,9 +9,10 @@ export default function BackToDashboard() {
   return (
     <button
       onClick={() => router.push('/dashboard')}
-      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+      className="mb-6 inline-flex items-center justify-center px-4 py-2 bg-[#304FFE] hover:bg-[#2640E0] active:bg-[#1E35C4] disabled:bg-gray-300 text-white font-semibold text-sm tracking-wide uppercase rounded-lg shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 disabled:cursor-not-allowed"
     >
-      ← Back to Dashboard
+      <ChevronLeft className="h-4 w-4 mr-1" />
+      Back
     </button>
   )
 }
