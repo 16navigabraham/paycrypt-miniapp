@@ -612,8 +612,12 @@ export default function TVPage() {
   return (
     <div className="container py-10 max-w-xl mx-auto">
       <BackToDashboard />
+      {/* <h1 className="text-3xl font-bold mb-4">Pay TV Subscription</h1>
+      <p className="text-muted-foreground mb-8">
+        Pay for your TV subscription using supported ERC20 cryptocurrencies on Base chain.
+      </p> */}
 
-      {/* Connection Status */
+      {/* Connection Status */}
       {address && (
         <div className="text-sm p-3 bg-green-50 border border-green-200 rounded-lg mb-6">
           <div className="flex items-center gap-2">
