@@ -29,7 +29,6 @@ const nextConfig = {
     return config;
   },
   // Optimize for production
-  swcMinify: true,
   compress: true,
   poweredByHeader: false,
 }
