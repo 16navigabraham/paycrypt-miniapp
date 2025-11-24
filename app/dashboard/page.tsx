@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic'
 import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
 import { useMiniKit } from '@coinbase/onchainkit/minikit'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
-import { MainLayout } from "@/components/layout/main-layout"
+import { Sidebar } from "@/components/layout/sidebar"
 import { PortfolioOverview } from "@/components/dashboard/portfolio-overview"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 import RecentTransactions from "@/components/dashboard/recent-transactions"
@@ -32,7 +32,8 @@ import {
   TrendingUp,
   History,
   Plus,
-  X
+  X,
+  Menu
 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import sdk from "@farcaster/miniapp-sdk";
@@ -268,6 +269,7 @@ function DashboardClient() {
   const [miniKitReady, setMiniKitReady] = useState(false);
   const [miniKitError, setMiniKitError] = useState<string | null>(null);
   const [balanceVisible, setBalanceVisible] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Use Wagmi hooks
   const { address, isConnected, isConnecting, chainId } = useAccount();
@@ -554,16 +556,27 @@ function DashboardClient() {
   }
 
   return (
-    <MainLayout>
-      <div className="space-y-4 pb-20 lg:pb-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Sidebar */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      
+      <div className="container mx-auto px-4 py-6 space-y-4 pb-20 lg:pb-6">
         {/* Mini App Add Prompt - Only show if not already in mini app context */}
         {!miniAppContext.isMiniApp && <MiniAppPrompt />}
 
         {/* Mobile Header Card - Balance Overview */}
         <div className="bg-gradient-to-br from-purple-700 via-purple-600 to-indigo-700 rounded-3xl p-6 text-white shadow-2xl">
-          {/* Top Bar with Avatar and Notification */}
+          {/* Top Bar with Menu, Avatar and Notification */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(true)}
+                className="h-12 w-12 rounded-full bg-white/20 hover:bg-white/30 text-white p-0"
+              >
+                <Menu className="h-6 w-6" />
+              </Button>
               <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center overflow-hidden border-2 border-white/30">
                 <Wallet className="h-6 w-6 text-white" />
               </div>
@@ -611,62 +624,20 @@ function DashboardClient() {
               </div>
             )}
           </div>
-          
-          {/* Horizontal Quick Actions - Existing Features Only */}
-          <div className="mt-6 bg-white rounded-3xl p-4 shadow-lg">
-            <div className="grid grid-cols-3 gap-3">
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center space-y-2 h-auto p-3 hover:bg-purple-50 rounded-2xl"
-                asChild
-              >
-                <a href="/convert">
-                  <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                    <ArrowUpDown className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <span className="text-xs font-medium text-gray-700">Convert</span>
-                </a>
-              </Button>
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center space-y-2 h-auto p-3 hover:bg-purple-50 rounded-2xl"
-                asChild
-              >
-                <a href="/history">
-                  <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                    <History className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <span className="text-xs font-medium text-gray-700">History</span>
-                </a>
-              </Button>
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center space-y-2 h-auto p-3 hover:bg-purple-50 rounded-2xl"
-                asChild
-              >
-                <a href="/services">
-                  <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                    <Activity className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <span className="text-xs font-medium text-gray-700">Services</span>
-                </a>
-              </Button>
-            </div>
-          </div>
         </div>
 
         {/* Payment List - Quick Actions Component */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Payment List</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Available Services</h3>
           </div>
           <QuickActions wallet={connectedWallet} />
         </div>
 
-        {/* Promo & Discount - Recent Transactions */}
+        {/* Recent Transactions */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
           <div className="mb-4">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Promo & Discount</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Recent Transactions</h3>
           </div>
           <RecentTransactions wallet={connectedWallet} />
         </div>
@@ -678,7 +649,7 @@ function DashboardClient() {
             <div className="absolute bottom-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-8 -mb-8"></div>
             <div className="relative z-10">
               <h2 className="text-xl font-bold text-white mb-2">
-                Special Offer for Today's Top Up
+                Special Offer coming soon!
               </h2>
               <p className="text-purple-200 text-sm">
                 Get discount for every top up and bill payment
@@ -687,7 +658,7 @@ function DashboardClient() {
           </div>
         )}
       </div>
-    </MainLayout>
+    </div>
   )
 }
 
