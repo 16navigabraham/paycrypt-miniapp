@@ -292,6 +292,15 @@ export default function PortfolioPage() {
                     <div style={{ width: 400, height: 400 }}>
                       <Pie data={pieData} options={pieOptions} />
                     </div>
+                    {/* Custom legend below pie chart */}
+                    <div className="flex justify-center gap-6 mt-6">
+                      {sortedTokens.map((token, idx) => (
+                        <div key={token.symbol} className="flex items-center gap-2">
+                          <span style={{ backgroundColor: pieData.datasets[0].backgroundColor[idx], width: 16, height: 16, display: 'inline-block', borderRadius: 4, border: '2px solid #222' }}></span>
+                          <span className="text-white text-sm font-medium">{token.name}</span>
+                        </div>
+                      ))}
+                    </div>
                     {selectedToken && (
                       <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
                         <div className="bg-gray-900 rounded-xl p-8 shadow-2xl border border-gray-700 w-full max-w-md">
