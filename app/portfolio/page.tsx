@@ -6,9 +6,9 @@ import { useMiniAppWallet } from "@/hooks/useMiniAppWallet";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { Pie } from 'react-chartjs-2';
-import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
+import ChartJS, { ArcElement, Tooltip, Legend } from 'chart.js/auto';
 import { useRef } from 'react';
-Chart.register(ArcElement, Tooltip, Legend);
+ChartJS.register(ArcElement, Tooltip, Legend);
 import { useEffect, useState } from "react";
 
 export default function PortfolioPage() {
@@ -184,7 +184,7 @@ export default function PortfolioPage() {
   // Pie chart options
   const pieOptions = {
     plugins: {
-      legend: { position: 'bottom', labels: { color: '#fff', font: { size: 16 } } },
+      legend: { position: 'bottom' as const, labels: { color: '#fff', font: { size: 16 } } },
       tooltip: {
         callbacks: {
           label: function(context: any) {
