@@ -1,3 +1,8 @@
+import { Pie } from 'react-chartjs-2';
+import ChartJS, { ArcElement, Tooltip, Legend } from 'chart.js/auto';
+import { useRef } from 'react';
+ChartJS.register(ArcElement, Tooltip, Legend);
+  const [selectedToken, setSelectedToken] = useState<any | null>(null);
 
 "use client"
 
@@ -5,14 +10,9 @@ import BackToDashboard from "@/components/BackToDashboard";
 import { useMiniAppWallet } from "@/hooks/useMiniAppWallet";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { Pie } from 'react-chartjs-2';
-import ChartJS, { ArcElement, Tooltip, Legend } from 'chart.js/auto';
-import { useRef } from 'react';
-ChartJS.register(ArcElement, Tooltip, Legend);
 import { useEffect, useState } from "react";
 
 export default function PortfolioPage() {
-    const [selectedToken, setSelectedToken] = useState<any | null>(null);
   const { address, isConnected } = useMiniAppWallet();
   const [tokens, setTokens] = useState<any[]>([]);
   const [ethBalance, setEthBalance] = useState<number>(0);
@@ -43,14 +43,7 @@ export default function PortfolioPage() {
         const ethData = await ethRes.json();
         setEthBalance(ethData.result ? parseInt(ethData.result, 16) / 1e18 : 0);
 
-        // Supported tokens: USDT, USDC, SEND
-        const supported = [
-          { symbol: 'USDT', name: 'Tether USD', contract: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2', decimals: 6 },
-          { symbol: 'USDC', name: 'USD Coin', contract: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6 },
-          { symbol: 'SEND', name: 'SEND', contract: '0xeab49138ba2ea6dd776220fe26b7b8e446638956', decimals: 18 },
-        ];
-
-        // Fetch all supported token balances in one call
+        // Fetch all token balances
         const tokenRes = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -58,22 +51,17 @@ export default function PortfolioPage() {
             jsonrpc: '2.0',
             id: 2,
             method: 'alchemy_getTokenBalances',
-            params: [address, supported.map(t => t.contract)],
+            params: [address],
           }),
         });
         const tokenData = await tokenRes.json();
         const balances = tokenData.result?.tokenBalances || [];
 
-        // Fetch metadata for each supported token
+        // Fetch metadata for each token and filter out NFTs
         const tokensWithMeta = await Promise.all(
-          supported.map(async (t, i) => {
-            const b = balances[i];
-            let decimals = t.decimals;
-            let symbol = t.symbol;
-            let name = t.name;
-            let logoURI = '/placeholder-logo.png';
-            if (b) {
-              // Fetch metadata if available
+          balances
+            .filter((b: any) => b.tokenBalance && b.tokenBalance !== "0x0")
+            .map(async (b: any) => {
               const metaRes = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -81,49 +69,35 @@ export default function PortfolioPage() {
                   jsonrpc: '2.0',
                   id: 3,
                   method: 'alchemy_getTokenMetadata',
-                  params: [t.contract],
+                  params: [b.contractAddress],
                 }),
               });
               const metaData = await metaRes.json();
-              if (metaData.result) {
-                decimals = metaData.result.decimals ?? t.decimals;
-                symbol = metaData.result.symbol ?? t.symbol;
-                name = metaData.result.name ?? t.name;
-                logoURI = metaData.result.logo || metaData.result.logoURI || '/placeholder-logo.png';
-              }
-            }
-            // Robust hex parsing using BigInt, handle zero and missing balances
-            let balance = 0;
-            if (b?.tokenBalance && b.tokenBalance !== '0x' && b.tokenBalance !== '0x0') {
-              try {
-                balance = Number(BigInt(b.tokenBalance) / BigInt(Math.pow(10, decimals)));
-                // Add fractional part
-                const remainder = Number(BigInt(b.tokenBalance) % BigInt(Math.pow(10, decimals)));
-                balance += remainder / Math.pow(10, decimals);
-              } catch {
-                balance = 0;
-              }
-            }
-            return {
-              contractAddress: t.contract,
-              balance,
-              decimals,
-              name,
-              symbol,
-              logoURI,
-            };
-          })
+              const decimals = metaData.result?.decimals;
+              return {
+                ...metaData.result,
+                contractAddress: b.contractAddress,
+                balance: decimals ? parseInt(b.tokenBalance, 16) / Math.pow(10, decimals) : 0,
+                decimals,
+              };
+            })
         );
-        setTokens(tokensWithMeta.filter(Boolean));
+        // Only keep ERC-20 tokens (decimals > 0, symbol exists)
+        setTokens(tokensWithMeta.filter(t => t.symbol && t.decimals && t.decimals > 0));
 
         // Fetch prices from Coingecko
-        const coingeckoIds: string[] = ['ethereum'];
+        // Build list of coingecko IDs (ETH and tokens)
+        const coingeckoIds: string[] = [];
+        // ETH
+        coingeckoIds.push('ethereum');
+        // Try to get coingeckoId from token metadata
         tokensWithMeta.forEach((token) => {
-          if (!token) return;
           if (token.symbol === 'USDT') coingeckoIds.push('tether');
           else if (token.symbol === 'USDC') coingeckoIds.push('usd-coin');
-          else if (token.symbol === 'SEND') coingeckoIds.push('send-token-2');
+          else if (token.symbol === 'DAI') coingeckoIds.push('dai');
+          // Add more mappings as needed
         });
+        // Remove duplicates
         const uniqueIds = Array.from(new Set(coingeckoIds));
         const priceRes = await fetch(
           `https://paycrypt-margin-price.onrender.com/api/v3/simple/price?ids=${uniqueIds.join(",")}&vs_currencies=usd,ngn`
@@ -144,48 +118,24 @@ export default function PortfolioPage() {
     if (token.symbol === 'ETH') return prices['ethereum']?.[currency] || 0;
     if (token.symbol === 'USDT') return prices['tether']?.[currency] || 0;
     if (token.symbol === 'USDC') return prices['usd-coin']?.[currency] || 0;
-    if (token.symbol === 'SEND') return prices['send-token-2']?.[currency] || 0;
+    if (token.symbol === 'DAI') return prices['dai']?.[currency] || 0;
     return 0;
   }
 
-  // Build full token list (ETH + tokens), always show all supported tokens, avoid duplicates
-  const supportedSymbols = ['ETH', 'USDT', 'USDC', 'SEND'];
-  const supportedTokens = supportedSymbols.map(symbol => {
-    if (symbol === 'ETH') {
-      return {
-        symbol: 'ETH',
-        name: 'Ethereum',
-        logoURI: '/ETH.png',
-        balance: ethBalance,
-        contractAddress: 'native',
-      };
-    }
-    // Only use the first matching token for each symbol
-    const t = tokens.find(token => token.symbol === symbol);
-    let decimals = 6;
-    if (t && typeof t.decimals === 'number') decimals = t.decimals;
-    return {
-      symbol,
-      name: symbol === 'USDT' ? 'Tether USD' : symbol === 'USDC' ? 'USD Coin' : symbol === 'SEND' ? 'SEND' : t?.name || symbol,
-      contractAddress: symbol === 'USDT' ? '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2' : symbol === 'USDC' ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' : symbol === 'SEND' ? '0xeab49138ba2ea6dd776220fe26b7b8e446638956' : t?.contractAddress || '',
-      logoURI: t?.logoURI || '/placeholder-logo.png',
-      balance: t?.balance !== undefined ? t.balance : 0,
-      decimals,
-    };
-  });
-
-  // Remove duplicate tokens by symbol (shouldn't happen, but just in case)
-  const uniqueTokens = [];
-  const seenSymbols = new Set();
-  for (const token of supportedTokens) {
-    if (!seenSymbols.has(token.symbol)) {
-      uniqueTokens.push(token);
-      seenSymbols.add(token.symbol);
-    }
-  }
+  // Build full token list (ETH + tokens)
+  const fullTokens = [
+    {
+      symbol: 'ETH',
+      name: 'Ethereum',
+      logoURI: '/ETH.png',
+      balance: ethBalance,
+      contractAddress: 'native',
+    },
+    ...tokens,
+  ];
 
   // Calculate per-token value and total value
-  const tokensWithValue = uniqueTokens.map((token) => {
+  const tokensWithValue = fullTokens.map((token) => {
     const price = getTokenPrice(token);
     return {
       ...token,
@@ -200,15 +150,15 @@ export default function PortfolioPage() {
 
   // Pie chart data
   const pieData = {
-    labels: sortedTokens.map(t => t.symbol),
+    labels: sortedTokens.map((t: any) => t.symbol),
     datasets: [
       {
-        data: sortedTokens.map(t => t.value),
+        data: sortedTokens.map((t: any) => t.value),
         backgroundColor: [
           '#4ade80', // ETH
           '#f59e42', // USDT
           '#3b82f6', // USDC
-          '#a78bfa', // SEND
+          '#a78bfa', // DAI/other
         ],
         borderColor: '#222',
         borderWidth: 2,
@@ -219,7 +169,7 @@ export default function PortfolioPage() {
   // Pie chart options
   const pieOptions = {
     plugins: {
-      legend: { position: 'bottom' as const, labels: { color: '#fff', font: { size: 16 } } },
+      legend: { display: false },
       tooltip: {
         callbacks: {
           label: function(context: any) {
@@ -244,7 +194,7 @@ export default function PortfolioPage() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Portfolio</h1>
         <p className="text-muted-foreground">
-          See your up-to-date crypto balances, token prices, and overall portfolio value on the Base chain.
+          View your real-time crypto balances, token prices, and total value on Base chain.
         </p>
       </div>
       {!isConnected ? (
@@ -288,35 +238,37 @@ export default function PortfolioPage() {
                 {sortedTokens.length === 0 ? (
                   <div className="text-muted-foreground">No tokens found.</div>
                 ) : (
-                  <div className="flex flex-col items-center">
-                    <div style={{ width: 400, height: 400 }}>
-                      <Pie data={pieData} options={pieOptions} />
-                    </div>
-                    {/* Custom legend below pie chart */}
-                    <div className="flex justify-center gap-6 mt-6">
-                      {sortedTokens.map((token, idx) => (
-                        <div key={token.symbol} className="flex items-center gap-2">
-                          <span style={{ backgroundColor: pieData.datasets[0].backgroundColor[idx], width: 16, height: 16, display: 'inline-block', borderRadius: 4, border: '2px solid #222' }}></span>
-                          <span className="text-white text-sm font-medium">{token.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {selectedToken && (
-                      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
-                        <div className="bg-gray-900 rounded-xl p-8 shadow-2xl border border-gray-700 w-full max-w-md">
-                          <div className="flex items-center mb-4">
-                            <Image src={selectedToken.logoURI || '/placeholder-logo.png'} alt={selectedToken.symbol} width={40} height={40} className="rounded-full bg-white border border-gray-300 mr-3" />
-                            <span className="font-bold text-2xl text-white mr-2">{selectedToken.symbol}</span>
-                            <span className="text-gray-300 text-lg">{selectedToken.name}</span>
-                          </div>
-                          <div className="mb-2 font-mono text-purple-200 text-lg">Balance: {selectedToken.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })}</div>
-                          <div className="mb-2 text-xs text-muted-foreground">Price: {selectedToken.price ? (currency === 'usd' ? `$${selectedToken.price}` : `₦${selectedToken.price}`) : 'N/A'}</div>
-                          <div className="mb-2 font-bold text-purple-300 text-lg">Value: {currency === 'usd' ? `$${selectedToken.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `₦${selectedToken.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}</div>
-                          <Button className="mt-4 w-full" onClick={() => setSelectedToken(null)}>Close</Button>
-                        </div>
+                  <>
+                    <div className="flex flex-col items-center">
+                      <div style={{ width: 400, height: 400 }}>
+                        <Pie data={pieData} options={pieOptions} />
                       </div>
-                    )}
-                  </div>
+                      {/* Custom legend below pie chart */}
+                      <div className="flex justify-center gap-6 mt-6">
+                        {sortedTokens.map((token: any, idx: number) => (
+                          <div key={token.symbol} className="flex items-center gap-2">
+                            <span style={{ backgroundColor: pieData.datasets[0].backgroundColor[idx], width: 16, height: 16, display: 'inline-block', borderRadius: 4, border: '2px solid #222' }}></span>
+                            <span className="text-white text-sm font-medium">{token.name || token.symbol}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {selectedToken && (
+                        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
+                          <div className="bg-gray-900 rounded-xl p-8 shadow-2xl border border-gray-700 w-full max-w-md">
+                            <div className="flex items-center mb-4">
+                              <Image src={selectedToken.logoURI || '/placeholder-logo.png'} alt={selectedToken.symbol} width={40} height={40} className="rounded-full bg-white border border-gray-300 mr-3" />
+                              <span className="font-bold text-2xl text-white mr-2">{selectedToken.symbol}</span>
+                              <span className="text-gray-300 text-lg">{selectedToken.name || selectedToken.symbol}</span>
+                            </div>
+                            <div className="mb-2 font-mono text-purple-200 text-lg">Balance: {selectedToken.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })}</div>
+                            <div className="mb-2 text-xs text-muted-foreground">Price: {selectedToken.price ? (currency === 'usd' ? `$${selectedToken.price}` : `₦${selectedToken.price}`) : 'N/A'}</div>
+                            <div className="mb-2 font-bold text-purple-300 text-lg">Value: {currency === 'usd' ? `$${selectedToken.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `₦${selectedToken.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}</div>
+                            <Button className="mt-4 w-full" onClick={() => setSelectedToken(null)}>Close</Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -326,4 +278,3 @@ export default function PortfolioPage() {
     </div>
   );
 }
-
