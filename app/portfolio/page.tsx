@@ -1,10 +1,11 @@
+
 "use client"
 
-import BackToDashboard from "@/components/BackToDashboard"
-import { useMiniAppWallet } from "@/hooks/useMiniAppWallet"
-import { Button } from "@/components/ui/button"
-import Image from "next/image"
-import { useEffect, useState } from "react"
+import BackToDashboard from "@/components/BackToDashboard";
+import { useMiniAppWallet } from "@/hooks/useMiniAppWallet";
+import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export default function PortfolioPage() {
   const { address, isConnected } = useMiniAppWallet();
@@ -140,23 +141,6 @@ export default function PortfolioPage() {
   // Sort tokens by value descending
   const sortedTokens = tokensWithValue.sort((a, b) => b.value - a.value);
 
-  if (!isConnected) {
-    return (
-      <div className="container py-10">
-        <BackToDashboard />
-        <div className="text-center py-12">
-          <h1 className="text-3xl font-bold mb-4">Portfolio</h1>
-          <p className="text-muted-foreground mb-6">
-            Please connect your wallet to view your portfolio.
-          </p>
-          <Button onClick={() => window.location.href = '/dashboard'}>
-            Go to Dashboard
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="container py-10">
       <BackToDashboard />
@@ -166,71 +150,7 @@ export default function PortfolioPage() {
           View your real-time crypto balances, token prices, and total value on Base chain.
         </p>
       </div>
-      <div className="mb-8 flex flex-col items-center">
-        <span className="text-4xl font-bold text-white tracking-tight">
-          {currency === 'usd' ? `$${totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `₦${totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
-        </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setCurrency(currency === 'usd' ? 'ngn' : 'usd')}
-          className="text-sm text-purple-200 hover:text-white hover:bg-white/10 px-3 py-1 h-auto rounded-full mt-2"
-        >
-          {currency === 'usd' ? 'Switch to ₦ NGN' : 'Switch to $ USD'}
-        </Button>
-        <span className="text-xs text-muted-foreground mt-2">Total Portfolio Value</span>
-      </div>
-      {loading ? (
-        <div className="text-center py-8">
-          <span className="text-lg text-muted-foreground">Loading portfolio...</span>
-        </div>
-      ) : error ? (
-        <div className="text-center py-8">
-          <span className="text-lg text-red-400">{error}</span>
-        </div>
-      ) : (
-        <div className="space-y-8">
-          <div>
-            <h2 className="text-xl font-bold mb-4">Tokens</h2>
-            {sortedTokens.length === 0 ? (
-              <div className="text-muted-foreground">No tokens found.</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {sortedTokens.map((token) => (
-                  <div key={token.contractAddress + token.symbol} className="bg-white/5 rounded-lg p-4 flex items-center gap-4">
-                    <Image
-                      src={token.logoURI || "/placeholder-logo.png"}
-                      alt={token.symbol}
-                      width={32}
-                      height={32}
-                      className="rounded-full bg-white"
-                    />
-                    <div>
-                      <div className="font-bold text-base text-white">{token.name || token.symbol}</div>
-                      <div className="text-xs text-muted-foreground">{token.symbol}</div>
-                      <div className="font-mono text-lg text-white">{token.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })}</div>
-                      <div className="text-xs text-muted-foreground">
-                        Price: {token.price ? (currency === 'usd' ? `$${token.price}` : `₦${token.price}`) : 'N/A'}
-                      </div>
-                      <div className="font-bold text-purple-300 text-sm">
-                        Value: {currency === 'usd' ? `$${token.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `₦${token.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-  if (!isConnected) {
-    return (
-      <div className="container py-10">
-        <BackToDashboard />
+      {!isConnected ? (
         <div className="text-center py-12">
           <h1 className="text-3xl font-bold mb-4">Portfolio</h1>
           <p className="text-muted-foreground mb-6">
@@ -240,65 +160,68 @@ export default function PortfolioPage() {
             Go to Dashboard
           </Button>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container py-10">
-      <BackToDashboard />
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Portfolio</h1>
-        <p className="text-muted-foreground">
-          View your real-time crypto balances and all tokens on Base chain.
-        </p>
-      </div>
-      {loading ? (
-        <div className="text-center py-8">
-          <span className="text-lg text-muted-foreground">Loading portfolio...</span>
-        </div>
-      ) : error ? (
-        <div className="text-center py-8">
-          <span className="text-lg text-red-400">{error}</span>
-        </div>
       ) : (
-        <div className="space-y-8">
-          <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl p-6 text-white shadow">
-            <div className="flex items-center gap-3">
-              <Image src="/paycrypt.png" alt="ETH" width={32} height={32} className="rounded-full bg-white/10" />
+        <>
+          <div className="mb-8 flex flex-col items-center">
+            <span className="text-4xl font-bold text-white tracking-tight">
+              {currency === 'usd' ? `$${totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `₦${totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrency(currency === 'usd' ? 'ngn' : 'usd')}
+              className="text-sm text-purple-200 hover:text-white hover:bg-white/10 px-3 py-1 h-auto rounded-full mt-2"
+            >
+              {currency === 'usd' ? 'Switch to ₦ NGN' : 'Switch to $ USD'}
+            </Button>
+            <span className="text-xs text-muted-foreground mt-2">Total Portfolio Value</span>
+          </div>
+          {loading ? (
+            <div className="text-center py-8">
+              <span className="text-lg text-muted-foreground">Loading portfolio...</span>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <span className="text-lg text-red-400">{error}</span>
+            </div>
+          ) : (
+            <div className="space-y-8">
               <div>
-                <div className="text-lg font-bold">ETH</div>
-                <div className="text-2xl font-mono">{ethBalance.toLocaleString(undefined, { maximumFractionDigits: 6 })}</div>
+                <h2 className="text-xl font-bold mb-4">Tokens</h2>
+                {sortedTokens.length === 0 ? (
+                  <div className="text-muted-foreground">No tokens found.</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {sortedTokens.map((token) => (
+                      <div key={token.contractAddress + token.symbol} className="bg-white/5 rounded-lg p-4 flex items-center gap-4">
+                        <Image
+                          src={token.logoURI || "/placeholder-logo.png"}
+                          alt={token.symbol}
+                          width={32}
+                          height={32}
+                          className="rounded-full bg-white"
+                        />
+                        <div>
+                          <div className="font-bold text-base text-white">{token.name || token.symbol}</div>
+                          <div className="text-xs text-muted-foreground">{token.symbol}</div>
+                          <div className="font-mono text-lg text-white">{token.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })}</div>
+                          <div className="text-xs text-muted-foreground">
+                            Price: {token.price ? (currency === 'usd' ? `$${token.price}` : `₦${token.price}`) : 'N/A'}
+                          </div>
+                          <div className="font-bold text-purple-300 text-sm">
+                            Value: {currency === 'usd' ? `$${token.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `₦${token.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-          <div>
-            <h2 className="text-xl font-bold mb-4">Tokens</h2>
-            {tokens.length === 0 ? (
-              <div className="text-muted-foreground">No tokens found.</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {tokens.map((token) => (
-                  <div key={token.contractAddress} className="bg-white/5 rounded-lg p-4 flex items-center gap-4">
-                    <Image
-                      src={token.logoURI || "/placeholder-logo.png"}
-                      alt={token.symbol}
-                      width={32}
-                      height={32}
-                      className="rounded-full bg-white"
-                    />
-                    <div>
-                      <div className="font-bold text-base text-white">{token.name || token.symbol}</div>
-                      <div className="text-xs text-muted-foreground">{token.symbol}</div>
-                      <div className="font-mono text-lg text-white">{token.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+          )}
+        </>
       )}
     </div>
   );
 }
+
