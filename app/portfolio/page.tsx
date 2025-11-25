@@ -68,7 +68,6 @@ export default function PortfolioPage() {
         const tokensWithMeta = await Promise.all(
           supported.map(async (t, i) => {
             const b = balances[i];
-            // Fix USDC balance parsing: fallback to t.decimals if metadata is missing
             let decimals = t.decimals;
             let symbol = t.symbol;
             let name = t.name;
@@ -93,9 +92,18 @@ export default function PortfolioPage() {
                 logoURI = metaData.result.logo || metaData.result.logoURI || '/placeholder-logo.png';
               }
             }
+            // Robust hex parsing, handle zero and missing balances
+            let balance = 0;
+            if (b?.tokenBalance && b.tokenBalance !== '0x' && b.tokenBalance !== '0x0') {
+              try {
+                balance = parseInt(b.tokenBalance, 16) / Math.pow(10, decimals);
+              } catch {
+                balance = 0;
+              }
+            }
             return {
               contractAddress: t.contract,
-              balance: b?.tokenBalance ? parseInt(b.tokenBalance, 16) / Math.pow(10, decimals) : 0,
+              balance,
               decimals,
               name,
               symbol,
@@ -137,20 +145,34 @@ export default function PortfolioPage() {
     return 0;
   }
 
-  // Build full token list (ETH + tokens)
-  const fullTokens = [
-    {
-      symbol: 'ETH',
-      name: 'Ethereum',
-      logoURI: '/ETH.png',
-      balance: ethBalance,
-      contractAddress: 'native',
-    },
-    ...tokens,
-  ];
+  // Build full token list (ETH + tokens), always show all supported tokens, avoid duplicates
+  const supportedSymbols = ['ETH', 'USDT', 'USDC', 'SEND'];
+  const supportedTokens = supportedSymbols.map(symbol => {
+    if (symbol === 'ETH') {
+      return {
+        symbol: 'ETH',
+        name: 'Ethereum',
+        logoURI: '/ETH.png',
+        balance: ethBalance,
+        contractAddress: 'native',
+      };
+    }
+    const t = tokens.find(token => token.symbol === symbol);
+    // Use correct decimals for USDC and fallback if missing
+    let decimals = 6;
+    if (t && typeof t.decimals === 'number') decimals = t.decimals;
+    return {
+      symbol,
+      name: t?.name || (symbol === 'USDT' ? 'Tether USD' : symbol === 'USDC' ? 'USD Coin' : 'SEND'),
+      contractAddress: t?.contractAddress || (symbol === 'USDT' ? '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2' : symbol === 'USDC' ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' : '0xeab49138ba2ea6dd776220fe26b7b8e446638956'),
+      logoURI: t?.logoURI || '/placeholder-logo.png',
+      balance: t?.balance !== undefined ? t.balance : 0,
+      decimals,
+    };
+  });
 
   // Calculate per-token value and total value
-  const tokensWithValue = fullTokens.map((token) => {
+  const tokensWithValue = supportedTokens.map((token) => {
     const price = getTokenPrice(token);
     return {
       ...token,
