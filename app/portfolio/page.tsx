@@ -1,16 +1,17 @@
+
+"use client"
 import { Pie } from 'react-chartjs-2';
 import ChartJS, { ArcElement, Tooltip, Legend } from 'chart.js/auto';
 import { useRef } from 'react';
-ChartJS.register(ArcElement, Tooltip, Legend);
-  const [selectedToken, setSelectedToken] = useState<any | null>(null);
 
-"use client"
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 import BackToDashboard from "@/components/BackToDashboard";
 import { useMiniAppWallet } from "@/hooks/useMiniAppWallet";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+
 
 export default function PortfolioPage() {
   const { address, isConnected } = useMiniAppWallet();
@@ -20,6 +21,7 @@ export default function PortfolioPage() {
   const [error, setError] = useState<string | null>(null);
   const [prices, setPrices] = useState<any>({});
   const [currency, setCurrency] = useState<'usd' | 'ngn'>('usd');
+  const [selectedToken, setSelectedToken] = useState<any | null>(null);
 
   useEffect(() => {
     async function fetchPortfolio() {
