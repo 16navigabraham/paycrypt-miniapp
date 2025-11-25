@@ -5,9 +5,14 @@ import BackToDashboard from "@/components/BackToDashboard";
 import { useMiniAppWallet } from "@/hooks/useMiniAppWallet";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { Pie } from 'react-chartjs-2';
+import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
+import { useRef } from 'react';
+Chart.register(ArcElement, Tooltip, Legend);
 import { useEffect, useState } from "react";
 
 export default function PortfolioPage() {
+    const [selectedToken, setSelectedToken] = useState<any | null>(null);
   const { address, isConnected } = useMiniAppWallet();
   const [tokens, setTokens] = useState<any[]>([]);
   const [ethBalance, setEthBalance] = useState<number>(0);
@@ -63,28 +68,38 @@ export default function PortfolioPage() {
         const tokensWithMeta = await Promise.all(
           supported.map(async (t, i) => {
             const b = balances[i];
-            const metaRes = await fetch(url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                jsonrpc: '2.0',
-                id: 3,
-                method: 'alchemy_getTokenMetadata',
-                params: [t.contract],
-              }),
-            });
-            const metaData = await metaRes.json();
-            const decimals = metaData.result?.decimals ?? t.decimals;
-            // Only keep ERC-20 tokens (decimals > 0, symbol exists)
-            if (!metaData.result?.symbol || !decimals || decimals <= 0) return null;
+            // Fix USDC balance parsing: fallback to t.decimals if metadata is missing
+            let decimals = t.decimals;
+            let symbol = t.symbol;
+            let name = t.name;
+            let logoURI = '/placeholder-logo.png';
+            if (b) {
+              // Fetch metadata if available
+              const metaRes = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  jsonrpc: '2.0',
+                  id: 3,
+                  method: 'alchemy_getTokenMetadata',
+                  params: [t.contract],
+                }),
+              });
+              const metaData = await metaRes.json();
+              if (metaData.result) {
+                decimals = metaData.result.decimals ?? t.decimals;
+                symbol = metaData.result.symbol ?? t.symbol;
+                name = metaData.result.name ?? t.name;
+                logoURI = metaData.result.logo || metaData.result.logoURI || '/placeholder-logo.png';
+              }
+            }
             return {
-              ...metaData.result,
               contractAddress: t.contract,
               balance: b?.tokenBalance ? parseInt(b.tokenBalance, 16) / Math.pow(10, decimals) : 0,
               decimals,
-              name: t.name,
-              symbol: t.symbol,
-              logoURI: metaData.result?.logo || metaData.result?.logoURI || '/placeholder-logo.png',
+              name,
+              symbol,
+              logoURI,
             };
           })
         );
@@ -148,13 +163,53 @@ export default function PortfolioPage() {
   // Sort tokens by value descending
   const sortedTokens = tokensWithValue.sort((a, b) => b.value - a.value);
 
+  // Pie chart data
+  const pieData = {
+    labels: sortedTokens.map(t => t.symbol),
+    datasets: [
+      {
+        data: sortedTokens.map(t => t.value),
+        backgroundColor: [
+          '#4ade80', // ETH
+          '#f59e42', // USDT
+          '#3b82f6', // USDC
+          '#a78bfa', // SEND
+        ],
+        borderColor: '#222',
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  // Pie chart options
+  const pieOptions = {
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#fff', font: { size: 16 } } },
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            const token = sortedTokens[context.dataIndex];
+            return `${token.symbol}: $${token.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+          },
+        },
+      },
+    },
+    onClick: (evt: any, elements: any) => {
+      if (elements.length > 0) {
+        const idx = elements[0].index;
+        setSelectedToken(sortedTokens[idx]);
+      }
+    },
+    maintainAspectRatio: false,
+  };
+
   return (
     <div className="container py-10">
       <BackToDashboard />
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Portfolio</h1>
         <p className="text-muted-foreground">
-          View your real-time crypto balances, token prices, and total value on Base chain.
+          See your up-to-date crypto balances, token prices, and overall portfolio value on the Base chain.
         </p>
       </div>
       {!isConnected ? (
@@ -198,29 +253,25 @@ export default function PortfolioPage() {
                 {sortedTokens.length === 0 ? (
                   <div className="text-muted-foreground">No tokens found.</div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sortedTokens.map((token) => (
-                      <div key={token.contractAddress + token.symbol} className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-5 flex items-center gap-5 shadow-lg border border-gray-700">
-                        <Image
-                          src={token.logoURI || "/placeholder-logo.png"}
-                          alt={token.symbol}
-                          width={40}
-                          height={40}
-                          className="rounded-full bg-white border border-gray-300"
-                        />
-                        <div className="flex-1">
-                          <div className="font-bold text-lg text-white mb-1">{token.name || token.symbol}</div>
-                          <div className="text-xs text-purple-200 mb-1">{token.symbol}</div>
-                          <div className="font-mono text-xl text-white mb-1">{token.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })}</div>
-                          <div className="text-xs text-muted-foreground mb-1">
-                            Price: {token.price ? (currency === 'usd' ? `$${token.price}` : `₦${token.price}`) : 'N/A'}
+                  <div className="flex flex-col items-center">
+                    <div style={{ width: 400, height: 400 }}>
+                      <Pie data={pieData} options={pieOptions} />
+                    </div>
+                    {selectedToken && (
+                      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
+                        <div className="bg-gray-900 rounded-xl p-8 shadow-2xl border border-gray-700 w-full max-w-md">
+                          <div className="flex items-center mb-4">
+                            <Image src={selectedToken.logoURI || '/placeholder-logo.png'} alt={selectedToken.symbol} width={40} height={40} className="rounded-full bg-white border border-gray-300 mr-3" />
+                            <span className="font-bold text-2xl text-white mr-2">{selectedToken.symbol}</span>
+                            <span className="text-gray-300 text-lg">{selectedToken.name}</span>
                           </div>
-                          <div className="font-bold text-purple-300 text-base">
-                            Value: {currency === 'usd' ? `$${token.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `₦${token.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
-                          </div>
+                          <div className="mb-2 font-mono text-purple-200 text-lg">Balance: {selectedToken.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })}</div>
+                          <div className="mb-2 text-xs text-muted-foreground">Price: {selectedToken.price ? (currency === 'usd' ? `$${selectedToken.price}` : `₦${selectedToken.price}`) : 'N/A'}</div>
+                          <div className="mb-2 font-bold text-purple-300 text-lg">Value: {currency === 'usd' ? `$${selectedToken.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `₦${selectedToken.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}</div>
+                          <Button className="mt-4 w-full" onClick={() => setSelectedToken(null)}>Close</Button>
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
