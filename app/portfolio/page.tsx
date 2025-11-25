@@ -92,11 +92,14 @@ export default function PortfolioPage() {
                 logoURI = metaData.result.logo || metaData.result.logoURI || '/placeholder-logo.png';
               }
             }
-            // Robust hex parsing, handle zero and missing balances
+            // Robust hex parsing using BigInt, handle zero and missing balances
             let balance = 0;
             if (b?.tokenBalance && b.tokenBalance !== '0x' && b.tokenBalance !== '0x0') {
               try {
-                balance = parseInt(b.tokenBalance, 16) / Math.pow(10, decimals);
+                balance = Number(BigInt(b.tokenBalance) / BigInt(Math.pow(10, decimals)));
+                // Add fractional part
+                const remainder = Number(BigInt(b.tokenBalance) % BigInt(Math.pow(10, decimals)));
+                balance += remainder / Math.pow(10, decimals);
               } catch {
                 balance = 0;
               }
@@ -157,22 +160,32 @@ export default function PortfolioPage() {
         contractAddress: 'native',
       };
     }
+    // Only use the first matching token for each symbol
     const t = tokens.find(token => token.symbol === symbol);
-    // Use correct decimals for USDC and fallback if missing
     let decimals = 6;
     if (t && typeof t.decimals === 'number') decimals = t.decimals;
     return {
       symbol,
-      name: t?.name || (symbol === 'USDT' ? 'Tether USD' : symbol === 'USDC' ? 'USD Coin' : 'SEND'),
-      contractAddress: t?.contractAddress || (symbol === 'USDT' ? '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2' : symbol === 'USDC' ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' : '0xeab49138ba2ea6dd776220fe26b7b8e446638956'),
+      name: symbol === 'USDT' ? 'Tether USD' : symbol === 'USDC' ? 'USD Coin' : symbol === 'SEND' ? 'SEND' : t?.name || symbol,
+      contractAddress: symbol === 'USDT' ? '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2' : symbol === 'USDC' ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' : symbol === 'SEND' ? '0xeab49138ba2ea6dd776220fe26b7b8e446638956' : t?.contractAddress || '',
       logoURI: t?.logoURI || '/placeholder-logo.png',
       balance: t?.balance !== undefined ? t.balance : 0,
       decimals,
     };
   });
 
+  // Remove duplicate tokens by symbol (shouldn't happen, but just in case)
+  const uniqueTokens = [];
+  const seenSymbols = new Set();
+  for (const token of supportedTokens) {
+    if (!seenSymbols.has(token.symbol)) {
+      uniqueTokens.push(token);
+      seenSymbols.add(token.symbol);
+    }
+  }
+
   // Calculate per-token value and total value
-  const tokensWithValue = supportedTokens.map((token) => {
+  const tokensWithValue = uniqueTokens.map((token) => {
     const price = getTokenPrice(token);
     return {
       ...token,
