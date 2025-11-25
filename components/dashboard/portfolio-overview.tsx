@@ -16,67 +16,78 @@ const supportedTokens = [
 	{ symbol: "USDC", name: "USD Coin", coingeckoId: "usd-coin", color: "from-blue-400 to-cyan-600", contract: USDC_CONTRACT, decimals: 6 },
 ]
 
+// Use Alchemy for Base chain (chainId 8453)
 async function fetchEthBalance(address: string) {
 	try {
-		const apiKey = process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY
+		const apiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY;
 		if (!apiKey) {
-			console.warn('No Etherscan API key found, using fallback data')
-			return 0
+			console.warn('No Alchemy API key found, using fallback data');
+			return 0;
 		}
-		
-		const res = await fetch(
-			`https://api.etherscan.io/v2/api?chainid=8453&module=account&action=balance&address=${address}&tag=latest&apikey=${apiKey}`
-		)
-		
+		// Alchemy Base mainnet endpoint
+		const url = `https://base-mainnet.g.alchemy.com/v2/${apiKey}`;
+		const res = await fetch(url, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				jsonrpc: '2.0',
+				id: 1,
+				method: 'eth_getBalance',
+				params: [address, 'latest'],
+			}),
+		});
 		if (!res.ok) {
-			console.error('Etherscan API error:', res.status, res.statusText)
-			return 0
+			console.error('Alchemy API error:', res.status, res.statusText);
+			return 0;
 		}
-		
-		const data = await res.json()
-		console.log('ETH balance response:', data)
-		
-		if (data.status === "1" && data.result) {
-			return Number(data.result) / 1e18
+		const data = await res.json();
+		if (data.result) {
+			return parseInt(data.result, 16) / 1e18;
 		}
-		
-		console.warn('Invalid ETH balance response:', data)
-		return 0
+		console.warn('Invalid ETH balance response:', data);
+		return 0;
 	} catch (error) {
-		console.error('Error fetching ETH balance:', error)
-		return 0
+		console.error('Error fetching ETH balance:', error);
+		return 0;
 	}
 }
 
 async function fetchErc20Balance(address: string, contract: string, decimals: number) {
 	try {
-		const apiKey = process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY
+		const apiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY;
 		if (!apiKey) {
-			console.warn('No Etherscan API key found, using fallback data')
-			return 0
+			console.warn('No Alchemy API key found, using fallback data');
+			return 0;
 		}
-		
-		const res = await fetch(
-			`https://api.etherscan.io/v2/api?chainid=8453&module=account&action=tokenbalance&contractaddress=${contract}&address=${address}&tag=latest&apikey=${apiKey}`
-		)
-		
+		// Alchemy Base mainnet endpoint
+		const url = `https://base-mainnet.g.alchemy.com/v2/${apiKey}`;
+		const res = await fetch(url, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				jsonrpc: '2.0',
+				id: 1,
+				method: 'alchemy_getTokenBalances',
+				params: [address, [contract]],
+			}),
+		});
 		if (!res.ok) {
-			console.error('Etherscan token API error:', res.status, res.statusText)
-			return 0
+			console.error('Alchemy token API error:', res.status, res.statusText);
+			return 0;
 		}
-		
-		const data = await res.json()
-		console.log(`Token balance response for ${contract}:`, data)
-		
-		if (data.status === "1" && data.result !== undefined) {
-			return Number(data.result) / 10 ** decimals
+		const data = await res.json();
+		// Alchemy returns balances in hex string
+		if (data.result && data.result.tokenBalances && data.result.tokenBalances.length > 0) {
+			const hexBalance = data.result.tokenBalances[0].tokenBalance;
+			if (hexBalance) {
+				return parseInt(hexBalance, 16) / Math.pow(10, decimals);
+			}
 		}
-		
-		console.warn('Invalid token balance response:', data)
-		return 0
+		console.warn('Invalid token balance response:', data);
+		return 0;
 	} catch (error) {
-		console.error('Error fetching token balance:', error)
-		return 0
+		console.error('Error fetching token balance:', error);
+		return 0;
 	}
 }
 
