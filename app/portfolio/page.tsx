@@ -246,11 +246,17 @@ export default function PortfolioPage() {
                         <Pie data={pieData} options={pieOptions} />
                       </div>
                       {/* Custom legend below pie chart */}
-                      <div className="flex justify-center gap-6 mt-6">
+                      <div className="flex flex-wrap justify-center gap-6 mt-6">
                         {sortedTokens.map((token: any, idx: number) => (
-                          <div key={token.symbol} className="flex items-center gap-2">
+                          <div key={token.symbol} className="flex items-center gap-3 bg-gray-800 rounded-lg px-3 py-2 shadow border border-gray-700 min-w-[140px]">
                             <span style={{ backgroundColor: pieData.datasets[0].backgroundColor[idx], width: 16, height: 16, display: 'inline-block', borderRadius: 4, border: '2px solid #222' }}></span>
-                            <span className="text-white text-sm font-medium">{token.name || token.symbol}</span>
+                            <div className="flex flex-col">
+                              <span className="text-white text-sm font-bold">{token.symbol}</span>
+                              <span className="text-gray-300 text-xs">{token.name || token.symbol}</span>
+                            </div>
+                            <span className="text-purple-300 text-sm font-semibold ml-auto">
+                              {currency === 'usd' ? `$${token.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `₦${token.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+                            </span>
                           </div>
                         ))}
                       </div>
