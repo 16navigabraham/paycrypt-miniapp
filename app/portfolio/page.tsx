@@ -52,7 +52,7 @@ export default function PortfolioPage() {
         const tokenData = await tokenRes.json();
         const balances = tokenData.result?.tokenBalances || [];
 
-        // Fetch metadata for each token
+        // Fetch metadata for each token and filter out NFTs
         const tokensWithMeta = await Promise.all(
           balances
             .filter((b: any) => b.tokenBalance && b.tokenBalance !== "0x0")
@@ -68,15 +68,17 @@ export default function PortfolioPage() {
                 }),
               });
               const metaData = await metaRes.json();
-              const decimals = metaData.result?.decimals || 18;
+              const decimals = metaData.result?.decimals;
               return {
                 ...metaData.result,
                 contractAddress: b.contractAddress,
-                balance: parseInt(b.tokenBalance, 16) / Math.pow(10, decimals),
+                balance: decimals ? parseInt(b.tokenBalance, 16) / Math.pow(10, decimals) : 0,
+                decimals,
               };
             })
         );
-        setTokens(tokensWithMeta);
+        // Only keep ERC-20 tokens (decimals > 0, symbol exists)
+        setTokens(tokensWithMeta.filter(t => t.symbol && t.decimals && t.decimals > 0));
 
         // Fetch prices from Coingecko
         // Build list of coingecko IDs (ETH and tokens)
@@ -120,7 +122,7 @@ export default function PortfolioPage() {
     {
       symbol: 'ETH',
       name: 'Ethereum',
-      logoURI: '/paycrypt.png',
+      logoURI: '/ETH.png',
       balance: ethBalance,
       contractAddress: 'native',
     },
@@ -191,24 +193,24 @@ export default function PortfolioPage() {
                 {sortedTokens.length === 0 ? (
                   <div className="text-muted-foreground">No tokens found.</div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {sortedTokens.map((token) => (
-                      <div key={token.contractAddress + token.symbol} className="bg-white/5 rounded-lg p-4 flex items-center gap-4">
+                      <div key={token.contractAddress + token.symbol} className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-5 flex items-center gap-5 shadow-lg border border-gray-700">
                         <Image
                           src={token.logoURI || "/placeholder-logo.png"}
                           alt={token.symbol}
-                          width={32}
-                          height={32}
-                          className="rounded-full bg-white"
+                          width={40}
+                          height={40}
+                          className="rounded-full bg-white border border-gray-300"
                         />
-                        <div>
-                          <div className="font-bold text-base text-white">{token.name || token.symbol}</div>
-                          <div className="text-xs text-muted-foreground">{token.symbol}</div>
-                          <div className="font-mono text-lg text-white">{token.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })}</div>
-                          <div className="text-xs text-muted-foreground">
+                        <div className="flex-1">
+                          <div className="font-bold text-lg text-white mb-1">{token.name || token.symbol}</div>
+                          <div className="text-xs text-purple-200 mb-1">{token.symbol}</div>
+                          <div className="font-mono text-xl text-white mb-1">{token.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })}</div>
+                          <div className="text-xs text-muted-foreground mb-1">
                             Price: {token.price ? (currency === 'usd' ? `$${token.price}` : `₦${token.price}`) : 'N/A'}
                           </div>
-                          <div className="font-bold text-purple-300 text-sm">
+                          <div className="font-bold text-purple-300 text-base">
                             Value: {currency === 'usd' ? `$${token.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `₦${token.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
                           </div>
                         </div>
