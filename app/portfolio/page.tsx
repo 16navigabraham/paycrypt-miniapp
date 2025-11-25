@@ -38,7 +38,14 @@ export default function PortfolioPage() {
         const ethData = await ethRes.json();
         setEthBalance(ethData.result ? parseInt(ethData.result, 16) / 1e18 : 0);
 
-        // Fetch all token balances
+        // Supported tokens: USDT, USDC, SEND
+        const supported = [
+          { symbol: 'USDT', name: 'Tether USD', contract: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2', decimals: 6 },
+          { symbol: 'USDC', name: 'USD Coin', contract: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6 },
+          { symbol: 'SEND', name: 'SEND', contract: '0xeab49138ba2ea6dd776220fe26b7b8e446638956', decimals: 18 },
+        ];
+
+        // Fetch all supported token balances in one call
         const tokenRes = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -46,53 +53,51 @@ export default function PortfolioPage() {
             jsonrpc: '2.0',
             id: 2,
             method: 'alchemy_getTokenBalances',
-            params: [address],
+            params: [address, supported.map(t => t.contract)],
           }),
         });
         const tokenData = await tokenRes.json();
         const balances = tokenData.result?.tokenBalances || [];
 
-        // Fetch metadata for each token and filter out NFTs
+        // Fetch metadata for each supported token
         const tokensWithMeta = await Promise.all(
-          balances
-            .filter((b: any) => b.tokenBalance && b.tokenBalance !== "0x0")
-            .map(async (b: any) => {
-              const metaRes = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  jsonrpc: '2.0',
-                  id: 3,
-                  method: 'alchemy_getTokenMetadata',
-                  params: [b.contractAddress],
-                }),
-              });
-              const metaData = await metaRes.json();
-              const decimals = metaData.result?.decimals;
-              return {
-                ...metaData.result,
-                contractAddress: b.contractAddress,
-                balance: decimals ? parseInt(b.tokenBalance, 16) / Math.pow(10, decimals) : 0,
-                decimals,
-              };
-            })
+          supported.map(async (t, i) => {
+            const b = balances[i];
+            const metaRes = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: 3,
+                method: 'alchemy_getTokenMetadata',
+                params: [t.contract],
+              }),
+            });
+            const metaData = await metaRes.json();
+            const decimals = metaData.result?.decimals ?? t.decimals;
+            // Only keep ERC-20 tokens (decimals > 0, symbol exists)
+            if (!metaData.result?.symbol || !decimals || decimals <= 0) return null;
+            return {
+              ...metaData.result,
+              contractAddress: t.contract,
+              balance: b?.tokenBalance ? parseInt(b.tokenBalance, 16) / Math.pow(10, decimals) : 0,
+              decimals,
+              name: t.name,
+              symbol: t.symbol,
+              logoURI: metaData.result?.logo || metaData.result?.logoURI || '/placeholder-logo.png',
+            };
+          })
         );
-        // Only keep ERC-20 tokens (decimals > 0, symbol exists)
-        setTokens(tokensWithMeta.filter(t => t.symbol && t.decimals && t.decimals > 0));
+        setTokens(tokensWithMeta.filter(Boolean));
 
         // Fetch prices from Coingecko
-        // Build list of coingecko IDs (ETH and tokens)
-        const coingeckoIds: string[] = [];
-        // ETH
-        coingeckoIds.push('ethereum');
-        // Try to get coingeckoId from token metadata
+        const coingeckoIds: string[] = ['ethereum'];
         tokensWithMeta.forEach((token) => {
+          if (!token) return;
           if (token.symbol === 'USDT') coingeckoIds.push('tether');
           else if (token.symbol === 'USDC') coingeckoIds.push('usd-coin');
-          else if (token.symbol === 'DAI') coingeckoIds.push('dai');
-          // Add more mappings as needed
+          else if (token.symbol === 'SEND') coingeckoIds.push('send-token-2');
         });
-        // Remove duplicates
         const uniqueIds = Array.from(new Set(coingeckoIds));
         const priceRes = await fetch(
           `https://paycrypt-margin-price.onrender.com/api/v3/simple/price?ids=${uniqueIds.join(",")}&vs_currencies=usd,ngn`
@@ -113,7 +118,7 @@ export default function PortfolioPage() {
     if (token.symbol === 'ETH') return prices['ethereum']?.[currency] || 0;
     if (token.symbol === 'USDT') return prices['tether']?.[currency] || 0;
     if (token.symbol === 'USDC') return prices['usd-coin']?.[currency] || 0;
-    if (token.symbol === 'DAI') return prices['dai']?.[currency] || 0;
+    if (token.symbol === 'SEND') return prices['send-token-2']?.[currency] || 0;
     return 0;
   }
 

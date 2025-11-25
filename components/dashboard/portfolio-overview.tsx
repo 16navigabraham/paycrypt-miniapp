@@ -120,12 +120,12 @@ async function fetchPrices() {
 
 export function PortfolioOverview({ wallet }: { wallet: any }) {
 	const [mounted, setMounted] = useState(false);
-	const [balances, setBalances] = useState<any[]>([])
-	const [prices, setPrices] = useState<any>({})
-	const [loading, setLoading] = useState(false)
-	const [error, setError] = useState<string | null>(null)
-    const [showBalance, setShowBalance] = useState(true)
-    const [currencyDisplay, setCurrencyDisplay] = useState<'usd' | 'ngn'>('usd')
+	const [balances, setBalances] = useState<any[]>([]);
+	const [prices, setPrices] = useState<any>({});
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [showBalance, setShowBalance] = useState(true);
+	const [currencyDisplay, setCurrencyDisplay] = useState<'usd' | 'ngn'>('usd');
 
 	// Use simple mini app wallet hook
 	const { address } = useMiniAppWallet();
@@ -137,40 +137,63 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
 
 	useEffect(() => {
 		if (!mounted) return;
-		
+
 		// Use address from mini app hook or wallet prop
 		const walletAddress = address || wallet?.address;
-		
+
 		if (!walletAddress) {
-			console.log('No wallet address available')
+			console.log('No wallet address available');
 			return;
 		}
-		
-		console.log('Loading portfolio for address:', walletAddress)
-		setLoading(true)
-		setError(null)
-		
+
+		console.log('Loading portfolio for address:', walletAddress);
+		setLoading(true);
+		setError(null);
+
+		// Fetch all ERC-20 balances in one call
+		const apiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY;
+		const url = `https://base-mainnet.g.alchemy.com/v2/${apiKey}`;
+
 		Promise.all([
 			fetchEthBalance(walletAddress),
-			fetchErc20Balance(walletAddress, USDT_CONTRACT, 6),
-			fetchErc20Balance(walletAddress, USDC_CONTRACT, 6),
+			fetch(url, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					jsonrpc: '2.0',
+					id: 1,
+					method: 'alchemy_getTokenBalances',
+					params: [walletAddress, [USDT_CONTRACT, USDC_CONTRACT]],
+				}),
+			}).then(res => res.json()),
 			fetchPrices(),
-		]).then(([eth, usdt, usdc, priceData]) => {
-			console.log('Portfolio data loaded:', { eth, usdt, usdc, priceData })
-			
+		]).then(([eth, tokenData, priceData]) => {
+			// tokenData.result.tokenBalances is an array
+			let usdtBalance = 0;
+			let usdcBalance = 0;
+			if (tokenData.result && Array.isArray(tokenData.result.tokenBalances)) {
+				tokenData.result.tokenBalances.forEach((tb: any) => {
+					if (tb.contractAddress.toLowerCase() === USDT_CONTRACT.toLowerCase()) {
+						usdtBalance = tb.tokenBalance ? parseInt(tb.tokenBalance, 16) / 1e6 : 0;
+					}
+					if (tb.contractAddress.toLowerCase() === USDC_CONTRACT.toLowerCase()) {
+						usdcBalance = tb.tokenBalance ? parseInt(tb.tokenBalance, 16) / 1e6 : 0;
+					}
+				});
+			}
 			setBalances([
 				{ symbol: "ETH", name: "Ethereum", balance: eth, color: "from-blue-500 to-purple-600" },
-				{ symbol: "USDT", name: "Tether", balance: usdt, color: "from-green-500 to-emerald-600" },
-				{ symbol: "USDC", name: "USD Coin", balance: usdc, color: "from-blue-400 to-cyan-600" },
-			])
-			setPrices(priceData)
+				{ symbol: "USDT", name: "Tether", balance: usdtBalance, color: "from-green-500 to-emerald-600" },
+				{ symbol: "USDC", name: "USD Coin", balance: usdcBalance, color: "from-blue-400 to-cyan-600" },
+			]);
+			setPrices(priceData);
 		}).catch(error => {
 			console.error('Error loading portfolio data:', error);
-			setError('Failed to load portfolio data. Please try again.')
+			setError('Failed to load portfolio data. Please try again.');
 		}).finally(() => {
-			setLoading(false)
-		})
-	}, [mounted, address, wallet])
+			setLoading(false);
+		});
+	}, [mounted, address, wallet]);
 
 	 // Calculate total value in USD
     const totalValueUSD = balances.reduce((sum, b) => {
