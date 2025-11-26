@@ -574,10 +574,7 @@ function DashboardClient() {
           <div className="absolute right-[-50px] bottom-[-50px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
           <div className="relative z-10 p-6">
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-[24px] font-bold tracking-wide text-white leading-tight">Crypto to Electricity Payment</h1>
-                <span className="text-[13px] text-white/85">Pay bills with your crypto</span>
-              </div>
+              {/* Removed header and subtitle to match Figma design */}
               <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="rounded-full bg-[#d4ff16] text-black shadow">
                 <Menu className="h-6 w-6" />
               </Button>
