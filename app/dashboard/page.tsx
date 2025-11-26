@@ -560,27 +560,26 @@ function DashboardClient() {
   return (
     <div className="min-h-screen bg-[#f6f8ff]">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="max-w-md mx-auto py-6 space-y-6">
+      <div className="max-w-md mx-auto py-0 space-y-0">
         {/* Mini App Add Prompt */}
         {!miniAppContext.isMiniApp && <MiniAppPrompt />}
 
-        {/* Main Dashboard Card (Pixel-perfect Figma node-id=96-56) */}
-        <div className="relative rounded-[48px] overflow-hidden border-2 border-[#d4ff16] shadow-lg p-0" style={{background: 'linear-gradient(160deg, rgba(20,55,255,0.92) 0%, rgba(20,55,255,0.60) 55%, rgba(212,255,22,0.98) 100%)'}}>
+        {/* Main Dashboard Card (Figma node 90-162) */}
+        <div className="relative rounded-[40px] overflow-hidden border-2 border-[#d4ff16] shadow-lg p-0 mt-0">
           {/* Figma grid overlay (local) */}
-          <img src="/figma-grid.svg" alt="grid overlay" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{opacity: 0.12}} />
+          <img src="/figma-grid.svg" alt="grid overlay" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{opacity: 0.10}} />
           {/* Decorative circles */}
           <div className="absolute left-[-40px] top-[-40px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
           <div className="absolute right-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1437ff] opacity-10 rounded-full z-0"></div>
           <div className="absolute right-[-50px] bottom-[-50px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
-          <div className="relative z-10 p-6">
-            <div className="flex items-center justify-between mb-4">
-              {/* Removed header and subtitle to match Figma design */}
+          <div className="relative z-10 p-5">
+            <div className="flex justify-end mb-2">
               <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="rounded-full bg-[#d4ff16] text-black shadow">
                 <Menu className="h-6 w-6" />
               </Button>
             </div>
-            <div className="flex flex-col items-center py-4">
-              <span className="text-xs text-gray-500 mb-2">Available Balance</span>
+            <div className="flex flex-col items-center py-2">
+              <span className="text-xs text-gray-500 mb-1">Available Balance</span>
               <div className="flex items-center gap-2">
                 {balanceVisible ? (
                   <PortfolioOverview wallet={connectedWallet} />
@@ -592,7 +591,7 @@ function DashboardClient() {
                 </Button>
               </div>
               {connectedWallet && (
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs text-gray-400 font-mono">{formatAddress(connectedWallet.address)}</span>
                   <Button variant="ghost" size="sm" onClick={copyAddress} className="rounded-full bg-gray-100 text-black">
                     {copied ? <CheckCircle className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
@@ -604,16 +603,16 @@ function DashboardClient() {
         </div>
 
         {/* Content Sheet (white rounded panel overlapping the header - matches Figma) */}
-        <div className="relative bg-white rounded-[28px] -mt-10 pt-4 pb-6 px-4 shadow-lg z-20 border border-gray-50">
+        <div className="relative bg-white rounded-[24px] -mt-8 pt-3 pb-5 px-3 shadow-lg z-20 border border-gray-50">
           {/* subtle top handle (visual) */}
-          <div className="absolute left-1/2 -top-2.5 transform -translate-x-1/2 w-10 h-1 rounded-full bg-gray-200"></div>
+          <div className="absolute left-1/2 -top-2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gray-200"></div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Quick action buttons (3-column grid like Figma) */}
             <QuickActions wallet={connectedWallet} />
 
             {/* Convert CTA */}
-            <div className="mt-2">
+            <div className="mt-1">
               <Link href={connectedWallet ? `/convert?wallet=${connectedWallet.address}` : '/convert'} className="block w-full">
                 <div className="w-full rounded-2xl border-2 border-[#d4ff16] px-4 py-3 flex items-center justify-between shadow-md">
                   <span className="text-sm font-semibold text-[#1437ff]">Convert Cryptocurrency to Fiat</span>
@@ -631,21 +630,6 @@ function DashboardClient() {
           </div>
         </div>
 
-        {/* Special Offer Card (Pixel-perfect Figma style) */}
-        {connectedWallet && (
-          <div className="relative rounded-[48px] overflow-hidden border-2 border-[#d4ff16] shadow-xl p-0" style={{background: 'linear-gradient(160deg, rgba(20,55,255,0.90) 0%, rgba(20,55,255,0.55) 60%, rgba(212,255,22,1) 100%)'}}>
-            {/* Figma grid overlay (local) */}
-            <img src="/figma-grid.svg" alt="grid overlay" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{opacity: 0.10}} />
-            {/* Decorative circles */}
-            <div className="absolute left-[-40px] top-[-40px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
-            <div className="absolute right-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1437ff] opacity-10 rounded-full z-0"></div>
-            <div className="absolute right-[-50px] bottom-[-50px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
-            <div className="relative z-10 p-6 flex flex-col items-center justify-center min-h-[160px]">
-              <h2 className="text-2xl font-bold text-white mb-2 tracking-wide">Special Offer coming soon!</h2>
-              <p className="text-purple-200 text-base">Get discount for every top up and bill payment</p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
