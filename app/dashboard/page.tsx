@@ -36,6 +36,8 @@ import {
   Menu
 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import Link from 'next/link'
+import Image from 'next/image'
 import sdk from "@farcaster/miniapp-sdk";
 
 interface WalletData {
@@ -556,16 +558,16 @@ function DashboardClient() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fdfdfd]">
+    <div className="min-h-screen bg-[#f6f8ff]">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="max-w-md mx-auto py-6 space-y-6">
         {/* Mini App Add Prompt */}
         {!miniAppContext.isMiniApp && <MiniAppPrompt />}
 
         {/* Main Dashboard Card (Pixel-perfect Figma node-id=96-56) */}
-        <div className="relative rounded-[60px] overflow-hidden border-2 border-[#d4ff16] shadow-lg p-0" style={{background: 'linear-gradient(161.4deg, rgba(0,0,0,0) 45.1%, rgba(20,55,255,0.7) 101.9%), linear-gradient(183.6deg, rgba(0,0,0,1) 60.2%, rgba(212,255,22,1) 116.7%)'}}>
-          {/* Figma grid overlay */}
-          <img src="https://www.figma.com/api/mcp/asset/50da16a0-21fd-4fad-afbd-49bb3840acb5" alt="grid overlay" className="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none" />
+        <div className="relative rounded-[48px] overflow-hidden border-2 border-[#d4ff16] shadow-lg p-0" style={{background: 'linear-gradient(160deg, rgba(20,55,255,0.92) 0%, rgba(20,55,255,0.60) 55%, rgba(212,255,22,0.98) 100%)'}}>
+          {/* Figma grid overlay (local) */}
+          <img src="/figma-grid.svg" alt="grid overlay" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{opacity: 0.12}} />
           {/* Decorative circles */}
           <div className="absolute left-[-40px] top-[-40px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
           <div className="absolute right-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1437ff] opacity-10 rounded-full z-0"></div>
@@ -573,8 +575,8 @@ function DashboardClient() {
           <div className="relative z-10 p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h1 className="text-[24px] font-bold tracking-wide text-black leading-tight">Crypto to Electricity Payment</h1>
-                <span className="text-[15px] text-gray-500">Pay bills with your crypto</span>
+                <h1 className="text-[24px] font-bold tracking-wide text-white leading-tight">Crypto to Electricity Payment</h1>
+                <span className="text-[13px] text-white/85">Pay bills with your crypto</span>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="rounded-full bg-[#d4ff16] text-black shadow">
                 <Menu className="h-6 w-6" />
@@ -604,31 +606,39 @@ function DashboardClient() {
           </div>
         </div>
 
-        {/* Services/Quick Actions (Pixel-perfect Figma node-id=86-93) */}
-        <div className="relative rounded-[30px] overflow-hidden border border-[#1687ff] shadow p-0" style={{background: 'linear-gradient(161.4deg, rgba(0,0,0,0) 45.1%, rgba(20,55,255,0.7) 101.9%), linear-gradient(183.6deg, rgba(0,0,0,1) 60.2%, rgba(212,255,22,1) 116.7%)'}}>
-          <div className="absolute left-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1687ff] opacity-10 rounded-full z-0"></div>
-          <div className="absolute right-[-30px] bottom-[-30px] w-[80px] h-[80px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
-          <div className="relative z-10 p-5">
-            <h3 className="text-xl font-bold text-[#1437ff] mb-4">Available Services</h3>
-            <QuickActions wallet={connectedWallet} />
-          </div>
-        </div>
+        {/* Content Sheet (white rounded panel overlapping the header - matches Figma) */}
+        <div className="relative bg-white rounded-[28px] -mt-10 pt-4 pb-6 px-4 shadow-lg z-20 border border-gray-50">
+          {/* subtle top handle (visual) */}
+          <div className="absolute left-1/2 -top-2.5 transform -translate-x-1/2 w-10 h-1 rounded-full bg-gray-200"></div>
 
-        {/* Recent Transactions (Pixel-perfect Figma node-id=102-55) */}
-        <div className="relative rounded-[30px] overflow-hidden border border-[#1687ff] shadow p-0" style={{background: 'linear-gradient(161.4deg, rgba(0,0,0,0) 45.1%, rgba(20,55,255,0.7) 101.9%), linear-gradient(183.6deg, rgba(0,0,0,1) 60.2%, rgba(212,255,22,1) 116.7%)'}}>
-          <div className="absolute left-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1687ff] opacity-10 rounded-full z-0"></div>
-          <div className="absolute right-[-30px] bottom-[-30px] w-[80px] h-[80px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
-          <div className="relative z-10 p-5">
-            <h3 className="text-xl font-bold text-[#1437ff] mb-4">Recent Transactions</h3>
-            <RecentTransactions wallet={connectedWallet} />
+          <div className="space-y-4">
+            {/* Quick action buttons (3-column grid like Figma) */}
+            <QuickActions wallet={connectedWallet} />
+
+            {/* Convert CTA */}
+            <div className="mt-2">
+              <Link href={connectedWallet ? `/convert?wallet=${connectedWallet.address}` : '/convert'} className="block w-full">
+                <div className="w-full rounded-2xl border-2 border-[#d4ff16] px-4 py-3 flex items-center justify-between shadow-md">
+                  <span className="text-sm font-semibold text-[#1437ff]">Convert Cryptocurrency to Fiat</span>
+                  <div className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-[#1437ff] text-white overflow-hidden">
+                    <Image src="/convert crypto.png" alt="convert" width={18} height={18} className="object-contain" />
+                  </div>
+                </div>
+              </Link>
+            </div>
+
+            {/* Recent transactions list */}
+            <div>
+              <RecentTransactions wallet={connectedWallet} />
+            </div>
           </div>
         </div>
 
         {/* Special Offer Card (Pixel-perfect Figma style) */}
         {connectedWallet && (
-          <div className="relative rounded-[60px] overflow-hidden border-2 border-[#d4ff16] shadow-xl p-0" style={{background: 'linear-gradient(161.4deg, rgba(0,0,0,0) 45.1%, rgba(20,55,255,0.7) 101.9%), linear-gradient(183.6deg, rgba(0,0,0,1) 60.2%, rgba(212,255,22,1) 116.7%)'}}>
-            {/* Figma grid overlay */}
-            <img src="https://www.figma.com/api/mcp/asset/50da16a0-21fd-4fad-afbd-49bb3840acb5" alt="grid overlay" className="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none" />
+          <div className="relative rounded-[48px] overflow-hidden border-2 border-[#d4ff16] shadow-xl p-0" style={{background: 'linear-gradient(160deg, rgba(20,55,255,0.90) 0%, rgba(20,55,255,0.55) 60%, rgba(212,255,22,1) 100%)'}}>
+            {/* Figma grid overlay (local) */}
+            <img src="/figma-grid.svg" alt="grid overlay" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{opacity: 0.10}} />
             {/* Decorative circles */}
             <div className="absolute left-[-40px] top-[-40px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
             <div className="absolute right-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1437ff] opacity-10 rounded-full z-0"></div>
