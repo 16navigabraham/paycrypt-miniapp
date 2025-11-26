@@ -563,7 +563,9 @@ function DashboardClient() {
         {!miniAppContext.isMiniApp && <MiniAppPrompt />}
 
         {/* Main Dashboard Card (Pixel-perfect Figma node-id=96-56) */}
-        <div className="relative rounded-[45px] overflow-hidden border-2 border-[#d4ff16] shadow-lg p-0" style={{background: 'linear-gradient(161deg, rgba(0,0,0,0) 45%, rgba(20,55,255,0.07) 101%), linear-gradient(183deg, rgba(0,0,0,1) 60%, rgba(212,255,22,0.07) 116%)'}}>
+        <div className="relative rounded-[60px] overflow-hidden border-2 border-[#d4ff16] shadow-lg p-0" style={{background: 'linear-gradient(161.4deg, rgba(0,0,0,0) 45.1%, rgba(20,55,255,0.7) 101.9%), linear-gradient(183.6deg, rgba(0,0,0,1) 60.2%, rgba(212,255,22,1) 116.7%)'}}>
+          {/* Figma grid overlay */}
+          <img src="https://www.figma.com/api/mcp/asset/50da16a0-21fd-4fad-afbd-49bb3840acb5" alt="grid overlay" className="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none" />
           {/* Decorative circles */}
           <div className="absolute left-[-40px] top-[-40px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
           <div className="absolute right-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1437ff] opacity-10 rounded-full z-0"></div>
@@ -603,7 +605,7 @@ function DashboardClient() {
         </div>
 
         {/* Services/Quick Actions (Pixel-perfect Figma node-id=86-93) */}
-        <div className="relative rounded-[30px] overflow-hidden border border-[#1687ff] shadow p-0" style={{background: 'linear-gradient(161deg, rgba(0,0,0,0) 45%, rgba(20,55,255,0.07) 101%), linear-gradient(183deg, rgba(0,0,0,1) 60%, rgba(212,255,22,0.07) 116%)'}}>
+        <div className="relative rounded-[30px] overflow-hidden border border-[#1687ff] shadow p-0" style={{background: 'linear-gradient(161.4deg, rgba(0,0,0,0) 45.1%, rgba(20,55,255,0.7) 101.9%), linear-gradient(183.6deg, rgba(0,0,0,1) 60.2%, rgba(212,255,22,1) 116.7%)'}}>
           <div className="absolute left-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1687ff] opacity-10 rounded-full z-0"></div>
           <div className="absolute right-[-30px] bottom-[-30px] w-[80px] h-[80px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
           <div className="relative z-10 p-5">
@@ -613,7 +615,7 @@ function DashboardClient() {
         </div>
 
         {/* Recent Transactions (Pixel-perfect Figma node-id=102-55) */}
-        <div className="relative rounded-[30px] overflow-hidden border border-[#1687ff] shadow p-0" style={{background: 'linear-gradient(161deg, rgba(0,0,0,0) 45%, rgba(20,55,255,0.07) 101%), linear-gradient(183deg, rgba(0,0,0,1) 60%, rgba(212,255,22,0.07) 116%)'}}>
+        <div className="relative rounded-[30px] overflow-hidden border border-[#1687ff] shadow p-0" style={{background: 'linear-gradient(161.4deg, rgba(0,0,0,0) 45.1%, rgba(20,55,255,0.7) 101.9%), linear-gradient(183.6deg, rgba(0,0,0,1) 60.2%, rgba(212,255,22,1) 116.7%)'}}>
           <div className="absolute left-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1687ff] opacity-10 rounded-full z-0"></div>
           <div className="absolute right-[-30px] bottom-[-30px] w-[80px] h-[80px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
           <div className="relative z-10 p-5">
@@ -624,13 +626,16 @@ function DashboardClient() {
 
         {/* Special Offer Card (Pixel-perfect Figma style) */}
         {connectedWallet && (
-          <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 rounded-[40px] p-6 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-            <div className="absolute bottom-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-8 -mb-8"></div>
-            <div className="absolute left-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
-            <div className="relative z-10">
-              <h2 className="text-xl font-bold text-white mb-2">Special Offer coming soon!</h2>
-              <p className="text-purple-200 text-sm">Get discount for every top up and bill payment</p>
+          <div className="relative rounded-[60px] overflow-hidden border-2 border-[#d4ff16] shadow-xl p-0" style={{background: 'linear-gradient(161.4deg, rgba(0,0,0,0) 45.1%, rgba(20,55,255,0.7) 101.9%), linear-gradient(183.6deg, rgba(0,0,0,1) 60.2%, rgba(212,255,22,1) 116.7%)'}}>
+            {/* Figma grid overlay */}
+            <img src="https://www.figma.com/api/mcp/asset/50da16a0-21fd-4fad-afbd-49bb3840acb5" alt="grid overlay" className="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none" />
+            {/* Decorative circles */}
+            <div className="absolute left-[-40px] top-[-40px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
+            <div className="absolute right-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1437ff] opacity-10 rounded-full z-0"></div>
+            <div className="absolute right-[-50px] bottom-[-50px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
+            <div className="relative z-10 p-6 flex flex-col items-center justify-center min-h-[160px]">
+              <h2 className="text-2xl font-bold text-white mb-2 tracking-wide">Special Offer coming soon!</h2>
+              <p className="text-purple-200 text-base">Get discount for every top up and bill payment</p>
             </div>
           </div>
         )}
