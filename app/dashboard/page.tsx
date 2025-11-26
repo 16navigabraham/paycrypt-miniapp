@@ -556,98 +556,81 @@ function DashboardClient() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-[#fdfdfd]">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      
-      <div className="container mx-auto px-4 py-6 space-y-4 pb-20 lg:pb-6">
-        {/* Mini App Add Prompt - Only show if not already in mini app context */}
+      <div className="max-w-md mx-auto py-6 space-y-6">
+        {/* Mini App Add Prompt */}
         {!miniAppContext.isMiniApp && <MiniAppPrompt />}
 
-        {/* Mobile Header Card - Balance Overview */}
-        <div className="bg-gradient-to-br from-purple-700 via-purple-600 to-indigo-700 rounded-3xl p-6 text-white shadow-2xl">
-          {/* Top Bar with Menu and Hide Balance */}
-          <div className="flex items-center justify-between mb-6">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(true)}
-              className="h-12 w-12 rounded-full bg-white/20 hover:bg-white/30 text-white p-0"
-            >
-              <Menu className="h-6 w-6" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setBalanceVisible(!balanceVisible)}
-              className="h-10 w-10 rounded-full bg-white/20 hover:bg-white/30 text-white p-0"
-            >
-              {balanceVisible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-            </Button>
-          </div>
-          
-          {/* Centered Balance Display */}
-          <div className="text-center space-y-2">
-            <div className="text-sm text-purple-100 font-medium tracking-wide">Available Balance</div>
-            
-            <div className="flex items-center justify-center">
-              {balanceVisible ? (
-                <PortfolioOverview wallet={connectedWallet} />
-              ) : (
-                <span className="text-4xl font-bold">••••••</span>
-              )}
+        {/* Main Dashboard Card (Pixel-perfect Figma node-id=96-56) */}
+        <div className="relative rounded-[45px] overflow-hidden border-2 border-[#d4ff16] shadow-lg p-0" style={{background: 'linear-gradient(161deg, rgba(0,0,0,0) 45%, rgba(20,55,255,0.07) 101%), linear-gradient(183deg, rgba(0,0,0,1) 60%, rgba(212,255,22,0.07) 116%)'}}>
+          {/* Decorative circles */}
+          <div className="absolute left-[-40px] top-[-40px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
+          <div className="absolute right-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1437ff] opacity-10 rounded-full z-0"></div>
+          <div className="absolute right-[-50px] bottom-[-50px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
+          <div className="relative z-10 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-[24px] font-bold tracking-wide text-black leading-tight">Crypto to Electricity Payment</h1>
+                <span className="text-[15px] text-gray-500">Pay bills with your crypto</span>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="rounded-full bg-[#d4ff16] text-black shadow">
+                <Menu className="h-6 w-6" />
+              </Button>
             </div>
-            
-            {connectedWallet && (
-              <div className="flex items-center justify-center space-x-2 pt-2">
-                <span className="text-xs text-purple-200 font-mono">
-                  {formatAddress(connectedWallet.address)}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={copyAddress}
-                  className="h-5 w-5 p-0 text-purple-200 hover:text-white hover:bg-white/10"
-                >
-                  {copied ? (
-                    <CheckCircle className="h-3 w-3" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
-                  )}
+            <div className="flex flex-col items-center py-4">
+              <span className="text-xs text-gray-500 mb-2">Available Balance</span>
+              <div className="flex items-center gap-2">
+                {balanceVisible ? (
+                  <PortfolioOverview wallet={connectedWallet} />
+                ) : (
+                  <span className="text-4xl font-bold">••••••</span>
+                )}
+                <Button variant="ghost" size="sm" onClick={() => setBalanceVisible(!balanceVisible)} className="rounded-full bg-gray-100 text-black">
+                  {balanceVisible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
                 </Button>
               </div>
-            )}
+              {connectedWallet && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-xs text-gray-400 font-mono">{formatAddress(connectedWallet.address)}</span>
+                  <Button variant="ghost" size="sm" onClick={copyAddress} className="rounded-full bg-gray-100 text-black">
+                    {copied ? <CheckCircle className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Payment List - Quick Actions Component */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Available Services</h3>
+        {/* Services/Quick Actions (Pixel-perfect Figma node-id=86-93) */}
+        <div className="relative rounded-[30px] overflow-hidden border border-[#1687ff] shadow p-0" style={{background: 'linear-gradient(161deg, rgba(0,0,0,0) 45%, rgba(20,55,255,0.07) 101%), linear-gradient(183deg, rgba(0,0,0,1) 60%, rgba(212,255,22,0.07) 116%)'}}>
+          <div className="absolute left-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1687ff] opacity-10 rounded-full z-0"></div>
+          <div className="absolute right-[-30px] bottom-[-30px] w-[80px] h-[80px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
+          <div className="relative z-10 p-5">
+            <h3 className="text-xl font-bold text-[#1437ff] mb-4">Available Services</h3>
+            <QuickActions wallet={connectedWallet} />
           </div>
-          <QuickActions wallet={connectedWallet} />
         </div>
 
-        {/* Recent Transactions */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
-          {/* <div className="mb-4">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Recent Transactions</h3>
-          </div> */}
-          <RecentTransactions wallet={connectedWallet} />
+        {/* Recent Transactions (Pixel-perfect Figma node-id=102-55) */}
+        <div className="relative rounded-[30px] overflow-hidden border border-[#1687ff] shadow p-0" style={{background: 'linear-gradient(161deg, rgba(0,0,0,0) 45%, rgba(20,55,255,0.07) 101%), linear-gradient(183deg, rgba(0,0,0,1) 60%, rgba(212,255,22,0.07) 116%)'}}>
+          <div className="absolute left-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1687ff] opacity-10 rounded-full z-0"></div>
+          <div className="absolute right-[-30px] bottom-[-30px] w-[80px] h-[80px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
+          <div className="relative z-10 p-5">
+            <h3 className="text-xl font-bold text-[#1437ff] mb-4">Recent Transactions</h3>
+            <RecentTransactions wallet={connectedWallet} />
+          </div>
         </div>
 
-        {/* Special Offer Card */}
+        {/* Special Offer Card (Pixel-perfect Figma style) */}
         {connectedWallet && (
-          <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+          <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 rounded-[40px] p-6 shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <div className="absolute bottom-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-8 -mb-8"></div>
+            <div className="absolute left-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
             <div className="relative z-10">
-              <h2 className="text-xl font-bold text-white mb-2">
-                Special Offer coming soon!
-              </h2>
-              <p className="text-purple-200 text-sm">
-                Get discount for every top up and bill payment
-              </p>
+              <h2 className="text-xl font-bold text-white mb-2">Special Offer coming soon!</h2>
+              <p className="text-purple-200 text-sm">Get discount for every top up and bill payment</p>
             </div>
           </div>
         )}
