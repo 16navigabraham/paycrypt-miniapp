@@ -225,6 +225,13 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
     const toggleBalanceVisibility = () => setShowBalance((prev) => !prev)
     const toggleCurrencyDisplay = () => setCurrencyDisplay((prev) => (prev === 'usd' ? 'ngn' : 'usd'))
 
+	// Mask wallet address like: 0xe...Df3 (first 3 chars, ellipsis, last 3 chars)
+	const maskAddress = (addr: string) => {
+		if (!addr) return ''
+		if (addr.length <= 6) return addr
+		return `${addr.slice(0, 3)}...${addr.slice(-3)}`
+	}
+
 	// Don't render until mounted
 	if (!mounted) {
 		return (
@@ -289,7 +296,7 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 								style={{ width: 8, height: 8, objectFit: 'cover', filter: 'blur(2.5px)' }}
 							/>
 							{/* Masked address */}
-							<span className="font-['Montserrat_Alternates:Medium',sans-serif] text-[12px] text-black truncate" style={{ width: 48, textAlign: 'center' }}>{wallet.address.slice(0,6)}...{wallet.address.slice(-4)}</span>
+							<span className="font-['Montserrat_Alternates:Medium',sans-serif] text-[12px] text-black truncate" style={{ width: 48, textAlign: 'center' }}>{maskAddress(wallet.address)}</span>
 						</div>
 					</div>
 				)}
@@ -305,6 +312,16 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 							<div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full flex items-center justify-center drop-shadow-lg space-x-3">
 								{showBalance ? (
 									<span
+										role="button"
+										aria-label="Toggle currency display"
+										tabIndex={0}
+										onClick={toggleCurrencyDisplay}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter' || e.key === ' ') {
+												e.preventDefault();
+												toggleCurrencyDisplay();
+											}
+										}}
 										style={{
 											color: '#FFF',
 											textAlign: 'center',
@@ -313,7 +330,8 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 											fontStyle: 'normal',
 											fontWeight: 500,
 											lineHeight: 'normal',
-											letterSpacing: '2.4px'
+											letterSpacing: '2.4px',
+											cursor: 'pointer'
 										}}
 									>
 										{formatValue(
@@ -360,17 +378,7 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 								</button>
 							</div>
 
-							{/* Currency toggle moved inside main balance group for tighter mobile layout */}
-							<Button
-								variant="default"
-                                
-								size="sm"
-								onClick={toggleCurrencyDisplay}
-								className="text-sm bg-white text-black px-3 py-1 h-auto rounded-full font-['Montserrat_Alternates:Medium',sans-serif] mt-2 shadow-sm border border-white/20"
-								aria-label="Toggle currency display"
-							>
-								{currencyDisplay === 'usd' ? 'Switch to ₦ NGN' : 'Switch to $ USD'}
-							</Button>
+							{/* Currency toggles when user clicks the balance digits (accessibility: Enter/Space) */}
 						</div>
 					)}
 				</div>

@@ -36,17 +36,10 @@ export function QuickActions({ wallet }: { wallet: any }) {
 					>
 						<a aria-label={action.name} href={action.href + (wallet?.address ? `?wallet=${wallet.address}` : "")} className="w-full">
 							<div className="mx-auto">
-								{/* Outer green ring */}
-								<div className="p-[2px] rounded-[14px] bg-[#d4ff16] inline-flex">
-									{/* Middle white ring */}
-									<div className="p-[4px] rounded-[12px] bg-white inline-flex">
-										{/* Inner blue ring + icon */}
-										<div
-											className={`h-10 w-10 flex items-center justify-center rounded-[15px] border-[1.5px] border-[#1437ff] bg-white transition-all group-hover:scale-105`}
-											style={{ boxShadow: '0 2px 4px 0 rgba(0,0,0,0.25)' }}
-										>
-											<Image src={action.icon} alt={action.name} width={16} height={16} className="object-contain" />
-										</div>
+								{/* Single white capsule with gradient border (pixel-perfect) */}
+								<div className="p-[1.5px] rounded-[14px] bg-gradient-to-r from-[#d4ff16] to-[#1437FF] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.15)] transition-all group-hover:scale-105">
+									<div className="w-12 h-12 bg-white rounded-[12px] flex items-center justify-center">
+										<Image src={action.icon} alt={action.name} width={16} height={16} className="object-contain" />
 									</div>
 								</div>
 							</div>
@@ -69,53 +62,33 @@ export function QuickActions({ wallet }: { wallet: any }) {
 				))}
 			</div>
 
-			   {/* Convert CTA — pixel-perfect Figma style */}
+			   {/* Convert CTA — exact Figma rectangle */}
 			   <div className="mt-3 flex justify-center">
-				   <Button
-					   asChild
-					   className="p-0 bg-gradient-to-r from-[#d4ff16] to-[#1437ff] border-0 shadow-lg rounded-[14px] transition-all hover:scale-[1.02]"
-				   >
-					   <Link
-						   href={wallet?.address ? `/convert?wallet=${wallet.address}` : "/convert"}
-						   className="block w-[284px] h-[50px]"
-					   >
-						   <div className="w-full h-full flex items-center justify-between px-4">
-							   <span
-								   className="text-center"
-								   style={{
-									   color: '#000',
-									   textAlign: 'center',
-									   fontFamily: 'Montserrat Alternates, sans-serif',
-									   fontSize: '14px',
-									   fontStyle: 'normal',
-									   fontWeight: 400,
-									   lineHeight: 'normal'
-								   }}
-							   >
+				   {/* Gradient border wrapper to match Figma (green -> blue) */}
+				   <div className="p-[1.5px] rounded-[15px] bg-gradient-to-r from-[#d4ff16] to-[#1437FF] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.15)]">
+					   <Button asChild className="p-0 bg-white rounded-[13px]">
+						   <Link
+							   href={wallet?.address ? `/convert?wallet=${wallet.address}` : "/convert"}
+							   className="block w-[284px] h-[50px] flex items-center justify-between px-4"
+						   >
+							   <span className="text-black text-[14px] font-[Montserrat_Alternates,ui-sans-serif,system-ui]">
 								   Convert Cryptocurrency to Fiat
 							   </span>
-							   <div
-								   className="inline-flex items-center justify-center"
-								   style={{
-									   width: 28,
-									   height: 28,
-									   borderRadius: 15,
-									   border: '1.5px solid #1437FF',
-									   background: '#FFFFFF',
-									   boxShadow: '0 2px 4px 0 rgba(0,0,0,0.25)'
-								   }}
-							   >
-								   <Image
-								   src="/convert crypto.png"
-								   alt="convert"
-								   width={16}
-								   height={16}
-								   className="object-contain"
-								   />
+							   {/* small icon capsule with gradient border */}
+							   <div className="p-[1.5px] rounded-[15px] bg-gradient-to-r from-[#d4ff16] to-[#1437FF]">
+								   <div className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-[13px] bg-white">
+									   <Image
+										   src="/convert crypto.png"
+										   alt="convert"
+										   width={16}
+										   height={16}
+										   className="object-contain"
+									   />
+								   </div>
 							   </div>
-						   </div>
-					   </Link>
-				   </Button>
+						   </Link>
+					   </Button>
+				   </div>
 			   </div>
 			</div>
 		)

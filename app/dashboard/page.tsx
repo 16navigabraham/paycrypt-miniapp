@@ -570,59 +570,77 @@ function DashboardClient() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#e6f0ff] via-[#f6f8ff] to-[#d4ff16] overflow-x-hidden" style={{ fontFamily: 'Montserrat Alternates, sans-serif' }}>
-      {/* Decorative circles (Figma) */}
-      <div className="absolute left-[-60px] top-[-60px] w-[160px] h-[160px] bg-[#d4ff16] opacity-20 rounded-full z-0" />
-      <div className="absolute right-[-40px] top-[-40px] w-[100px] h-[100px] bg-[#1437ff] opacity-20 rounded-full z-0" />
-      <div className="absolute right-[-70px] bottom-[-70px] w-[160px] h-[160px] bg-[#d4ff16] opacity-20 rounded-full z-0" />
+    <>
+      {/* Mobile-only dashboard: visible on small screens only */}
+      <div className="block sm:hidden">
+        <div className="min-h-screen bg-gradient-to-br from-[#e6f0ff] via-[#f6f8ff] to-white overflow-x-hidden" style={{ fontFamily: 'Montserrat Alternates, sans-serif' }}>
+          {/* Decorative circles (Figma) */}
+          <div className="absolute left-[-60px] top-[-60px] w-[160px] h-[160px] bg-[#d4ff16] opacity-20 rounded-full z-0" />
+          <div className="absolute right-[-40px] top-[-40px] w-[100px] h-[100px] bg-[#1437ff] opacity-20 rounded-full z-0" />
+          <div className="absolute right-[-70px] bottom-[-70px] w-[160px] h-[160px] bg-[#d4ff16] opacity-20 rounded-full z-0" />
 
-      {/* Sidebar/Menu Button (Figma style) */}
-      <button
-        className="absolute top-6 right-6 z-20 w-12 h-12 flex items-center justify-center shadow-lg rounded-full p-0.5"
-        onClick={() => setSidebarOpen(true)}
-        aria-label="Open menu"
-      >
-        {/* keep the visible graphic at 29x29 but enlarge the clickable area to 48x48 (w-12 h-12) */}
-        <div className="flex items-center justify-center" style={{ width: 29, height: 29, pointerEvents: 'none' }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="29" height="29" viewBox="0 0 29 29" fill="none">
-            <circle cx="14.5" cy="14.5" r="14" fill="#FFFFFF" stroke="#1687FF" strokeWidth="1" />
-            {/* three centered bars (17x2) */}
-            <rect x="6" y="11" width="17" height="2" fill="#000000" rx="1" />
-            <rect x="6" y="14" width="17" height="2" fill="#000000" rx="1" />
-            <rect x="6" y="17" width="17" height="2" fill="#000000" rx="1" />
-          </svg>
-        </div>
-      </button>
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          {/* Sidebar/Menu Button (Figma style) */}
+          <button
+            className="absolute top-6 right-6 z-20 w-12 h-12 flex items-center justify-center shadow-lg rounded-full p-0.5"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu"
+          >
+            {/* keep the visible graphic at 29x29 but enlarge the clickable area to 48x48 (w-12 h-12) */}
+            <div className="flex items-center justify-center" style={{ width: 29, height: 29, pointerEvents: 'none' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="29" height="29" viewBox="0 0 29 29" fill="none">
+                <circle cx="14.5" cy="14.5" r="14" fill="#FFFFFF" stroke="#1687FF" strokeWidth="1" />
+                {/* three centered bars (17x2) */}
+                <rect x="6" y="11" width="17" height="2" fill="#000000" rx="1" />
+                <rect x="6" y="14" width="17" height="2" fill="#000000" rx="1" />
+                <rect x="6" y="17" width="17" height="2" fill="#000000" rx="1" />
+              </svg>
+            </div>
+          </button>
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="max-w-md w-full mx-auto pt-8 pb-0 px-4 flex flex-col items-center space-y-0 relative z-10">
-        {/* Main Balance Card (Figma style) - PortfolioOverview manages its own background */}
-        <PortfolioOverview wallet={connectedWallet} />
+          <div className="max-w-md w-full mx-auto pt-8 pb-0 px-4 flex flex-col items-center space-y-0 relative z-10">
+            {/* Main Balance Card (Figma style) - PortfolioOverview manages its own background */}
+            <PortfolioOverview wallet={connectedWallet} />
 
-        {/* Shared sheet: QuickActions + RecentTransactions (single rounded container) */}
-        <div
-          className="mx-auto -mt-8 rounded-[40px] pt-3 pb-6 px-3 relative overflow-hidden shadow-sm"
-          style={{
-            width: '375px',
-            height: '375px',
-            aspectRatio: '1/1',
-            background: "url('/—Pngtree—white grid cartoon png material_4675912 1 (1).png') lightgray 50% / cover no-repeat"
-          }}
-        >
-          {/* subtle white overlay that spans the whole sheet */}
-          <div className="absolute inset-0 bg-white opacity-10 pointer-events-none z-0 rounded-[40px]" />
+            {/* Shared sheet: QuickActions + RecentTransactions (single rounded container) */}
+            <div
+              className="mx-auto -mt-8 rounded-[40px] pt-3 pb-6 px-3 relative overflow-hidden shadow-sm w-full max-w-[375px]"
+              style={{
+                width: '100%',
+                maxWidth: '375px',
+                aspectRatio: '1/1',
+                background: "url('/pngtree-white-grid-cartoon.png') center/cover no-repeat",
+                backgroundColor: 'rgba(255,255,255,0.6)'
+              }}
+            >
+              {/* subtle white overlay that spans the whole sheet */}
+              <div className="absolute inset-0 bg-white opacity-10 pointer-events-none z-0 rounded-[40px]" />
 
-          <div className="relative z-10">
-            <QuickActions wallet={connectedWallet} />
+              <div className="relative z-10">
+                <QuickActions wallet={connectedWallet} />
 
-            {/* spacing between actions and transactions to match sheet breathing room */}
-            <div className="mt-4">
-              <RecentTransactions wallet={connectedWallet} />
+                {/* spacing between actions and transactions to match sheet breathing room */}
+                <div className="mt-4">
+                  <RecentTransactions wallet={connectedWallet} />
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Desktop / large screens: show a short message and a link to open on mobile */}
+      <div className="hidden sm:flex min-h-screen items-center justify-center bg-gray-50 p-6">
+        <div className="max-w-xl w-full bg-white rounded-xl shadow-lg p-8 text-center">
+          <h2 className="text-lg font-semibold mb-2">Mobile-only experience</h2>
+          <p className="text-sm text-gray-600 mb-4">This dashboard is optimized for mobile devices. Please open the site on a phone or narrow browser window to view the full experience.</p>
+          <div className="flex items-center justify-center gap-3">
+            <Button onClick={() => window.location.href = '/'} variant="outline">Return Home</Button>
+            <Button onClick={() => window.open('https://farcaster.xyz/miniapps/46N-wLr2WzdI/paycrypt', '_blank')}>Open in Farcaster</Button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
