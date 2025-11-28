@@ -582,16 +582,19 @@ function DashboardClient() {
         {/* Main Balance Card (Figma style) - PortfolioOverview manages its own background */}
         <PortfolioOverview wallet={connectedWallet} />
 
-        {/* QuickActions (Figma style) */}
-        <div className="w-full -mt-6 bg-gradient-to-br from-[#ffffff] to-[#f6f8ff] rounded-t-[30px] pt-4 pb-6 px-3 relative z-0">
-          <div className="absolute left-0 top-0 w-full h-full bg-white opacity-10 rounded-t-[30px] pointer-events-none z-0" />
-          <QuickActions wallet={connectedWallet} />
-        </div>
+        {/* Shared sheet: QuickActions + RecentTransactions (single rounded container) */}
+        <div className="w-full -mt-6 bg-gradient-to-br from-[#ffffff] to-[#f6f8ff] rounded-[40px] pt-4 pb-6 px-3 relative overflow-hidden shadow-sm">
+          {/* subtle white overlay that spans the whole sheet */}
+          <div className="absolute inset-0 bg-white opacity-10 pointer-events-none z-0 rounded-[40px]" />
 
-        {/* Recent Transactions (Figma style) */}
-        <div className="w-full mt-3 bg-gradient-to-br from-[#ffffff] to-[#f6f8ff] rounded-b-[30px] pt-4 pb-6 px-3 relative">
-          <div className="absolute left-0 top-0 w-full h-full bg-white opacity-10 rounded-b-[30px] pointer-events-none z-0" />
-          <RecentTransactions wallet={connectedWallet} />
+          <div className="relative z-10">
+            <QuickActions wallet={connectedWallet} />
+
+            {/* spacing between actions and transactions to match sheet breathing room */}
+            <div className="mt-4">
+              <RecentTransactions wallet={connectedWallet} />
+            </div>
+          </div>
         </div>
       </div>
     </div>
