@@ -5,6 +5,7 @@ import { getUserHistory } from "@/lib/api"
 import Link from "next/link"
 import { TransactionReceiptModal } from "@/components/TransactionReceiptModal"
 import { Button } from "@/components/ui/button"
+import { Tv, Zap, Phone, Wifi } from 'lucide-react'
 import { useMiniAppWallet } from "@/hooks/useMiniAppWallet"
 import * as htmlToImage from 'html-to-image'
 import download from 'downloadjs'
@@ -121,28 +122,39 @@ export default function RecentTransactions({ wallet }: Props) {
       <ul className="space-y-2 relative z-10">
         {transactions.map((txn) => (
           <li key={txn.requestId} className="text-sm">
-            <div className="flex justify-between items-start">
-              <div className="min-w-0">
-                <div className="font-medium truncate">
-                  {txn.serviceType.toUpperCase()} • ₦{txn.amountNaira} • {txn.cryptoUsed.toFixed(4)} {txn.cryptoSymbol}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center min-w-0">
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                  {txn.serviceType.toLowerCase().includes('tv') ? (
+                    <Tv className="h-5 w-5 text-[#1437ff]" />
+                  ) : txn.serviceType.toLowerCase().includes('electric') || txn.serviceType.toLowerCase().includes('electricity') ? (
+                    <Zap className="h-5 w-5 text-[#1437ff]" />
+                  ) : txn.serviceType.toLowerCase().includes('data') ? (
+                    <Wifi className="h-5 w-5 text-[#1437ff]" />
+                  ) : (
+                    <Phone className="h-5 w-5 text-[#1437ff]" />
+                  )}
                 </div>
-                <div className="text-muted-foreground text-xs mt-1">
-                  {new Date(txn.createdAt).toLocaleString()}
+
+                <div className="min-w-0">
+                  <div className="font-medium truncate">
+                    {txn.serviceType} • ₦{txn.amountNaira} • {txn.cryptoUsed.toFixed(4)} {txn.cryptoSymbol}
+                  </div>
+                  <div className="text-muted-foreground text-xs mt-1">
+                    {new Date(txn.createdAt).toLocaleString()}
+                  </div>
                 </div>
               </div>
-                <div className="flex items-center gap-2 ml-3">
-                <span
-                  className={`text-xs ${
+
+              <div className="flex flex-col items-end ml-3">
+                <span className={`text-sm font-semibold ${
                     txn.vtpassStatus === "successful"
                       ? "text-green-600"
                       : txn.vtpassStatus === "pending"
                       ? "text-yellow-600"
                       : "text-red-600"
-                  }`}
-                >
-                  {txn.vtpassStatus}
-                </span>
-                <Button size="sm" variant="outline" className="text-xs h-7 py-1 px-2">Print</Button>
+                  }`}>{txn.vtpassStatus === 'successful' ? 'Successful' : txn.vtpassStatus}</span>
+                <Button size="sm" variant="outline" className="text-xs h-7 py-1 px-2 mt-2" onClick={() => openModal(txn)}>Print</Button>
               </div>
             </div>
           </li>

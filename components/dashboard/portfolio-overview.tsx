@@ -276,19 +276,23 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 					</div>
 				)}
 
-				{/* Main balance display - Figma style */}
+				{/* Main balance display - Figma style with frosted pill */}
 				<div className="flex flex-col items-center justify-center">
 					{loading ? (
 						<div className="animate-pulse">
 							<div className="h-12 w-40 bg-white/20 rounded"></div>
 						</div>
 					) : (
-						<span className="text-[40px] font-['Montserrat_Alternates:SemiBold',sans-serif] text-white tracking-tight drop-shadow-lg">
-							{formatValue(
-								currencyDisplay === 'usd' ? totalValueUSD : totalValueNGN,
-								currencyDisplay
-							)}
-						</span>
+						<div className="relative">
+							<div className="bg-white/10 backdrop-blur-sm px-6 py-2 rounded-full flex items-center justify-center drop-shadow-lg">
+								<span className="text-[40px] font-['Montserrat_Alternates:SemiBold',sans-serif] text-white tracking-tight">
+									{formatValue(
+										currencyDisplay === 'usd' ? totalValueUSD : totalValueNGN,
+										currencyDisplay
+									)}
+								</span>
+							</div>
+						</div>
 					)}
 				</div>
 

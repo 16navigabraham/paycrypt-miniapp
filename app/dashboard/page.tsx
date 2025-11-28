@@ -583,7 +583,7 @@ function DashboardClient() {
         <PortfolioOverview wallet={connectedWallet} />
 
         {/* Shared sheet: QuickActions + RecentTransactions (single rounded container) */}
-        <div className="w-full -mt-6 bg-gradient-to-br from-[#ffffff] to-[#f6f8ff] rounded-[40px] pt-4 pb-6 px-3 relative overflow-hidden shadow-sm">
+        <div className="w-full -mt-8 bg-gradient-to-br from-[#ffffff] to-[#f6f8ff] rounded-[40px] pt-3 pb-6 px-3 relative overflow-hidden shadow-sm">
           {/* subtle white overlay that spans the whole sheet */}
           <div className="absolute inset-0 bg-white opacity-10 pointer-events-none z-0 rounded-[40px]" />
 

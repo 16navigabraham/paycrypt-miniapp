@@ -35,12 +35,16 @@ export function QuickActions({ wallet }: { wallet: any }) {
 						asChild
 					>
 						<a aria-label={action.name} href={action.href + (wallet?.address ? `?wallet=${wallet.address}` : "")} className="w-full">
-							<div
-								className={`h-12 w-12 rounded-[12px] bg-gradient-to-br ${action.color} flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all mx-auto`}
-							>
-								<Image src={action.icon} alt={action.name} width={18} height={18} className="object-contain" />
+							<div className="mx-auto">
+								<div className="p-[2px] rounded-[14px] bg-white inline-flex">
+									<div
+										className={`h-10 w-10 rounded-[12px] bg-gradient-to-br ${action.color} flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all`}
+									>
+										<Image src={action.icon} alt={action.name} width={16} height={16} className="object-contain" />
+									</div>
+								</div>
 							</div>
-							<span className="text-[10px] font-medium text-center text-[#1437ff] leading-tight w-full block px-1 mt-1">{action.name}</span>
+							<span className="text-[11px] font-medium text-center text-[#1437ff] leading-tight w-full block px-1 mt-1">{action.name}</span>
 						</a>
 					</Button>
 				))}
@@ -50,7 +54,7 @@ export function QuickActions({ wallet }: { wallet: any }) {
 			   <div className="mt-3">
 				   <Button
 					   asChild
-					   className="w-full p-0 bg-gradient-to-r from-[#d4ff16] to-[#1437ff] border-0 shadow-lg rounded-2xl transition-all hover:scale-[1.02]"
+					   className="w-full p-0 bg-gradient-to-r from-[#d4ff16] to-[#1437ff] border-0 shadow-lg rounded-[14px] transition-all hover:scale-[1.02]"
 				   >
 					   <Link
 						   href={wallet?.address ? `/convert?wallet=${wallet.address}` : "/convert"}
@@ -58,14 +62,14 @@ export function QuickActions({ wallet }: { wallet: any }) {
 					   >
 						   <div className="w-full flex items-center justify-between px-3 py-2">
 							   <span className="text-sm font-semibold text-white drop-shadow-sm tracking-normal">
-								   Convert Crypto to Fiat
+								   Convert Cryptocurrency to Fiat
 							   </span>
-							   <div className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-white shadow-md">
+							   <div className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-white shadow-md border border-white/40">
 								   <Image
 								   src="/convert crypto.png"
 								   alt="convert"
-								   width={18}
-								   height={18}
+								   width={16}
+								   height={16}
 								   className="object-contain"
 								   />
 							   </div>
