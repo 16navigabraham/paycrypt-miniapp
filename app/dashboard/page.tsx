@@ -525,22 +525,34 @@ function DashboardClient() {
             </Badge>
           </div>
 
-          {connectors.length > 0 ? (
-            <Button 
-              onClick={handleConnectWallet}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg mb-4 shadow-lg hover:shadow-xl transition-all"
+            {/*
+            Encourage users to open the Farcaster mini app or website first (which will
+            connect their Farcaster when opened in the browser). Still provide an
+            in-page wallet connect option if connectors are available.
+            */}
+            <div className="mb-4 space-y-3">
+            <Button
+              onClick={() => window.open('https://farcaster.xyz/miniapps/46N-wLr2WzdI/paycrypt', '_blank', 'noopener,noreferrer')}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all"
             >
-              <Wallet className="h-5 w-5 mr-2" />
-              Connect via {connectors[0]?.name || 'Farcaster'}
+              Open PayCrypt in Farcaster
             </Button>
-          ) : (
-            <div className="text-center mb-4">
-              <p className="text-sm text-gray-500 mb-2">No wallet connector available</p>
-              <Badge variant="outline" className="text-red-700 border-red-300">
-                Farcaster SDK Required
-              </Badge>
+
+            <Button
+              variant="outline"
+              onClick={() => window.open('https://www.paycrypt.org', '_blank', 'noopener,noreferrer')}
+              className="w-full text-gray-700 border-gray-300 hover:bg-gray-50 py-3 px-6 rounded-lg transition-all"
+            >
+              Visit paycrypt.org
+            </Button>
             </div>
-          )}
+
+            <div className="text-center mb-4">
+            <p className="text-sm text-gray-500 mb-2">Prefer to connect from a browser? Open the Farcaster mini app or visit our website.</p>
+            <Badge variant="outline" className="text-red-700 border-red-300">
+              Farcaster SDK Recommended
+            </Badge>
+            </div>
 
           {miniAppContext.isMiniApp ? (
             <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
@@ -566,15 +578,20 @@ function DashboardClient() {
 
       {/* Sidebar/Menu Button (Figma style) */}
       <button
-        className="absolute top-6 right-6 z-20 bg-[#d4ff16] rounded-full w-12 h-12 flex items-center justify-center shadow-lg border-2 border-white"
+        className="absolute top-6 right-6 z-20 w-12 h-12 flex items-center justify-center shadow-lg rounded-full p-0.5"
         onClick={() => setSidebarOpen(true)}
         aria-label="Open menu"
       >
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect y="7" width="28" height="2.5" rx="1.25" fill="#1437ff" />
-          <rect y="13" width="28" height="2.5" rx="1.25" fill="#1437ff" />
-          <rect y="19" width="28" height="2.5" rx="1.25" fill="#1437ff" />
-        </svg>
+        {/* keep the visible graphic at 29x29 but enlarge the clickable area to 48x48 (w-12 h-12) */}
+        <div className="flex items-center justify-center" style={{ width: 29, height: 29, pointerEvents: 'none' }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="29" height="29" viewBox="0 0 29 29" fill="none">
+            <circle cx="14.5" cy="14.5" r="14" fill="#FFFFFF" stroke="#1687FF" strokeWidth="1" />
+            {/* three centered bars (17x2) */}
+            <rect x="6" y="11" width="17" height="2" fill="#000000" rx="1" />
+            <rect x="6" y="14" width="17" height="2" fill="#000000" rx="1" />
+            <rect x="6" y="17" width="17" height="2" fill="#000000" rx="1" />
+          </svg>
+        </div>
       </button>
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -583,7 +600,15 @@ function DashboardClient() {
         <PortfolioOverview wallet={connectedWallet} />
 
         {/* Shared sheet: QuickActions + RecentTransactions (single rounded container) */}
-        <div className="w-full -mt-8 bg-gradient-to-br from-[#ffffff] to-[#f6f8ff] rounded-[40px] pt-3 pb-6 px-3 relative overflow-hidden shadow-sm">
+        <div
+          className="mx-auto -mt-8 rounded-[40px] pt-3 pb-6 px-3 relative overflow-hidden shadow-sm"
+          style={{
+            width: '375px',
+            height: '375px',
+            aspectRatio: '1/1',
+            background: "url('/—Pngtree—white grid cartoon png material_4675912 1 (1).png') lightgray 50% / cover no-repeat"
+          }}
+        >
           {/* subtle white overlay that spans the whole sheet */}
           <div className="absolute inset-0 bg-white opacity-10 pointer-events-none z-0 rounded-[40px]" />
 

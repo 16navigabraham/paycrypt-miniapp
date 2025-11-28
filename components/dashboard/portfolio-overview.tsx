@@ -255,56 +255,125 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 		<div className={rootClass}>
 			{/* Gradient background (Figma) */}
 			<div
-				className="absolute left-0 top-0 w-full h-[180px] rounded-t-[40px] z-0"
+				className="absolute left-0 top-0 rounded-t-[40px] z-0 w-full max-w-[375px]"
 				style={{
-					// Use an opaque decorative gradient to avoid revealing the white sheet underneath
-					background: "linear-gradient(180deg, rgba(20,55,255,0.9) 0%, rgba(212,255,22,0.95) 100%)",
+					width: '100%',
+					maxWidth: '375px',
+					aspectRatio: '375/316',
+					// Composite gradients per spec
+					background: 'linear-gradient(158deg, rgba(0, 0, 0, 0.00) 45.14%, rgba(20, 55, 255, 0.70) 101.86%), linear-gradient(184deg, #000 60.2%, #D4FF16 116.67%)',
+					backgroundSize: 'cover',
 				}}
 			/>
 
-			{/* Grid overlay (Figma asset) */}
-			<img src={imgPngtreeWhiteGridCartoonPngMaterial46759121} alt="grid overlay" className="absolute left-0 top-0 w-full h-[180px] object-cover opacity-20 pointer-events-none z-0 rounded-t-[40px]" />
+			{/* Grid overlay (public PNG) */}
+			<img
+				src="/pngtree-white-grid-cartoon.png"
+				alt="grid overlay"
+				className="absolute left-0 top-0 object-cover opacity-20 pointer-events-none z-0 rounded-t-[40px] w-full max-w-[375px]"
+				style={{ width: '100%', maxWidth: 375, aspectRatio: '375/316' }}
+			/>
 
 			{/* Main balance card */}
 			<div className="relative z-10 flex flex-col items-center justify-center w-full pt-6 pb-4">
 				{/* Wallet address badge (Figma style) */}
 				{wallet?.address && (
 					<div className="flex items-center justify-center mb-2">
-						<div className="bg-white border border-[#1687ff] rounded-[10px] px-4 py-1">
-							<span className="font-['Montserrat_Alternates:Medium',sans-serif] text-[12px] text-black tracking-wide">{wallet.address.slice(0,6)}...{wallet.address.slice(-4)}</span>
+						<div className="w-[76px] h-[20px] flex items-center justify-center gap-2 rounded-[10px] border border-[#1687FF] bg-white px-2" role="group" aria-label="Wallet address">
+							{/* Status dot (blurred green) */}
+							{/* Use a lightweight PNG for the status dot (blur applied via CSS) */}
+							<img
+								src="/Ellipse 8.png"
+								alt=""
+								aria-hidden="true"
+								style={{ width: 8, height: 8, objectFit: 'cover', filter: 'blur(2.5px)' }}
+							/>
+							{/* Masked address */}
+							<span className="font-['Montserrat_Alternates:Medium',sans-serif] text-[12px] text-black truncate" style={{ width: 48, textAlign: 'center' }}>{wallet.address.slice(0,6)}...{wallet.address.slice(-4)}</span>
 						</div>
 					</div>
 				)}
 
-				{/* Main balance display - Figma style with frosted pill */}
+				{/* Main balance display - Figma style with frosted pill (includes currency toggle) */}
 				<div className="flex flex-col items-center justify-center">
 					{loading ? (
 						<div className="animate-pulse">
 							<div className="h-12 w-40 bg-white/20 rounded"></div>
 						</div>
 					) : (
-						<div className="relative">
-							<div className="bg-white/10 backdrop-blur-sm px-6 py-2 rounded-full flex items-center justify-center drop-shadow-lg">
-								<span className="text-[40px] font-['Montserrat_Alternates:SemiBold',sans-serif] text-white tracking-tight">
-									{formatValue(
-										currencyDisplay === 'usd' ? totalValueUSD : totalValueNGN,
-										currencyDisplay
-									)}
-								</span>
+						<div className="relative flex flex-col items-center">
+							<div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full flex items-center justify-center drop-shadow-lg space-x-3">
+								{showBalance ? (
+									<span
+										style={{
+											color: '#FFF',
+											textAlign: 'center',
+											fontFamily: 'Montserrat, sans-serif',
+											fontSize: '48px',
+											fontStyle: 'normal',
+											fontWeight: 500,
+											lineHeight: 'normal',
+											letterSpacing: '2.4px'
+										}}
+									>
+										{formatValue(
+											currencyDisplay === 'usd' ? totalValueUSD : totalValueNGN,
+											currencyDisplay
+										)}
+									</span>
+								) : (
+									<span
+										aria-hidden
+										style={{
+											color: '#FFF',
+											textAlign: 'center',
+											fontFamily: 'Montserrat Alternates, sans-serif',
+											fontSize: '62px',
+											fontStyle: 'normal',
+											fontWeight: 500,
+											lineHeight: 'normal',
+											letterSpacing: '9.3px'
+										}}
+									>
+										****
+									</span>
+								)}
+								<button
+									aria-label={showBalance ? 'Hide balance' : 'Show balance'}
+									onClick={toggleBalanceVisibility}
+									className="inline-flex items-center justify-center p-0 rounded-full"
+									style={{ width: 16, height: 16 }}
+								>
+									{/* Visible / Hidden button visual — keep tappable button but use background images for the icon */}
+									<div
+										style={{
+											width: '16px',
+											height: '16px',
+											aspectRatio: '1/1',
+											background: showBalance
+												? "url('/eye.png') lightgray 50% / cover no-repeat"
+												: "url('/eye-off.png') lightgray 50% / cover no-repeat",
+											WebkitBackgroundSize: 'cover',
+											backgroundSize: 'cover'
+										}}
+									/>
+								</button>
 							</div>
+
+							{/* Currency toggle moved inside main balance group for tighter mobile layout */}
+							<Button
+								variant="default"
+                                
+								size="sm"
+								onClick={toggleCurrencyDisplay}
+								className="text-sm bg-white text-black px-3 py-1 h-auto rounded-full font-['Montserrat_Alternates:Medium',sans-serif] mt-2 shadow-sm border border-white/20"
+								aria-label="Toggle currency display"
+							>
+								{currencyDisplay === 'usd' ? 'Switch to ₦ NGN' : 'Switch to $ USD'}
+							</Button>
 						</div>
 					)}
 				</div>
-
-				{/* Currency toggle button (preserved) */}
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={toggleCurrencyDisplay}
-					className="text-sm text-purple-200 hover:text-white hover:bg-white/10 px-3 py-1 h-auto rounded-full font-['Montserrat_Alternates:Medium',sans-serif] mt-2"
-				>
-					{currencyDisplay === 'usd' ? 'Switch to ₦ NGN' : 'Switch to $ USD'}
-				</Button>
 			</div>
 
 			{/* Decorative circles (Figma) */}

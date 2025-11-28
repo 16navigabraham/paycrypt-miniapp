@@ -7,10 +7,10 @@ import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 
 const actions = [
-	{ name: "Airtime", icon: "/airtime.png", href: "/airtime", color: "from-green-500 to-emerald-600" },
-	{ name: "Data", icon: "/internet.png", href: "/internet", color: "from-purple-500 to-pink-600" },
-	{ name: "TV/Cables", icon: "/tv.png", href: "/tv", color: "from-orange-500 to-red-600" },
-	{ name: "Electricity", icon: "/electricity.png", href: "/electricity", color: "from-yellow-500 to-orange-600" },
+	{ name: "Airtime", icon: "/airtime.png", href: "/airtime" },
+	{ name: "Data", icon: "/internet.png", href: "/internet" },
+	{ name: "TV/Cables", icon: "/tv.png", href: "/tv" },
+	{ name: "Electricity", icon: "/electricity.png", href: "/electricity" },
 ]
 
 const imgPngtreeWhiteGridCartoonPngMaterial46759121 = "https://www.figma.com/api/mcp/asset/0cd7906c-bcfd-4b4f-8a51-de6de026a2fc"
@@ -36,35 +36,75 @@ export function QuickActions({ wallet }: { wallet: any }) {
 					>
 						<a aria-label={action.name} href={action.href + (wallet?.address ? `?wallet=${wallet.address}` : "")} className="w-full">
 							<div className="mx-auto">
-								<div className="p-[2px] rounded-[14px] bg-white inline-flex">
-									<div
-										className={`h-10 w-10 rounded-[12px] bg-gradient-to-br ${action.color} flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all`}
-									>
-										<Image src={action.icon} alt={action.name} width={16} height={16} className="object-contain" />
+								{/* Outer green ring */}
+								<div className="p-[2px] rounded-[14px] bg-[#d4ff16] inline-flex">
+									{/* Middle white ring */}
+									<div className="p-[4px] rounded-[12px] bg-white inline-flex">
+										{/* Inner blue ring + icon */}
+										<div
+											className={`h-10 w-10 flex items-center justify-center rounded-[15px] border-[1.5px] border-[#1437ff] bg-white transition-all group-hover:scale-105`}
+											style={{ boxShadow: '0 2px 4px 0 rgba(0,0,0,0.25)' }}
+										>
+											<Image src={action.icon} alt={action.name} width={16} height={16} className="object-contain" />
+										</div>
 									</div>
 								</div>
 							</div>
-							<span className="text-[11px] font-medium text-center text-[#1437ff] leading-tight w-full block px-1 mt-1">{action.name}</span>
+							<span
+								className="w-full block px-1 mt-1"
+								style={{
+									color: '#000',
+									textAlign: 'center',
+									fontFamily: 'Montserrat Alternates, sans-serif',
+									fontSize: '11px',
+									fontStyle: 'normal',
+									fontWeight: 300,
+									lineHeight: 'normal'
+								}}
+							>
+								{action.name}
+							</span>
 						</a>
 					</Button>
 				))}
 			</div>
 
 			   {/* Convert CTA — pixel-perfect Figma style */}
-			   <div className="mt-3">
+			   <div className="mt-3 flex justify-center">
 				   <Button
 					   asChild
-					   className="w-full p-0 bg-gradient-to-r from-[#d4ff16] to-[#1437ff] border-0 shadow-lg rounded-[14px] transition-all hover:scale-[1.02]"
+					   className="p-0 bg-gradient-to-r from-[#d4ff16] to-[#1437ff] border-0 shadow-lg rounded-[14px] transition-all hover:scale-[1.02]"
 				   >
 					   <Link
 						   href={wallet?.address ? `/convert?wallet=${wallet.address}` : "/convert"}
-						   className="block w-full"
+						   className="block w-[284px] h-[50px]"
 					   >
-						   <div className="w-full flex items-center justify-between px-3 py-2">
-							   <span className="text-sm font-semibold text-white drop-shadow-sm tracking-normal">
+						   <div className="w-full h-full flex items-center justify-between px-4">
+							   <span
+								   className="text-center"
+								   style={{
+									   color: '#000',
+									   textAlign: 'center',
+									   fontFamily: 'Montserrat Alternates, sans-serif',
+									   fontSize: '14px',
+									   fontStyle: 'normal',
+									   fontWeight: 400,
+									   lineHeight: 'normal'
+								   }}
+							   >
 								   Convert Cryptocurrency to Fiat
 							   </span>
-							   <div className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-white shadow-md border border-white/40">
+							   <div
+								   className="inline-flex items-center justify-center"
+								   style={{
+									   width: 28,
+									   height: 28,
+									   borderRadius: 15,
+									   border: '1.5px solid #1437FF',
+									   background: '#FFFFFF',
+									   boxShadow: '0 2px 4px 0 rgba(0,0,0,0.25)'
+								   }}
+							   >
 								   <Image
 								   src="/convert crypto.png"
 								   alt="convert"
