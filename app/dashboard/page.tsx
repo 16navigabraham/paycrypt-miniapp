@@ -583,14 +583,14 @@ function DashboardClient() {
         <PortfolioOverview wallet={connectedWallet} className="bg-gradient-to-br from-[#d4ff16] to-[#1437ff] rounded-[40px] shadow-lg" />
 
         {/* QuickActions (Figma style) */}
-        <div className="w-full mt-6 bg-gradient-to-br from-[#ffffff] to-[#f6f8ff] rounded-t-[40px] pt-6 pb-8 px-4">
-          <div className="absolute left-0 top-0 w-full h-full bg-white opacity-20 rounded-lg pointer-events-none z-0" />
+        <div className="w-full mt-4 bg-gradient-to-br from-[#ffffff] to-[#f6f8ff] rounded-t-[30px] pt-4 pb-6 px-3 relative">
+          <div className="absolute left-0 top-0 w-full h-full bg-white opacity-10 rounded-t-[30px] pointer-events-none z-0" />
           <QuickActions wallet={connectedWallet} />
         </div>
 
         {/* Recent Transactions (Figma style) */}
-        <div className="w-full mt-4 bg-gradient-to-br from-[#ffffff] to-[#f6f8ff] rounded-b-[40px] pt-6 pb-8 px-4">
-          <div className="absolute left-0 top-0 w-full h-full bg-white opacity-20 rounded-lg pointer-events-none z-0" />
+        <div className="w-full mt-3 bg-gradient-to-br from-[#ffffff] to-[#f6f8ff] rounded-b-[30px] pt-4 pb-6 px-3 relative">
+          <div className="absolute left-0 top-0 w-full h-full bg-white opacity-10 rounded-b-[30px] pointer-events-none z-0" />
           <RecentTransactions wallet={connectedWallet} />
         </div>
       </div>

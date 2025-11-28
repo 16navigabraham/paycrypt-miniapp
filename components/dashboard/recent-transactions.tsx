@@ -107,29 +107,30 @@ export default function RecentTransactions({ wallet }: Props) {
     );
   }
 
-  return (
-    <div className="relative bg-white dark:bg-black border p-4 rounded-lg shadow-sm">
-      {/* Grid overlay (Figma asset) */}
-      <img src={imgRecentTransactionsGridOverlay} alt="grid overlay" className="absolute left-0 top-0 w-full h-full object-cover opacity-20 pointer-events-none z-0" />
 
-      <h2 className="text-xl font-semibold mb-4 relative z-10">Recent Transactions</h2>
+  return (
+    <div className="relative bg-white dark:bg-black border p-3 rounded-lg shadow-sm">
+      {/* Grid overlay (Figma asset) */}
+      <img src={imgRecentTransactionsGridOverlay} alt="grid overlay" className="absolute left-0 top-0 w-full h-full object-cover opacity-16 pointer-events-none z-0" />
+
+      <h2 className="text-lg font-semibold mb-3 relative z-10">Recent Transactions</h2>
       {loading && <p className="text-muted-foreground relative z-10">Loading...</p>}
       {!loading && transactions.length === 0 && (
         <p className="text-muted-foreground relative z-10">No recent transactions found.</p>
       )}
-      <ul className="space-y-2 relative z-10">
+      <ul className="space-y-3 relative z-10">
         {transactions.map((txn) => (
           <li key={txn.requestId} className="text-sm">
-            <div className="flex justify-between items-center">
-              <div>
-                <span>
+            <div className="flex justify-between items-start">
+              <div className="min-w-0">
+                <div className="font-medium truncate">
                   {txn.serviceType.toUpperCase()} • ₦{txn.amountNaira} • {txn.cryptoUsed.toFixed(4)} {txn.cryptoSymbol}
-                </span>
-                <div className="text-muted-foreground text-xs">
+                </div>
+                <div className="text-muted-foreground text-xs mt-1">
                   {new Date(txn.createdAt).toLocaleString()}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 ml-3">
                 <span
                   className={`text-xs ${
                     txn.vtpassStatus === "successful"
@@ -141,13 +142,13 @@ export default function RecentTransactions({ wallet }: Props) {
                 >
                   {txn.vtpassStatus}
                 </span>
-                <Button size="sm" variant="outline" className="text-xs">Print Receipt</Button>
+                <Button size="sm" variant="outline" className="text-xs py-1 px-2">Print</Button>
               </div>
             </div>
           </li>
         ))}
       </ul>
-      <div className="text-right mt-4 relative z-10">
+      <div className="text-right mt-3 relative z-10">
         <Link href="/history" className="text-blue-500 hover:underline text-sm">
           View All →
         </Link>

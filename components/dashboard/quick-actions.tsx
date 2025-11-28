@@ -19,7 +19,7 @@ export function QuickActions({ wallet }: { wallet: any }) {
 	 return (
 	 	<div className="relative space-y-6">
 	 		{/* Figma-style grid layout - 3 columns */}
-	 		<div className="grid grid-cols-3 gap-6 relative">
+			<div className="grid grid-cols-3 gap-4 relative">
 				{/* Grid overlay (Figma asset) */}
 				<img
 					src={imgPngtreeWhiteGridCartoonPngMaterial46759121}
@@ -28,33 +28,21 @@ export function QuickActions({ wallet }: { wallet: any }) {
 				/>
 
 				{actions.map((action) => (
-						<Button
-							key={action.name}
-							variant="ghost"
-							className="h-auto p-0 flex flex-col items-center space-y-2 hover:bg-transparent border-0 transition-all group relative z-10"
-							asChild
-						>
-							<a
-								aria-label={action.name}
-								href={action.href + (wallet?.address ? `?wallet=${wallet.address}` : "")}
-								className="w-full"
+					<Button
+						key={action.name}
+						variant="ghost"
+						className="h-auto p-0 flex flex-col items-center space-y-1 hover:bg-transparent border-0 transition-all group relative z-10"
+						asChild
+					>
+						<a aria-label={action.name} href={action.href + (wallet?.address ? `?wallet=${wallet.address}` : "")} className="w-full">
+							<div
+								className={`h-14 w-14 rounded-[12px] bg-gradient-to-br ${action.color} flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all mx-auto`}
 							>
-								<div
-									className={`h-16 w-16 rounded-[12px] bg-gradient-to-br ${action.color} flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all mx-auto`}
-								>
-									<Image
-										src={action.icon}
-										alt={action.name}
-										width={28}
-										height={28}
-										className="object-contain"
-									/>
-								</div>
-								<span className="text-[10px] font-medium text-center text-[#1437ff] leading-tight w-full block px-1 mt-1">
-									{action.name}
-								</span>
-							</a>
-						</Button>
+								<Image src={action.icon} alt={action.name} width={20} height={20} className="object-contain" />
+							</div>
+							<span className="text-[11px] font-medium text-center text-[#1437ff] leading-tight w-full block px-1 mt-1">{action.name}</span>
+						</a>
+					</Button>
 				))}
 			</div>
 

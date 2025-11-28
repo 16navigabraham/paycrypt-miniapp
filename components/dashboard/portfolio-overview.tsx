@@ -247,10 +247,12 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 	}
 
 	// Figma-inspired card layout, keeping currency toggle button
+	const baseClasses = "relative w-full flex flex-col items-center justify-center py-6 px-0 rounded-[40px] font-['Montserrat_Alternates'],sans-serif shadow-lg overflow-hidden";
+	const defaultBg = 'bg-gradient-to-br from-[#d4ff16] to-[#1437ff]';
+	const rootClass = className ? `${baseClasses} ${className}` : `${baseClasses} ${defaultBg}`;
+
 	return (
-		<div
-			className={`relative w-full flex flex-col items-center justify-center py-6 px-0 bg-gradient-to-br from-[#d4ff16] to-[#1437ff] rounded-[40px] font-['Montserrat_Alternates',sans-serif] shadow-lg overflow-hidden ${className}`}
-		>
+		<div className={rootClass}>
 			{/* Gradient background (Figma) */}
 			<div
 				className="absolute left-0 top-0 w-full h-[180px] rounded-t-[40px] z-0"
