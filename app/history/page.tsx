@@ -11,6 +11,35 @@ import AuthGuard from "@/components/AuthGuard"
 import BackToDashboard from '@/components/BackToDashboard'
 import { useMiniAppWallet } from "@/hooks/useMiniAppWallet"
 
+// Top-level helper component for mapping service types to public images (with lucide fallback)
+function ServiceIcon({ serviceType }: { serviceType: string }) {
+  const [useFallback, setUseFallback] = useState(false)
+  const key = (serviceType || '').toLowerCase()
+  const src = useMemo(() => {
+    if (key.includes('tv')) return '/tv.png'
+    if (key.includes('electric')) return '/electricity.png'
+    if (key.includes('data') || key.includes('internet')) return '/internet.png'
+    if (key.includes('airtime') || key.includes('air')) return '/airtime.png'
+    return '/airtime.png'
+  }, [key])
+
+  if (useFallback) {
+    if (key.includes('tv')) return <Tv className="h-5 w-5 text-[#1437ff]" />
+    if (key.includes('electric')) return <Zap className="h-5 w-5 text-[#1437ff]" />
+    if (key.includes('data') || key.includes('internet')) return <Wifi className="h-5 w-5 text-[#1437ff]" />
+    return <Phone className="h-5 w-5 text-[#1437ff]" />
+  }
+
+  return (
+    <img
+      src={src}
+      alt={serviceType}
+      className="h-5 w-5 object-contain"
+      onError={() => setUseFallback(true)}
+    />
+  )
+}
+
 interface Transaction {
   requestId: string
   userAddress: string
@@ -70,35 +99,6 @@ export default function HistoryPage() {
   const closeModal = () => {
     setIsModalOpen(false)
     setSelectedOrder(null)
-  }
-
-  // Helper component for mapping service types to public images (with lucide fallback)
-  function ServiceIcon({ serviceType }: { serviceType: string }) {
-    const [useFallback, setUseFallback] = useState(false)
-    const key = (serviceType || '').toLowerCase()
-    const src = useMemo(() => {
-      if (key.includes('tv')) return '/tv.png'
-      if (key.includes('electric')) return '/electricity.png'
-      if (key.includes('data') || key.includes('internet')) return '/internet.png'
-      if (key.includes('airtime') || key.includes('air')) return '/airtime.png'
-      return '/airtime.png'
-    }, [key])
-
-    if (useFallback) {
-      if (key.includes('tv')) return <Tv className="h-5 w-5 text-[#1437ff]" />
-      if (key.includes('electric')) return <Zap className="h-5 w-5 text-[#1437ff]" />
-      if (key.includes('data') || key.includes('internet')) return <Wifi className="h-5 w-5 text-[#1437ff]" />
-      return <Phone className="h-5 w-5 text-[#1437ff]" />
-    }
-
-    return (
-      <img
-        src={src}
-        alt={serviceType}
-        className="h-5 w-5 object-contain"
-        onError={() => setUseFallback(true)}
-      />
-    )
   }
 
   // Show wallet connection prompt if not connected
