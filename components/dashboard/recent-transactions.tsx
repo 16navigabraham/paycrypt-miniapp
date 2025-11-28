@@ -6,9 +6,11 @@ import Link from "next/link"
 import { TransactionReceiptModal } from "@/components/TransactionReceiptModal"
 import { Button } from "@/components/ui/button"
 import { Tv, Zap, Phone, Wifi } from 'lucide-react'
+import { useMemo } from 'react'
 import { useMiniAppWallet } from "@/hooks/useMiniAppWallet"
 import * as htmlToImage from 'html-to-image'
 import download from 'downloadjs'
+import React from 'react'
 
 interface Transaction {
   requestId: string
@@ -33,6 +35,37 @@ interface Transaction {
 
 interface Props {
   wallet: { address: string } | null
+}
+
+// Small helper component: attempts to load an icon from /public, falls back to lucide icon
+function ServiceIcon({ serviceType }: { serviceType: string }) {
+  const [useFallback, setUseFallback] = useState(false)
+
+  const key = (serviceType || '').toLowerCase()
+  const src = useMemo(() => {
+    if (key.includes('tv')) return '/tv.png'
+    if (key.includes('electric')) return '/electricity.png'
+    if (key.includes('data') || key.includes('internet')) return '/internet.png'
+    if (key.includes('airtime') || key.includes('air')) return '/airtime.png'
+    // default
+    return '/airtime.png'
+  }, [key])
+
+  if (useFallback) {
+    if (key.includes('tv')) return <Tv className="h-5 w-5 text-[#1437ff]" />
+    if (key.includes('electric')) return <Zap className="h-5 w-5 text-[#1437ff]" />
+    if (key.includes('data') || key.includes('internet')) return <Wifi className="h-5 w-5 text-[#1437ff]" />
+    return <Phone className="h-5 w-5 text-[#1437ff]" />
+  }
+
+  return (
+    <img
+      src={src}
+      alt={serviceType}
+      className="h-5 w-5 object-contain"
+      onError={() => setUseFallback(true)}
+    />
+  )
 }
 
 const imgRecentTransactionsGridOverlay = "https://www.figma.com/api/mcp/asset/0cd7906c-bcfd-4b4f-8a51-de6de026a2fc";
@@ -110,7 +143,7 @@ export default function RecentTransactions({ wallet }: Props) {
 
 
   return (
-    <div className="relative bg-white dark:bg-black border p-3 rounded-lg shadow-sm overflow-hidden">
+    <div className="relative bg-white dark:bg-black border p-3 rounded-lg shadow-sm overflow-visible">
       {/* Grid overlay (Figma asset) */}
       <img src={imgRecentTransactionsGridOverlay} alt="grid overlay" className="absolute left-0 top-0 w-full h-full object-cover opacity-20 pointer-events-none z-0 rounded-lg" />
 
@@ -124,16 +157,8 @@ export default function RecentTransactions({ wallet }: Props) {
           <li key={txn.requestId} className="text-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center min-w-0">
-                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
-                  {txn.serviceType.toLowerCase().includes('tv') ? (
-                    <Tv className="h-5 w-5 text-[#1437ff]" />
-                  ) : txn.serviceType.toLowerCase().includes('electric') || txn.serviceType.toLowerCase().includes('electricity') ? (
-                    <Zap className="h-5 w-5 text-[#1437ff]" />
-                  ) : txn.serviceType.toLowerCase().includes('data') ? (
-                    <Wifi className="h-5 w-5 text-[#1437ff]" />
-                  ) : (
-                    <Phone className="h-5 w-5 text-[#1437ff]" />
-                  )}
+                <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center mr-3 overflow-hidden">
+                  <ServiceIcon serviceType={txn.serviceType} />
                 </div>
 
                 <div className="min-w-0">

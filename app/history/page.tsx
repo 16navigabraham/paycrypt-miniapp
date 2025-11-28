@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { getUserHistory } from "@/lib/api"
 import { TransactionReceiptModal } from "@/components/TransactionReceiptModal"
+import { Tv, Zap, Phone, Wifi } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import * as htmlToImage from "html-to-image"
 import download from "downloadjs"
@@ -71,6 +72,35 @@ export default function HistoryPage() {
     setSelectedOrder(null)
   }
 
+  // Helper component for mapping service types to public images (with lucide fallback)
+  function ServiceIcon({ serviceType }: { serviceType: string }) {
+    const [useFallback, setUseFallback] = useState(false)
+    const key = (serviceType || '').toLowerCase()
+    const src = useMemo(() => {
+      if (key.includes('tv')) return '/tv.png'
+      if (key.includes('electric')) return '/electricity.png'
+      if (key.includes('data') || key.includes('internet')) return '/internet.png'
+      if (key.includes('airtime') || key.includes('air')) return '/airtime.png'
+      return '/airtime.png'
+    }, [key])
+
+    if (useFallback) {
+      if (key.includes('tv')) return <Tv className="h-5 w-5 text-[#1437ff]" />
+      if (key.includes('electric')) return <Zap className="h-5 w-5 text-[#1437ff]" />
+      if (key.includes('data') || key.includes('internet')) return <Wifi className="h-5 w-5 text-[#1437ff]" />
+      return <Phone className="h-5 w-5 text-[#1437ff]" />
+    }
+
+    return (
+      <img
+        src={src}
+        alt={serviceType}
+        className="h-5 w-5 object-contain"
+        onError={() => setUseFallback(true)}
+      />
+    )
+  }
+
   // Show wallet connection prompt if not connected
   if (!isConnected) {
     return (
@@ -123,18 +153,22 @@ export default function HistoryPage() {
               className="border p-4 rounded-md cursor-pointer hover:shadow-md transition-shadow bg-white"
               onClick={() => openModal(txn)}
             >
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex-1">
-                  <div className="font-medium text-sm mb-1">
-                    {txn.serviceType.toUpperCase()} • ₦{txn.amountNaira.toLocaleString()} • {txn.cryptoUsed} {txn.cryptoSymbol}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Customer: {txn.customerIdentifier}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(txn.createdAt).toLocaleString()}
-                  </div>
-                </div>
+                      <div className="flex items-start">
+                        <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center mr-3">
+                          <ServiceIcon serviceType={txn.serviceType} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-sm mb-1">
+                            {txn.serviceType.toUpperCase()} • ₦{txn.amountNaira.toLocaleString()} • {txn.cryptoUsed} {txn.cryptoSymbol}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Customer: {txn.customerIdentifier}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(txn.createdAt).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
                 <div className="flex flex-col items-end space-y-1">
                   <span
                     className={`text-xs px-2 py-1 rounded-full font-medium ${

@@ -574,10 +574,7 @@ function DashboardClient() {
       {/* Mobile-only dashboard: visible on small screens only */}
       <div className="block sm:hidden">
         <div className="min-h-screen bg-gradient-to-br from-[#e6f0ff] via-[#f6f8ff] to-white overflow-x-hidden" style={{ fontFamily: 'Montserrat Alternates, sans-serif' }}>
-          {/* Decorative circles (Figma) */}
-          <div className="absolute left-[-60px] top-[-60px] w-[160px] h-[160px] bg-[#d4ff16] opacity-20 rounded-full z-0" />
-          <div className="absolute right-[-40px] top-[-40px] w-[100px] h-[100px] bg-[#1437ff] opacity-20 rounded-full z-0" />
-          <div className="absolute right-[-70px] bottom-[-70px] w-[160px] h-[160px] bg-[#d4ff16] opacity-20 rounded-full z-0" />
+          {/* Decorative circles removed */}
 
           {/* Sidebar/Menu Button (Figma style) */}
           <button
@@ -608,7 +605,7 @@ function DashboardClient() {
               style={{
                 width: '100%',
                 maxWidth: '375px',
-                aspectRatio: '1/1',
+                /* removed fixed square aspectRatio so sheet can grow naturally with content */
                 background: "url('/pngtree-white-grid-cartoon.png') center/cover no-repeat",
                 backgroundColor: 'rgba(255,255,255,0.6)'
               }}
