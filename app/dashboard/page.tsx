@@ -558,77 +558,42 @@ function DashboardClient() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f8ff]">
+    <div className="min-h-screen bg-gradient-to-br from-[#e6f0ff] via-[#f6f8ff] to-[#d4ff16] overflow-x-hidden" style={{ fontFamily: 'Montserrat Alternates, sans-serif' }}>
+      {/* Decorative circles (Figma) */}
+      <div className="absolute left-[-60px] top-[-60px] w-[160px] h-[160px] bg-[#d4ff16] opacity-20 rounded-full z-0" />
+      <div className="absolute right-[-40px] top-[-40px] w-[100px] h-[100px] bg-[#1437ff] opacity-20 rounded-full z-0" />
+      <div className="absolute right-[-70px] bottom-[-70px] w-[160px] h-[160px] bg-[#d4ff16] opacity-20 rounded-full z-0" />
+
+      {/* Sidebar/Menu Button (Figma style) */}
+      <button
+        className="absolute top-6 right-6 z-20 bg-[#d4ff16] rounded-full w-12 h-12 flex items-center justify-center shadow-lg border-2 border-white"
+        onClick={() => setSidebarOpen(true)}
+        aria-label="Open menu"
+      >
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect y="7" width="28" height="2.5" rx="1.25" fill="#1437ff" />
+          <rect y="13" width="28" height="2.5" rx="1.25" fill="#1437ff" />
+          <rect y="19" width="28" height="2.5" rx="1.25" fill="#1437ff" />
+        </svg>
+      </button>
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="max-w-md mx-auto py-0 space-y-0">
-        {/* Mini App Add Prompt */}
-        {!miniAppContext.isMiniApp && <MiniAppPrompt />}
 
-        {/* Main Dashboard Card - Figma fidelity */}
-        <div className="relative rounded-t-[40px] rounded-b-[32px] overflow-hidden border-2 border-[#d4ff16] shadow-xl p-0 mt-0 bg-gradient-to-br from-[#1437ff] via-[#d4ff16]/30 to-[#1437ff]/10 font-['Montserrat_Alternates',sans-serif]">
-          {/* Figma grid overlay (attached PNG) */}
-          <img src="/grid-figma.png" alt="grid overlay" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{opacity: 0.10}} />
-          {/* Decorative circles */}
-          <div className="absolute left-[-40px] top-[-40px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
-          <div className="absolute right-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1437ff] opacity-10 rounded-full z-0"></div>
-          <div className="absolute right-[-50px] bottom-[-50px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0"></div>
-          <div className="relative z-10 px-6 pt-6 pb-4 flex flex-col items-center">
-            <div className="flex justify-end w-full mb-2">
-              <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="rounded-full bg-[#d4ff16] text-black shadow">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </div>
-            <div className="flex flex-col items-center w-full">
-              <span className="text-[13px] font-medium text-white/80 mb-1 tracking-wide font-['Montserrat_Alternates:Medium',sans-serif]">Available Balance</span>
-              <div className="flex items-center gap-2 mb-1">
-                {balanceVisible ? (
-                  <span className="text-[32px] font-semibold text-white drop-shadow-sm font-['Montserrat_Alternates:SemiBold',sans-serif]">
-                    <PortfolioOverview wallet={connectedWallet} />
-                  </span>
-                ) : (
-                  <span className="text-[32px] font-semibold text-white drop-shadow-sm font-['Montserrat_Alternates:SemiBold',sans-serif]">••••••</span>
-                )}
-                <Button variant="ghost" size="sm" onClick={() => setBalanceVisible(!balanceVisible)} className="rounded-full bg-white/80 text-[#1437ff] ml-1 shadow">
-                  {balanceVisible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-                </Button>
-              </div>
-              {connectedWallet && (
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[12px] font-['Montserrat_Alternates:Medium',sans-serif] text-white/70 tracking-wide">{formatAddress(connectedWallet.address)}</span>
-                  <Button variant="ghost" size="sm" onClick={copyAddress} className="rounded-full bg-white/80 text-[#1437ff] shadow">
-                    {copied ? <CheckCircle className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
+      <div className="max-w-md w-full mx-auto pt-8 pb-0 px-4 flex flex-col items-center space-y-0 relative z-10">
+        {/* Main Balance Card (Figma style) */}
+        <PortfolioOverview wallet={connectedWallet} />
+
+        {/* QuickActions (Figma style) */}
+        <div className="w-full mt-6">
+          <QuickActions wallet={connectedWallet} />
         </div>
 
-        {/* White background from QuickActions to end of page (Figma) */}
-        <div className="relative bg-white rounded-b-[24px] pt-3 pb-5 px-3 shadow-lg z-20 border border-gray-50 overflow-hidden font-['Montserrat_Alternates',sans-serif]">
-          {/* Curved SVG transition at top (Figma) */}
-          <div className="absolute left-0 top-[-24px] w-full h-[32px] pointer-events-none z-10">
-            <svg width="100%" height="32" viewBox="0 0 400 32" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-              <path d="M0,32 Q200,0 400,32" fill="white" />
-            </svg>
-          </div>
-          {/* subtle top handle (visual) */}
-          <div className="absolute left-1/2 -top-2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gray-200 z-20"></div>
-
-          <div className="space-y-3">
-            {/* Quick action buttons (3-column grid like Figma) */}
-            <QuickActions wallet={connectedWallet} />
-
-            {/* Recent transactions list */}
-            <div>
-              <RecentTransactions wallet={connectedWallet} />
-            </div>
-          </div>
+        {/* Recent Transactions (Figma style) */}
+        <div className="w-full mt-4">
+          <RecentTransactions wallet={connectedWallet} />
         </div>
-
       </div>
     </div>
-  )
+  );
 }
 
 // Export dynamic component with no SSR

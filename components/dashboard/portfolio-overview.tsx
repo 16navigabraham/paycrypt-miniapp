@@ -118,6 +118,8 @@ async function fetchPrices() {
 	}
 }
 
+const imgPngtreeWhiteGridCartoonPngMaterial46759121 = "https://www.figma.com/api/mcp/asset/90c2d2c4-b46c-41b3-9ade-15b7be0a1c0f";
+
 export function PortfolioOverview({ wallet }: { wallet: any }) {
 	const [mounted, setMounted] = useState(false);
 	const [balances, setBalances] = useState<any[]>([]);
@@ -251,7 +253,7 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
 			<div className="absolute left-0 top-0 w-full h-[180px] rounded-t-[40px] z-0" style={{background: "linear-gradient(161.4deg, rgba(0,0,0,0) 45.1%, rgba(20,55,255,0.7) 101.86%), linear-gradient(183.59deg, rgba(0,0,0,1) 60.2%, rgba(212,255,22,1) 116.67%)"}} />
 
 			{/* Grid overlay (Figma asset) */}
-			<img src="https://www.figma.com/api/mcp/asset/c181c8fc-ef9b-4d92-94d7-f5f468faa966" alt="grid overlay" className="absolute left-0 top-0 w-full h-[180px] object-cover opacity-20 pointer-events-none z-0" />
+			<img src={imgPngtreeWhiteGridCartoonPngMaterial46759121} alt="grid overlay" className="absolute left-0 top-0 w-full h-[180px] object-cover opacity-20 pointer-events-none z-0" />
 
 			{/* Main balance card */}
 			<div className="relative z-10 flex flex-col items-center justify-center w-full pt-6 pb-4">

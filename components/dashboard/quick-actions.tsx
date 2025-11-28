@@ -13,16 +13,21 @@ const actions = [
 	{ name: "Electricity", icon: "/electricity.png", href: "/electricity", color: "from-yellow-500 to-orange-600" },
 ]
 
+const imgQuickActionsGridOverlay = "https://www.figma.com/api/mcp/asset/90c2d2c4-b46c-41b3-9ade-15b7be0a1c0f"
+
 export function QuickActions({ wallet }: { wallet: any }) {
 	 return (
-	 	<div className="space-y-4">
+	 	<div className="relative space-y-4">
 	 		{/* Figma-style grid layout - 3 columns */}
-	 		<div className="grid grid-cols-3 gap-4">
+	 		<div className="grid grid-cols-3 gap-4 relative">
+				{/* Grid overlay (Figma asset) */}
+				<img src={imgQuickActionsGridOverlay} alt="grid overlay" className="absolute left-0 top-0 w-full h-full object-cover opacity-20 pointer-events-none z-0" />
+
 				{actions.map((action) => (
 						<Button
 							key={action.name}
 							variant="ghost"
-							className="h-auto p-0 flex flex-col items-center space-y-1.5 hover:bg-transparent border-0 transition-all group"
+							className="h-auto p-0 flex flex-col items-center space-y-1.5 hover:bg-transparent border-0 transition-all group relative z-10"
 							asChild
 						>
 							<a aria-label={action.name} href={action.href + (wallet?.address ? `?wallet=${wallet.address}` : "")} className="w-full">

@@ -34,6 +34,8 @@ interface Props {
   wallet: { address: string } | null
 }
 
+const imgRecentTransactionsGridOverlay = "https://www.figma.com/api/mcp/asset/90c2d2c4-b46c-41b3-9ade-15b7be0a1c0f";
+
 export default function RecentTransactions({ wallet }: Props) {
   const [mounted, setMounted] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -106,13 +108,16 @@ export default function RecentTransactions({ wallet }: Props) {
   }
 
   return (
-    <div className="bg-white dark:bg-black border p-4 rounded-lg shadow-sm">
-      <h2 className="text-xl font-semibold mb-4">Recent Transactions</h2>
-      {loading && <p className="text-muted-foreground">Loading...</p>}
+    <div className="relative bg-white dark:bg-black border p-4 rounded-lg shadow-sm">
+      {/* Grid overlay (Figma asset) */}
+      <img src={imgRecentTransactionsGridOverlay} alt="grid overlay" className="absolute left-0 top-0 w-full h-full object-cover opacity-20 pointer-events-none z-0" />
+
+      <h2 className="text-xl font-semibold mb-4 relative z-10">Recent Transactions</h2>
+      {loading && <p className="text-muted-foreground relative z-10">Loading...</p>}
       {!loading && transactions.length === 0 && (
-        <p className="text-muted-foreground">No recent transactions found.</p>
+        <p className="text-muted-foreground relative z-10">No recent transactions found.</p>
       )}
-      <ul className="space-y-2">
+      <ul className="space-y-2 relative z-10">
         {transactions.map((txn) => (
           <li key={txn.requestId} className="text-sm">
             <div className="flex justify-between items-center">
@@ -144,7 +149,7 @@ export default function RecentTransactions({ wallet }: Props) {
           </li>
         ))}
       </ul>
-      <div className="text-right mt-4">
+      <div className="text-right mt-4 relative z-10">
         <Link href="/history" className="text-blue-500 hover:underline text-sm">
           View All →
         </Link>
