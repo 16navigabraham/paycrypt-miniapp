@@ -583,7 +583,7 @@ function DashboardClient() {
         <PortfolioOverview wallet={connectedWallet} className="bg-gradient-to-br from-[#d4ff16] to-[#1437ff] rounded-[40px] shadow-lg" />
 
         {/* QuickActions (Figma style) */}
-        <div className="w-full mt-4 bg-gradient-to-br from-[#ffffff] to-[#f6f8ff] rounded-t-[30px] pt-4 pb-6 px-3 relative">
+        <div className="w-full -mt-6 bg-gradient-to-br from-[#ffffff] to-[#f6f8ff] rounded-t-[30px] pt-4 pb-6 px-3 relative z-0">
           <div className="absolute left-0 top-0 w-full h-full bg-white opacity-10 rounded-t-[30px] pointer-events-none z-0" />
           <QuickActions wallet={connectedWallet} />
         </div>

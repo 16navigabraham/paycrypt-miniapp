@@ -34,7 +34,7 @@ interface Props {
   wallet: { address: string } | null
 }
 
-const imgRecentTransactionsGridOverlay = "https://www.figma.com/api/mcp/asset/90c2d2c4-b46c-41b3-9ade-15b7be0a1c0f";
+const imgRecentTransactionsGridOverlay = "https://www.figma.com/api/mcp/asset/0cd7906c-bcfd-4b4f-8a51-de6de026a2fc";
 
 export default function RecentTransactions({ wallet }: Props) {
   const [mounted, setMounted] = useState(false);
@@ -111,7 +111,7 @@ export default function RecentTransactions({ wallet }: Props) {
   return (
     <div className="relative bg-white dark:bg-black border p-3 rounded-lg shadow-sm overflow-hidden">
       {/* Grid overlay (Figma asset) */}
-      <img src={imgRecentTransactionsGridOverlay} alt="grid overlay" className="absolute left-0 top-0 w-full h-full object-cover opacity-10 pointer-events-none z-0 rounded-lg" />
+      <img src={imgRecentTransactionsGridOverlay} alt="grid overlay" className="absolute left-0 top-0 w-full h-full object-cover opacity-20 pointer-events-none z-0 rounded-lg" />
 
       <h2 className="text-base font-semibold mb-2 relative z-10">Recent Transactions</h2>
       {loading && <p className="text-muted-foreground relative z-10">Loading...</p>}

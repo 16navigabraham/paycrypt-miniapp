@@ -118,7 +118,7 @@ async function fetchPrices() {
 	}
 }
 
-const imgPngtreeWhiteGridCartoonPngMaterial46759121 = "https://www.figma.com/api/mcp/asset/4e6f6755-49bb-454e-9980-55c445b10ce6";
+const imgPngtreeWhiteGridCartoonPngMaterial46759121 = "https://www.figma.com/api/mcp/asset/0cd7906c-bcfd-4b4f-8a51-de6de026a2fc";
 
 export function PortfolioOverview({ wallet, className }: { wallet: any; className?: string }) {
 	const [mounted, setMounted] = useState(false);
@@ -247,7 +247,7 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 	}
 
 	// Figma-inspired card layout, keeping currency toggle button
-	const baseClasses = "relative w-full flex flex-col items-center justify-center py-6 px-0 rounded-[40px] font-['Montserrat_Alternates'],sans-serif shadow-lg overflow-hidden";
+	const baseClasses = "relative z-20 w-full flex flex-col items-center justify-center py-6 px-0 rounded-[40px] font-['Montserrat_Alternates'],sans-serif shadow-lg overflow-hidden";
 	const defaultBg = 'bg-gradient-to-br from-[#d4ff16] to-[#1437ff]';
 	const rootClass = className ? `${baseClasses} ${className}` : `${baseClasses} ${defaultBg}`;
 
@@ -263,7 +263,7 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 			/>
 
 			{/* Grid overlay (Figma asset) */}
-			<img src={imgPngtreeWhiteGridCartoonPngMaterial46759121} alt="grid overlay" className="absolute left-0 top-0 w-full h-[180px] object-cover opacity-10 pointer-events-none z-0 rounded-t-[40px]" />
+			<img src={imgPngtreeWhiteGridCartoonPngMaterial46759121} alt="grid overlay" className="absolute left-0 top-0 w-full h-[180px] object-cover opacity-20 pointer-events-none z-0 rounded-t-[40px]" />
 
 			{/* Main balance card */}
 			<div className="relative z-10 flex flex-col items-center justify-center w-full pt-6 pb-4">
