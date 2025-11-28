@@ -244,36 +244,57 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
 		);
 	}
 
-	// Centered balance display for dashboard header matching Figma design
+	// Figma-inspired card layout, keeping currency toggle button
 	return (
-		<div className="w-full">
-			{/* Main balance display - Large and centered */}
-			<div className="flex flex-col items-center justify-center space-y-3">
-				{loading ? (
-					<div className="animate-pulse">
-						<div className="h-12 w-40 bg-white/20 rounded"></div>
+		<div className="relative w-full flex flex-col items-center justify-center py-6 px-0 bg-[#fdfdfd] rounded-[40px] font-['Montserrat_Alternates',sans-serif] shadow-lg overflow-hidden">
+			{/* Gradient background (Figma) */}
+			<div className="absolute left-0 top-0 w-full h-[180px] rounded-t-[40px] z-0" style={{background: "linear-gradient(161.4deg, rgba(0,0,0,0) 45.1%, rgba(20,55,255,0.7) 101.86%), linear-gradient(183.59deg, rgba(0,0,0,1) 60.2%, rgba(212,255,22,1) 116.67%)"}} />
+
+			{/* Grid overlay (Figma asset) */}
+			<img src="https://www.figma.com/api/mcp/asset/c181c8fc-ef9b-4d92-94d7-f5f468faa966" alt="grid overlay" className="absolute left-0 top-0 w-full h-[180px] object-cover opacity-20 pointer-events-none z-0" />
+
+			{/* Main balance card */}
+			<div className="relative z-10 flex flex-col items-center justify-center w-full pt-6 pb-4">
+				{/* Wallet address badge (Figma style) */}
+				{wallet?.address && (
+					<div className="flex items-center justify-center mb-2">
+						<div className="bg-white border border-[#1687ff] rounded-[10px] px-4 py-1">
+							<span className="font-['Montserrat_Alternates:Medium',sans-serif] text-[12px] text-black tracking-wide">{wallet.address.slice(0,6)}...{wallet.address.slice(-4)}</span>
+						</div>
 					</div>
-				) : (
-					<>
-						<span className="text-5xl font-bold text-white tracking-tight">
+				)}
+
+				{/* Main balance display - Figma style */}
+				<div className="flex flex-col items-center justify-center">
+					{loading ? (
+						<div className="animate-pulse">
+							<div className="h-12 w-40 bg-white/20 rounded"></div>
+						</div>
+					) : (
+						<span className="text-[40px] font-['Montserrat_Alternates:SemiBold',sans-serif] text-white tracking-[9px] drop-shadow-lg">
 							{formatValue(
 								currencyDisplay === 'usd' ? totalValueUSD : totalValueNGN,
 								currencyDisplay
 							)}
 						</span>
-						
-						{/* Currency toggle button */}
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={toggleCurrencyDisplay}
-							className="text-sm text-purple-200 hover:text-white hover:bg-white/10 px-3 py-1 h-auto rounded-full"
-						>
-							{currencyDisplay === 'usd' ? 'Switch to ₦ NGN' : 'Switch to $ USD'}
-						</Button>
-					</>
-				)}
+					)}
+				</div>
+
+				{/* Currency toggle button (preserved) */}
+				<Button
+					variant="ghost"
+					size="sm"
+					onClick={toggleCurrencyDisplay}
+					className="text-sm text-purple-200 hover:text-white hover:bg-white/10 px-3 py-1 h-auto rounded-full font-['Montserrat_Alternates:Medium',sans-serif] mt-2"
+				>
+					{currencyDisplay === 'usd' ? 'Switch to ₦ NGN' : 'Switch to $ USD'}
+				</Button>
 			</div>
+
+			{/* Decorative circles (Figma) */}
+			<div className="absolute left-[-40px] top-[-40px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0" />
+			<div className="absolute right-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1437ff] opacity-10 rounded-full z-0" />
+			<div className="absolute right-[-50px] bottom-[-50px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0" />
 		</div>
 	)
 }

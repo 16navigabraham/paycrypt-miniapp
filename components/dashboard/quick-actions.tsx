@@ -27,13 +27,13 @@ export function QuickActions({ wallet }: { wallet: any }) {
 						>
 							<a aria-label={action.name} href={action.href + (wallet?.address ? `?wallet=${wallet.address}` : "")} className="w-full">
 								<div
-									className={`h-16 w-16 rounded-[14px] bg-gradient-to-br ${action.color} flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all mx-auto`}
+									className={`h-20 w-20 rounded-[16px] bg-gradient-to-br ${action.color} flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all mx-auto`}
 								>
 									<Image 
 										src={action.icon} 
 										alt={action.name}
-										width={30}
-										height={30}
+										width={40}
+										height={40}
 										className="object-contain"
 									/>
 								</div>
@@ -45,19 +45,19 @@ export function QuickActions({ wallet }: { wallet: any }) {
 				))}
 			</div>
 
-			{/* Convert CTA — full width button matching Figma */}
-			<div className="mt-2">
-				<Button asChild className="w-full p-0">
-					<Link href={wallet?.address ? `/convert?wallet=${wallet.address}` : '/convert'} className="block w-full">
-						<div className="w-full rounded-2xl border-2 border-[#d4ff16] px-4 py-3 flex items-center justify-between shadow-md">
-							<span className="text-sm font-semibold text-[#0f2bd9]">Convert Cryptocurrency to Fiat</span>
-							<div className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-[#1437ff] text-white">
-								<ChevronRight className="h-4 w-4" />
-							</div>
-						</div>
-					</Link>
-				</Button>
-			</div>
+			   {/* Convert CTA — pixel-perfect Figma style */}
+			   <div className="mt-2">
+				   <Button asChild className="w-full p-0 bg-gradient-to-r from-[#d4ff16] to-[#1437ff] border-0 shadow-lg rounded-2xl transition-all hover:scale-[1.02]">
+					   <Link href={wallet?.address ? `/convert?wallet=${wallet.address}` : '/convert'} className="block w-full">
+						   <div className="w-full flex items-center justify-between px-4 py-3">
+							   <span className="text-base font-bold text-white drop-shadow-sm tracking-wide">Convert Crypto to Fiat</span>
+							   <div className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-white shadow-md">
+								   <Image src="/convert crypto.png" alt="convert" width={22} height={22} className="object-contain" />
+							   </div>
+						   </div>
+					   </Link>
+				   </Button>
+			   </div>
 			</div>
 		)
 }
