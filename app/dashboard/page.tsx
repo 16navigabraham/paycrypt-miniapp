@@ -579,8 +579,8 @@ function DashboardClient() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="max-w-md w-full mx-auto pt-8 pb-0 px-4 flex flex-col items-center space-y-0 relative z-10">
-        {/* Main Balance Card (Figma style) */}
-        <PortfolioOverview wallet={connectedWallet} className="bg-gradient-to-br from-[#d4ff16] to-[#1437ff] rounded-[40px] shadow-lg" />
+        {/* Main Balance Card (Figma style) - PortfolioOverview manages its own background */}
+        <PortfolioOverview wallet={connectedWallet} />
 
         {/* QuickActions (Figma style) */}
         <div className="w-full -mt-6 bg-gradient-to-br from-[#ffffff] to-[#f6f8ff] rounded-t-[30px] pt-4 pb-6 px-3 relative z-0">
