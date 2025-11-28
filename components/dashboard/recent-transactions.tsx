@@ -109,16 +109,16 @@ export default function RecentTransactions({ wallet }: Props) {
 
 
   return (
-    <div className="relative bg-white dark:bg-black border p-3 rounded-lg shadow-sm">
+    <div className="relative bg-white dark:bg-black border p-3 rounded-lg shadow-sm overflow-hidden">
       {/* Grid overlay (Figma asset) */}
-      <img src={imgRecentTransactionsGridOverlay} alt="grid overlay" className="absolute left-0 top-0 w-full h-full object-cover opacity-16 pointer-events-none z-0" />
+      <img src={imgRecentTransactionsGridOverlay} alt="grid overlay" className="absolute left-0 top-0 w-full h-full object-cover opacity-10 pointer-events-none z-0 rounded-lg" />
 
-      <h2 className="text-lg font-semibold mb-3 relative z-10">Recent Transactions</h2>
+      <h2 className="text-base font-semibold mb-2 relative z-10">Recent Transactions</h2>
       {loading && <p className="text-muted-foreground relative z-10">Loading...</p>}
       {!loading && transactions.length === 0 && (
         <p className="text-muted-foreground relative z-10">No recent transactions found.</p>
       )}
-      <ul className="space-y-3 relative z-10">
+      <ul className="space-y-2 relative z-10">
         {transactions.map((txn) => (
           <li key={txn.requestId} className="text-sm">
             <div className="flex justify-between items-start">
@@ -130,7 +130,7 @@ export default function RecentTransactions({ wallet }: Props) {
                   {new Date(txn.createdAt).toLocaleString()}
                 </div>
               </div>
-              <div className="flex items-center gap-2 ml-3">
+                <div className="flex items-center gap-2 ml-3">
                 <span
                   className={`text-xs ${
                     txn.vtpassStatus === "successful"
@@ -142,7 +142,7 @@ export default function RecentTransactions({ wallet }: Props) {
                 >
                   {txn.vtpassStatus}
                 </span>
-                <Button size="sm" variant="outline" className="text-xs py-1 px-2">Print</Button>
+                <Button size="sm" variant="outline" className="text-xs h-7 py-1 px-2">Print</Button>
               </div>
             </div>
           </li>

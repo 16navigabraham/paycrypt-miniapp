@@ -263,7 +263,7 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 			/>
 
 			{/* Grid overlay (Figma asset) */}
-			<img src={imgPngtreeWhiteGridCartoonPngMaterial46759121} alt="grid overlay" className="absolute left-0 top-0 w-full h-[180px] object-cover opacity-20 pointer-events-none z-0" />
+			<img src={imgPngtreeWhiteGridCartoonPngMaterial46759121} alt="grid overlay" className="absolute left-0 top-0 w-full h-[180px] object-cover opacity-10 pointer-events-none z-0 rounded-t-[40px]" />
 
 			{/* Main balance card */}
 			<div className="relative z-10 flex flex-col items-center justify-center w-full pt-6 pb-4">
@@ -283,7 +283,7 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 							<div className="h-12 w-40 bg-white/20 rounded"></div>
 						</div>
 					) : (
-						<span className="text-[40px] font-['Montserrat_Alternates:SemiBold',sans-serif] text-white tracking-[9px] drop-shadow-lg">
+						<span className="text-[40px] font-['Montserrat_Alternates:SemiBold',sans-serif] text-white tracking-tight drop-shadow-lg">
 							{formatValue(
 								currencyDisplay === 'usd' ? totalValueUSD : totalValueNGN,
 								currencyDisplay
