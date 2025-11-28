@@ -120,92 +120,75 @@ export default function HistoryPage() {
   }
 
   return (
-    <AuthGuard>
-      <div className="container py-10">
-        <BackToDashboard />
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Transaction History</h1>
-          <p className="text-muted-foreground">
-            Here are your past transactions
-          </p>
+    <div className="container py-10">
+      <BackToDashboard />
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">Transaction History</h1>
+        <p className="text-muted-foreground">Here are your past transactions</p>
+      </div>
+
+      {loading && (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading transaction history...</p>
         </div>
+      )}
 
-        {loading && (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading transaction history...</p>
-          </div>
-        )}
+      {!loading && transactions.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">No transactions found for this wallet.</p>
+          <p className="text-sm text-gray-500">Complete your first transaction to see it appear here.</p>
+        </div>
+      )}
 
-        {!loading && transactions.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground mb-4">No transactions found for this wallet.</p>
-            <p className="text-sm text-gray-500">
-              Complete your first transaction to see it appear here.
-            </p>
-          </div>
-        )}
-
-        <div className="space-y-4">
-          {transactions.map((txn) => (
-            <div
-              key={txn.requestId}
-              className="border p-4 rounded-md cursor-pointer hover:shadow-md transition-shadow bg-white"
-              onClick={() => openModal(txn)}
-            >
-                      <div className="flex items-start">
-                        <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center mr-3">
-                          <ServiceIcon serviceType={txn.serviceType} />
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-sm mb-1">
-                            {txn.serviceType.toUpperCase()} • ₦{txn.amountNaira.toLocaleString()} • {txn.cryptoUsed} {txn.cryptoSymbol}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Customer: {txn.customerIdentifier}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(txn.createdAt).toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                <div className="flex flex-col items-end space-y-1">
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      txn.vtpassStatus === "successful"
-                        ? "bg-green-100 text-green-700"
-                        : txn.vtpassStatus === "pending"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {txn.vtpassStatus}
-                  </span>
-                  {txn.transactionHash && (
-                    <span className="text-xs text-blue-600 font-mono">
-                      {txn.transactionHash.slice(0, 8)}...
-                    </span>
-                  )}
-                </div>
+      <div className="space-y-4">
+        {transactions.map((txn) => (
+          <div
+            key={txn.requestId}
+            className="border p-4 rounded-md cursor-pointer hover:shadow-md transition-shadow bg-white"
+            onClick={() => openModal(txn)}
+          >
+            <div className="flex items-start">
+              <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center mr-3">
+                <ServiceIcon serviceType={txn.serviceType} />
               </div>
-              
-              {/* Additional transaction details */}
-              <div className="flex justify-between items-center text-xs text-muted-foreground border-t pt-2 mt-2">
-                <span>Request ID: {txn.requestId.slice(0, 8)}...</span>
-                <span>Chain Status: {txn.onChainStatus}</span>
+              <div className="flex-1">
+                <div className="font-medium text-sm mb-1">
+                  {txn.serviceType.toUpperCase()} • ₦{txn.amountNaira.toLocaleString()} • {txn.cryptoUsed} {txn.cryptoSymbol}
+                </div>
+                <div className="text-xs text-muted-foreground">Customer: {txn.customerIdentifier}</div>
+                <div className="text-xs text-muted-foreground">{new Date(txn.createdAt).toLocaleString()}</div>
               </div>
             </div>
-          ))}
-        </div>
+            <div className="flex flex-col items-end space-y-1">
+              <span
+                className={`text-xs px-2 py-1 rounded-full font-medium ${
+                  txn.vtpassStatus === "successful"
+                    ? "bg-green-100 text-green-700"
+                    : txn.vtpassStatus === "pending"
+                    ? "bg-yellow-100 text-yellow-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {txn.vtpassStatus}
+              </span>
+              {txn.transactionHash && (
+                <span className="text-xs text-blue-600 font-mono">{txn.transactionHash.slice(0, 8)}...</span>
+              )}
+            </div>
 
-        {selectedOrder && (
-          <TransactionReceiptModal
-            isOpen={isModalOpen}
-            onClose={closeModal}
-            order={selectedOrder}
-          />
-        )}
+            {/* Additional transaction details */}
+            <div className="flex justify-between items-center text-xs text-muted-foreground border-t pt-2 mt-2">
+              <span>Request ID: {txn.requestId.slice(0, 8)}...</span>
+              <span>Chain Status: {txn.onChainStatus}</span>
+            </div>
+          </div>
+        ))}
       </div>
-    </AuthGuard>
+
+      {selectedOrder && (
+        <TransactionReceiptModal isOpen={isModalOpen} onClose={closeModal} order={selectedOrder} />
+      )}
+    </div>
   )
 }
