@@ -384,10 +384,6 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 				</div>
 			</div>
 
-			{/* Decorative circles (Figma) */}
-			<div className="absolute left-[-40px] top-[-40px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0" />
-			<div className="absolute right-[-30px] top-[-30px] w-[80px] h-[80px] bg-[#1437ff] opacity-10 rounded-full z-0" />
-			<div className="absolute right-[-50px] bottom-[-50px] w-[120px] h-[120px] bg-[#d4ff16] opacity-10 rounded-full z-0" />
 		</div>
 	)
 }
