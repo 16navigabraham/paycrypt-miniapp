@@ -141,9 +141,7 @@ export default function RecentTransactions({ wallet }: Props) {
                 >
                   {txn.vtpassStatus}
                 </span>
-                <Button size="sm" variant="outline" onClick={() => openModal(txn)}>
-                  Print Receipt
-                </Button>
+                <Button size="sm" variant="outline" className="text-xs">Print Receipt</Button>
               </div>
             </div>
           </li>

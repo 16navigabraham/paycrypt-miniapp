@@ -118,7 +118,7 @@ async function fetchPrices() {
 	}
 }
 
-const imgPngtreeWhiteGridCartoonPngMaterial46759121 = "https://www.figma.com/api/mcp/asset/90c2d2c4-b46c-41b3-9ade-15b7be0a1c0f";
+const imgPngtreeWhiteGridCartoonPngMaterial46759121 = "https://www.figma.com/api/mcp/asset/4e6f6755-49bb-454e-9980-55c445b10ce6";
 
 export function PortfolioOverview({ wallet }: { wallet: any }) {
 	const [mounted, setMounted] = useState(false);
@@ -248,7 +248,7 @@ export function PortfolioOverview({ wallet }: { wallet: any }) {
 
 	// Figma-inspired card layout, keeping currency toggle button
 	return (
-		<div className="relative w-full flex flex-col items-center justify-center py-6 px-0 bg-[#fdfdfd] rounded-[40px] font-['Montserrat_Alternates',sans-serif] shadow-lg overflow-hidden">
+		<div className="relative w-full flex flex-col items-center justify-center py-6 px-0 bg-gradient-to-br from-[#d4ff16] to-[#1437ff] rounded-[40px] font-['Montserrat_Alternates',sans-serif] shadow-lg overflow-hidden">
 			{/* Gradient background (Figma) */}
 			<div className="absolute left-0 top-0 w-full h-[180px] rounded-t-[40px] z-0" style={{background: "linear-gradient(161.4deg, rgba(0,0,0,0) 45.1%, rgba(20,55,255,0.7) 101.86%), linear-gradient(183.59deg, rgba(0,0,0,1) 60.2%, rgba(212,255,22,1) 116.67%)"}} />
 

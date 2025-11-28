@@ -37,8 +37,8 @@ export function QuickActions({ wallet }: { wallet: any }) {
 									<Image 
 										src={action.icon} 
 										alt={action.name}
-										width={40}
-										height={40}
+										width={32}
+										height={32}
 										className="object-contain"
 									/>
 								</div>
