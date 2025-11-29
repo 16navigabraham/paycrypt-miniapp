@@ -489,7 +489,7 @@ export default function InternetPage() {
 
             {/* Only show Request ID as requested */}
              <div className="w-80 h-[643px] left-[25px] top-[140px] absolute bg-white/90 rounded-[45px] border-2 border-lime-400 p-6 overflow-hidden">
-        <div className="flex flex-col gap-4 h-full">
+              <div className="flex flex-col gap-4 h-full">
                           {/* Pay With */}
                     <div className="text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
                             Pay With

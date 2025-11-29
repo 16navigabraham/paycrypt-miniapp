@@ -587,108 +587,61 @@ export default function ElectricityPage() {
   // Don't render until mounted
   if (!mounted || walletLoading) {
     return (
-      <div className="container py-10 max-w-xl mx-auto">
-        <div className="flex items-center justify-center p-10">
-          <Loader2 className="w-8 h-8 animate-spin mr-2" />
-          <span>Loading...</span>
-        </div>
+      <div className="flex items-center justify-center p-10">
+        <Loader2 className="w-8 h-8 animate-spin mr-2" />
+        <span>Loading...</span>
       </div>
     );
   }
 
   if (loading) return (
-    <div className="container py-10 max-w-xl mx-auto">
-      <div className="flex items-center justify-center p-10">
-        <Loader2 className="w-8 h-8 animate-spin mr-2" />
-        <span>Loading active tokens...</span>
-      </div>
+    <div className="flex items-center justify-center p-10">
+      <Loader2 className="w-8 h-8 animate-spin mr-2" />
+      <span>Loading active tokens...</span>
     </div>
   );
 
-  return (
-    <div className="container py-10 max-w-xl mx-auto">
-      <BackToDashboard />
-      {/* <h1 className="text-3xl font-bold mb-4">Pay Electricity Bill</h1>
-      <p className="text-muted-foreground mb-8">
-        Pay your electricity bills using ERC20 cryptocurrencies on Base chain.
-      </p> */}
-
-      {/* Connection Status */}
-      {address && (
-        <div className="text-sm p-3 bg-green-50 border border-green-200 rounded-lg mb-6">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <Wifi className="w-4 h-4 text-green-500" />
-            <span className="text-green-700">
-              Wallet Connected: {address.slice(0, 6)}...{address.slice(-4)}
-              {isOnBaseChain && <span className="ml-2 text-xs">(Base Chain ✓)</span>}
-            </span>
+    return (
+    <div className="w-96 h-[1026px] relative bg-white rounded-[60px] overflow-hidden">
+          <div className="absolute left-4 right-4 top-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/90 rounded-xl shadow-sm">
+            <BackToDashboard />
+            <div className="text-black text-2xl font-semibold font-['Montserrat_Alternates'] tracking-[3.60px]">
+              Crypto to Electricity Payment
+            </div>
           </div>
-        </div>
-      )}
+      
 
-      {!address && (
-        <div className="text-sm p-3 bg-orange-50 border border-orange-200 rounded-lg mb-6">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-orange-500" />
-            <span className="text-orange-700">
-              No wallet connected. Please ensure you're accessing this through the mini app.
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Base Chain Warning */}
-      {address && !isOnBaseChain && (
-        <div className="text-sm p-3 bg-red-50 border border-red-200 rounded-lg mb-6">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500" />
-            <span className="text-red-700">
-              Please switch to Base network to continue. Transactions will auto-switch when needed.
-            </span>
-          </div>
-        </div>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Crypto to Electricity Payment</CardTitle>
-          <CardDescription>
-            Preview and calculate your electricity bill payment with crypto
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Token selection - ERC20 only */}
-          <div className="space-y-2">
-            <Label htmlFor="token-select">Pay With (ERC20 Tokens Only)</Label>
-            <Select value={selectedToken} onValueChange={setSelectedToken}>
-              <SelectTrigger id="token-select">
-                <SelectValue placeholder="Select ERC20 token" />
-              </SelectTrigger>
-              <SelectContent>
-                {activeTokens.length === 0 ? (
-                  <SelectItem value="" disabled>No ERC20 tokens available</SelectItem>
-                ) : (
-                  activeTokens.map(t => (
-                    <SelectItem key={t.address} value={t.address}>
-                      {t.symbol} - {t.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            {activeTokens.length === 0 && !loading && (
-              <p className="text-sm text-yellow-600">
-                No active ERC20 tokens found from contract.
-              </p>
-            )}
-          </div>
-
+      {/* inner panel */}
+      <div className="absolute left-[25px] top-[140px] w-80 h-[849px] bg-white/90 rounded-[45px] border-2 border-lime-400 p-6 overflow-auto">
+        <div className="flex flex-col gap-4 h-full">
+                                    {/* Pay With */}
+                              <div className="text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
+                                      Pay With
+                              <div className="w-full bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
+                                  <Select value={selectedToken} onValueChange={setSelectedToken}>
+                                      <SelectTrigger>
+                                          <SelectValue placeholder="Select ERC20 token" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                          {activeTokens.length === 0 ? (
+                                              <SelectItem value="" disabled>No ERC20 tokens available</SelectItem>
+                                          ) : (
+                                              activeTokens.map((c) => (
+                                                  <SelectItem key={c.address} value={c.address}>
+                                                      {c.symbol} - {c.name}
+                                                  </SelectItem>
+                                              ))
+                                          )}
+                                      </SelectContent>
+                                  </Select>
+                              </div>
+                              </div>
+                              
           {/* Provider */}
           <div className="space-y-2">
             <Label htmlFor="provider-select">Electricity Provider</Label>
             <Select value={provider} onValueChange={setProvider}>
-              <SelectTrigger id="provider-select">
+              <SelectTrigger id="provider-select" className="rounded-[20px] border border-black/20 h-12 px-3">
                 <SelectValue placeholder="Select provider" />
               </SelectTrigger>
               <SelectContent>
@@ -705,7 +658,7 @@ export default function ElectricityPage() {
           <div className="space-y-2">
             <Label htmlFor="meter-type-select">Meter Type</Label>
             <Select value={plan} onValueChange={setPlan} disabled={!provider || loadingPlans}>
-              <SelectTrigger id="meter-type-select">
+              <SelectTrigger id="meter-type-select" className="rounded-[20px] border border-black/20 h-12 px-3">
                 <SelectValue placeholder={loadingPlans ? "Loading..." : "Select type"} />
               </SelectTrigger>
               <SelectContent>
@@ -734,8 +687,9 @@ export default function ElectricityPage() {
                 setCustomerName("")
                 setCustomerAddress("")
               }}
-              maxLength={plan ? Math.max(...getMeterLength(plan)) : undefined} 
+              maxLength={plan ? Math.max(...getMeterLength(plan)) : undefined}
               disabled={!plan}
+              className="rounded-[20px] border border-black/20 shadow-[0_2px_4px_rgba(0,0,0,0.25)] h-12 px-3"
             />
             {verifyingMeter && (
               <div className="flex items-center space-x-2 text-sm text-blue-600">
@@ -761,7 +715,7 @@ export default function ElectricityPage() {
           {customerName && (
             <div className="space-y-2">
               <Label>Customer Name</Label>
-              <Input value={customerName} readOnly className="bg-green-50 text-black" />
+              <Input value={customerName} readOnly className="bg-green-50 text-black rounded-[12px]" />
             </div>
           )}
           {customerAddress && (
@@ -782,71 +736,43 @@ export default function ElectricityPage() {
               placeholder="Enter amount in Naira, minimum ₦500"
               value={amount}
               onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === "" || val === "0") {
-                      setAmount("");
-                  } else {
-                      setAmount(String(Math.max(0, parseInt(val))));
-                  }
+                const val = e.target.value;
+                if (val === "" || val === "0") {
+                  setAmount("");
+                } else {
+                  setAmount(String(Math.max(0, parseInt(val))));
+                }
               }}
+              className="rounded-[20px] border border-black/20 h-12 px-3"
             />
           </div>
 
           {/* Phone Number */}
           <div className="space-y-2">
               <Label htmlFor="phone">Phone Number (for receipt/notifications)</Label>
-              <Input
+                <Input
                   id="phone"
                   type="tel"
                   placeholder="e.g. 080*********"
                   maxLength={11}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-              />
+                  className="rounded-[20px] border border-black/20 h-12 px-3"
+                />
           </div>
 
-          {/* ERC20 Token Approval Info */}
-          <div className="text-sm p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-center gap-2">
-              <Info className="w-4 h-4 text-blue-500" />
-              <span className="text-blue-700">
-                Token approval required for all ERC20 transactions
-              </span>
-            </div>
-          </div>
 
-          <div className="border-t pt-4 space-y-2">
-            {requestId && (
-              <div className="flex justify-between text-sm">
-                <span>Request ID:</span>
-                <span className="text-muted-foreground font-mono text-xs">{requestId}</span>
-              </div>
-            )}
-            <div className="flex justify-between text-sm">
-              <span>Amount (NGN):</span>
-              <span>
-                {amountNGN > 0 ? `₦${amountNGN.toLocaleString()}` : "--"}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>You will pay:</span>
-              <span>
-                {cryptoNeeded > 0 && selectedTokenObj ? (
-                  <Badge variant="outline">
-                    {cryptoNeeded.toFixed(selectedTokenObj?.decimals || 6)} {selectedTokenObj.symbol}
-                  </Badge>
-                ) : (
-                  "--"
-                )}
-              </span>
-            </div>
-          </div>
-
-          <Button
-              className="w-full"
-              onClick={handlePurchase}
-              disabled={isButtonDisabled}
-          >
+             <div className="mt-auto">
+                  <Button
+                     onClick={handlePurchase}
+                     disabled={isButtonDisabled}
+                    className="w-full h-14 rounded-[20px] flex items-center px-4"
+                     style={{
+                     borderRadius: "20px",
+                    background:
+                     "linear-gradient(91deg, rgba(0, 0, 0, 0.00) 0.52%, rgba(20, 55, 255, 0.50) 90.44%), linear-gradient(85deg, rgba(212, 255, 22, 0.50) 1.75%, rgba(0, 0, 0, 0.50) 35.67%), #302F2F",
+                      boxShadow: "0 2px 4px 0 rgba(0, 0, 0, 0.25)",
+                       }} >
               {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
               txStatus === 'approving' ? "Approving Token..." :
               txStatus === 'approvalSuccess' ? "Starting Payment..." :
@@ -862,16 +788,11 @@ export default function ElectricityPage() {
               "Fill all details and verify meter"}
           </Button>
 
-          {/* Active tokens info */}
-          {activeTokens.length > 0 && (
-            <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
-              <p className="font-medium mb-1">Active ERC20 Tokens ({activeTokens.length}):</p>
-              <p>{activeTokens.map(t => t.symbol).join(", ")}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
+           {/* Only show Request ID as requested */}
+                    <div className="w-full flex justify-center items-center text-xs text-muted-foreground">
+                      Request ID: <span className="inline-block font-mono">{requestId ?? "—"}</span>
+                    </div>
+
       <TransactionStatusModal
         isOpen={showTransactionModal}
         onClose={handleCloseModal}
@@ -882,6 +803,10 @@ export default function ElectricityPage() {
         requestId={requestId}
         backendDetails={backendDetails}  // Add this prop
       />
+        </div>
+      </div>
     </div>
+    </div>
+    
   )
 }
