@@ -398,228 +398,161 @@ export default function AirtimePage() {
   }
 
   return (
-    <div className="container py-10 max-w-xl mx-auto">
-      <BackToDashboard />
+    <div className="w-96 h-[812px] relative bg-white rounded-[60px] overflow-hidden">
+      <img className="w-4 h-4 left-[28px] top-[91px] absolute origin-top-left -rotate-180" src="https://placehold.co/18x18" alt="back" />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Crypto to Airtime Payment</CardTitle>
-          <CardDescription>
-            Preview and calculate your airtime purchase with crypto
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Connection Status */}
-          {address && (
-            <div className="text-sm p-3 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <Wifi className="w-4 h-4 text-green-500" />
-                <span className="text-green-700">
-                  Wallet Connected: {address.slice(0, 6)}...{address.slice(-4)}
-                  {isOnBaseChain && <span className="ml-2 text-xs">(Base Chain ✓)</span>}
-                </span>
-              </div>
-            </div>
-          )}
+      <div className="left-[35px] top-[53px] absolute justify-start text-black text-2xl font-semibold font-['Montserrat_Alternates'] tracking-[3.60px]">
+        Crypto to <br/>Airtime Payment
+      </div>
 
-          {!address && (
-            <div className="text-sm p-3 bg-orange-50 border border-orange-200 rounded-lg">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-orange-500" />
-                <span className="text-orange-700">
-                  No wallet connected. Please ensure you're accessing this through the mini app.
-                </span>
-              </div>
-            </div>
-          )}
+      <div className="w-80 h-[643px] left-[25px] top-[140px] absolute bg-white/90 rounded-[45px] border-2 border-lime-400" />
 
-          {/* Base Chain Warning */}
-          {address && !isOnBaseChain && (
-            <div className="text-sm p-3 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500" />
-                <span className="text-red-700">
-                  Please switch to Base network to continue. Transactions will auto-switch when needed.
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Token selection */}
-          <div className="space-y-2">
-            <Label htmlFor="token-select">Pay With</Label>
-            <Select value={selectedToken} onValueChange={setSelectedToken}>
-              <SelectTrigger id="token-select">
-                <SelectValue placeholder="Select ERC20 token" />
-              </SelectTrigger>
-              <SelectContent>
-                {activeTokens.length === 0 ? (
-                  <SelectItem value="" disabled>No ERC20 tokens available</SelectItem>
-                ) : (
-                  activeTokens.map(token => (
-                    <SelectItem key={token.address} value={token.address}>
-                      {token.symbol} - {token.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Network provider */}
-          <div className="space-y-2">
-            <Label htmlFor="network-select">Network Provider</Label>
-            <Select value={network} onValueChange={setNetwork}>
-              <SelectTrigger id="network-select">
-                <SelectValue placeholder="Select network" />
-              </SelectTrigger>
-              <SelectContent>
-                {NETWORKS.map(n => (
-                  <SelectItem key={n.serviceID} value={n.serviceID}>
-                    {n.name}
+      {/* Pay With */}
+      <div className="left-[61px] top-[166px] absolute justify-start text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
+        Pay With
+      </div>
+      <div className="w-64 h-14 left-[55px] top-[204px] absolute bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
+        <div className="left-[79px] top-[221px] absolute justify-start text-black text-base font-normal font-['Montserrat_Alternates'] tracking-widest pointer-events-none">
+          Select Tokens
+        </div>
+        <div className="h-full flex items-center">
+          <Select value={selectedToken} onValueChange={setSelectedToken}>
+            <SelectTrigger id="token-select" className="w-full">
+              <SelectValue placeholder="Select ERC20 token" />
+            </SelectTrigger>
+            <SelectContent>
+              {activeTokens.length === 0 ? (
+                <SelectItem value="" disabled>No ERC20 tokens available</SelectItem>
+              ) : (
+                activeTokens.map(token => (
+                  <SelectItem key={token.address} value={token.address}>
+                    {token.symbol} - {token.name}
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-          {/* Amount input */}
-          <div className="space-y-2">
-            <Label htmlFor="amount-input">Amount (NGN)</Label>
-            <Input
-              id="amount-input"
-              type="number"
-              placeholder="Enter amount (₦100 - ₦50,000)"
-              value={amount}
-              onChange={e => {
-                const val = e.target.value;
-                if (val === "" || val === "0") {
-                  setAmount("");
-                } else {
-                  const numVal = Math.max(0, parseInt(val));
-                  setAmount(String(Math.min(numVal, 50000)));
-                }
-              }}
-              min="100"
-              max="50000"
-              disabled={!selectedTokenObj}
-            />
-            {amountNGN > 0 && priceNGN && selectedTokenObj && (
-              <div className="text-sm text-muted-foreground flex items-center justify-between">
-                <span>
-                  You will pay: ~{cryptoNeeded.toFixed(selectedTokenObj.decimals)} {selectedTokenObj.symbol}
-                </span>
-                <Badge variant="secondary">
-                  1 {selectedTokenObj.symbol} = ₦{priceNGN?.toLocaleString()}
-                </Badge>
-              </div>
-            )}
-            {amountNGN > 0 && amountNGN < 100 && (
-              <p className="text-sm text-red-500">Minimum amount is ₦100.</p>
-            )}
-            {amountNGN > 50000 && (
-              <p className="text-sm text-red-500">Maximum amount is ₦50,000.</p>
-            )}
-          </div>
+      {/* Network Provider */}
+      <div className="left-[55px] top-[290px] absolute justify-start text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
+        Network Provider
+      </div>
+      <div className="w-64 h-14 left-[55px] top-[329px] absolute bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
+        <div className="left-[79px] top-[343px] absolute justify-start text-black text-base font-normal font-['Montserrat_Alternates'] tracking-widest pointer-events-none">
+          Select Network
+        </div>
+        <div className="h-full flex items-center">
+          <Select value={network} onValueChange={setNetwork}>
+            <SelectTrigger id="network-select" className="w-full">
+              <SelectValue placeholder="Select network" />
+            </SelectTrigger>
+            <SelectContent>
+              {NETWORKS.map(n => (
+                <SelectItem key={n.serviceID} value={n.serviceID}>
+                  {n.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-          {/* Phone number input */}
-          <div className="space-y-2">
-            <Label htmlFor="phone-input">Phone Number</Label>
-            <Input
-              id="phone-input"
-              type="tel"
-              placeholder="Enter phone number (11 digits)"
-              value={phone}
-              onChange={e => {
-                const v = e.target.value.replace(/\D/g, "")
-                setPhone(v.slice(0, 11))
-              }}
-              maxLength={11}
-            />
-            {phone && phone.length < 10 && (
-              <p className="text-sm text-red-500">Phone number must be at least 10 digits.</p>
-            )}
-          </div>
-
-          {/* Token approval info */}
-          {selectedTokenObj && (
-            <div className="text-sm p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-blue-500" />
-                <span className="text-blue-700">
-                  Token approval required for all ERC20 transactions
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Transaction summary */}
-          <div className="border-t pt-4 space-y-2 text-sm">
-            {requestId && (
-              <div className="flex justify-between">
-                <span>Request ID:</span>
-                <span className="text-muted-foreground font-mono text-xs">{requestId}</span>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <span>Amount (NGN):</span>
-              <span>{amountNGN > 0 ? `₦${amountNGN.toLocaleString()}` : "--"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>You will pay:</span>
-              <span>
-                {cryptoNeeded > 0 && selectedTokenObj ? (
-                  <Badge variant="outline">
-                    {cryptoNeeded.toFixed(selectedTokenObj.decimals)} {selectedTokenObj.symbol}
-                  </Badge>
-                ) : (
-                  "--"
-                )}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Network:</span>
-              <span>{NETWORKS.find(n => n.serviceID === network)?.name || "--"}</span>
-            </div>
-            {phone && (
-              <div className="flex justify-between">
-                <span>Phone:</span>
-                <span className="font-mono">{phone}</span>
-              </div>
-            )}
-          </div>
-          
-          <Button
+      {/* Amount */}
+      <div className="left-[61px] top-[412px] absolute justify-start text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
+        Amount
+      </div>
+      <div className="w-64 h-14 left-[55px] top-[441px] absolute bg-white rounded-[20px] border border-black/20 p-2">
+        <div className="left-[79px] top-[457px] absolute justify-start text-black/30 text-base font-normal font-['Montserrat_Alternates'] tracking-widest pointer-events-none">
+          Enter Amount
+        </div>
+        <div className="h-full flex items-center">
+          <Input
+            id="amount-input"
+            type="number"
+            placeholder="Enter amount (₦100 - ₦50,000)"
+            value={amount}
+            onChange={e => {
+              const val = e.target.value;
+              if (val === "" || val === "0") {
+                setAmount("");
+              } else {
+                const numVal = Math.max(0, parseInt(val));
+                setAmount(String(Math.min(numVal, 50000)));
+              }
+            }}
+            min={100}
+            max={50000}
+            disabled={!selectedTokenObj}
             className="w-full"
-            onClick={handlePurchase}
-            disabled={isButtonDisabled}
-          >
-            {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
-            txStatus === 'approving' ? "Approving Token..." :
-            txStatus === 'approvalSuccess' ? "Starting Payment..." :
-            txStatus === 'waitingForSignature' ? "Awaiting Payment..." :
-            txStatus === 'confirming' ? "Confirming..." :
-            txStatus === 'success' ? "Payment Confirmed!" :
-            txStatus === 'backendProcessing' ? "Processing Order..." :
-            txStatus === 'backendSuccess' ? "Airtime Delivered!" :
-            txStatus === 'backendError' ? "Order Failed - Try Again" :
-            txStatus === 'error' ? "Transaction Failed - Try Again" :
-            !isConnected ? "Wallet Not Connected" :
-            canPay ? "Purchase Airtime" :
-            "Fill all details"}
-          </Button>
+          />
+        </div>
+      </div>
 
-          {/* Active tokens info */}
-          {activeTokens.length > 0 && (
-            <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
-              <p className="font-medium mb-1">Active ERC20 Tokens ({activeTokens.length}):</p>
-              <p>{activeTokens.map(t => t.symbol).join(", ")}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
+      {/* Phone Number */}
+      <div className="left-[61px] top-[527px] absolute justify-start text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
+        Phone Number
+      </div>
+      <div className="w-64 h-14 left-[55px] top-[557px] absolute bg-white rounded-[20px] border border-black/20 p-2">
+        <div className="left-[77px] top-[575px] absolute justify-start text-black/30 text-base font-medium font-['Montserrat_Alternates'] tracking-widest pointer-events-none">
+          Enter Number
+        </div>
+        <div className="h-full flex items-center">
+          <Input
+            id="phone-input"
+            type="tel"
+            placeholder="Enter phone number (11 digits)"
+            value={phone}
+            onChange={e => {
+              const v = e.target.value.replace(/\D/g, "");
+              setPhone(v.slice(0, 11));
+            }}
+            maxLength={11}
+            className="w-full"
+          />
+        </div>
+      </div>
+
+      {/* Proceed Button */}
+      <div className="w-64 h-14 left-[55px] top-[679px] absolute bg-gradient-to-r from-black/0 to-blue-700/50 rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)]"></div>
+
+      <div className="left-[125px] top-[693px] absolute justify-start">
+        <Button
+          onClick={handlePurchase}
+          disabled={isButtonDisabled}
+          className="text-white text-2xl font-semibold font-['Montserrat_Alternates'] tracking-[3.60px]"
+        >
+          {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
+          txStatus === 'approving' ? "Approving Token..." :
+          txStatus === 'approvalSuccess' ? "Starting Payment..." :
+          txStatus === 'waitingForSignature' ? "Awaiting Payment..." :
+          txStatus === 'confirming' ? "Confirming..." :
+          txStatus === 'success' ? "Payment Confirmed!" :
+          txStatus === 'backendProcessing' ? "Processing Order..." :
+          txStatus === 'backendSuccess' ? "Airtime Delivered!" :
+          txStatus === 'backendError' ? "Order Failed - Try Again" :
+          txStatus === 'error' ? "Transaction Failed - Try Again" :
+          !isConnected ? "Wallet Not Connected" :
+          canPay ? "Proceed" :
+          "Fill all details"}
+        </Button>
+      </div>
+
+      {/* Small info / pricing badge - placed near inner card bottom */}
+      <div className="absolute left-[55px] top-[600px] text-xs text-muted-foreground">
+        {amountNGN > 0 && priceNGN && selectedTokenObj ? (
+          <div className="text-sm text-muted-foreground flex items-center justify-between">
+            <span>
+              You will pay: ~{cryptoNeeded.toFixed(selectedTokenObj!.decimals)} {selectedTokenObj!.symbol}
+            </span>
+            <Badge variant="secondary">
+              1 {selectedTokenObj!.symbol} = ₦{priceNGN?.toLocaleString()}
+            </Badge>
+          </div>
+        ) : null}
+      </div>
+
       <TransactionStatusModal
         isOpen={showTransactionModal}
         onClose={handleCloseModal}
