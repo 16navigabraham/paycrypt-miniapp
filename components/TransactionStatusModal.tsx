@@ -184,7 +184,10 @@ export function TransactionStatusModal({
     >
       <DialogContent className="w-[95vw] max-w-[350px] p-4 text-center rounded-lg">
         <DialogHeader className="flex flex-col items-center space-y-2">
-          <div className={`mb-2 ${iconColor}`}>{icon}</div>
+          <div className="mb-2"></div>
+          <div className="w-12 h-12 bg-white rounded-2xl shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border-[1.50px] border-blue-700 flex items-center justify-center">
+            <div className={iconColor}>{icon}</div>
+          </div>
           <DialogTitle className="text-lg font-bold leading-tight">{title}</DialogTitle>
           <DialogDescription className="text-center text-muted-foreground text-sm leading-snug px-2">{description}</DialogDescription>
         </DialogHeader>
