@@ -511,43 +511,47 @@ export default function AirtimePage() {
             className="w-full"
           />
         </div>
-      </div>
-
-      {/* Proceed Button */}
-      <div className="w-64 h-14 left-[55px] top-[679px] absolute bg-gradient-to-r from-black/0 to-blue-700/50 rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)]"></div>
-
-      <div className="left-[125px] top-[693px] absolute justify-start">
+      {/* Proceed Button - placed inside the gradient rectangle so text is within the box */}
+      <div className="w-64 h-14 left-[55px] top-[679px] absolute bg-gradient-to-r from-black/0 to-blue-700/50 rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)]">
         <Button
           onClick={handlePurchase}
           disabled={isButtonDisabled}
-          className="text-white text-2xl font-semibold font-['Montserrat_Alternates'] tracking-[3.60px]"
+          className="w-full h-full bg-transparent rounded-[20px] flex items-center px-4"
         >
-          {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
-          txStatus === 'approving' ? "Approving Token..." :
-          txStatus === 'approvalSuccess' ? "Starting Payment..." :
-          txStatus === 'waitingForSignature' ? "Awaiting Payment..." :
-          txStatus === 'confirming' ? "Confirming..." :
-          txStatus === 'success' ? "Payment Confirmed!" :
-          txStatus === 'backendProcessing' ? "Processing Order..." :
-          txStatus === 'backendSuccess' ? "Airtime Delivered!" :
-          txStatus === 'backendError' ? "Order Failed - Try Again" :
-          txStatus === 'error' ? "Transaction Failed - Try Again" :
-          !isConnected ? "Wallet Not Connected" :
-          canPay ? "Proceed" :
-          "Fill all details"}
+          <div className="justify-start text-white text-2xl font-semibold font-['Montserrat_Alternates'] tracking-[3.60px]">
+        {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
+        txStatus === 'approving' ? "Approving Token..." :
+        txStatus === 'approvalSuccess' ? "Starting Payment..." :
+        txStatus === 'waitingForSignature' ? "Awaiting Payment..." :
+        txStatus === 'confirming' ? "Confirming..." :
+        txStatus === 'success' ? "Payment Confirmed!" :
+        txStatus === 'backendProcessing' ? "Processing Order..." :
+        txStatus === 'backendSuccess' ? "Airtime Delivered!" :
+        txStatus === 'backendError' ? "Order Failed - Try Again" :
+        txStatus === 'error' ? "Transaction Failed - Try Again" :
+        !isConnected ? "Wallet Not Connected" :
+        canPay ? "Proceed" :
+        "Fill all details"}
+          </div>
         </Button>
       </div>
-
       {/* Small info / pricing badge - placed near inner card bottom */}
       <div className="absolute left-[55px] top-[600px] text-xs text-muted-foreground">
         {amountNGN > 0 && priceNGN && selectedTokenObj ? (
-          <div className="text-sm text-muted-foreground flex items-center justify-between">
-            <span>
-              You will pay: ~{cryptoNeeded.toFixed(selectedTokenObj!.decimals)} {selectedTokenObj!.symbol}
-            </span>
-            <Badge variant="secondary">
-              1 {selectedTokenObj!.symbol} = ₦{priceNGN?.toLocaleString()}
-            </Badge>
+          <div className="space-y-1">
+        <div className="text-sm text-muted-foreground flex items-center justify-between">
+          <span>
+            You will pay: ~{cryptoNeeded.toFixed(selectedTokenObj!.decimals)} {selectedTokenObj!.symbol}
+          </span>
+        </div>
+        <div className="mt-1">
+          <Badge variant="secondary">
+            1 {selectedTokenObj!.symbol} = ₦{priceNGN?.toLocaleString()}
+          </Badge>
+        </div>
+        <div className="text-xs text-muted-foreground mt-1">
+          Request ID: <div className="inline-block font-mono">{requestId ?? "—"}</div>
+        </div>
           </div>
         ) : null}
       </div>
@@ -561,6 +565,7 @@ export default function AirtimePage() {
         backendMessage={backendMessage}
         requestId={requestId}
       />
+    </div>
     </div>
   )
 }
