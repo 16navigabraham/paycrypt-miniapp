@@ -10,14 +10,13 @@ export default function BackToDashboard() {
     <button
       type="button"
       onClick={() => router.push('/dashboard')}
-      className="mb-6 inline-flex items-center justify-center px-4 py-2 bg-[#304FFE] hover:bg-[#2640E0] active:bg-[#1E35C4] disabled:bg-gray-300 text-white font-semibold text-sm tracking-wide uppercase rounded-lg shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 disabled:cursor-not-allowed"
+      aria-label="Back to dashboard"
+      title="Back to dashboard"
+      className="p-1 rounded-full inline-flex items-center justify-center text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
     >
-      <img
-        className="w-4 h-4 origin-top-left -rotate-180 mr-1"
-        src="/right-arrow.png"
-        alt="Back"
-      />
-      Back
+      <span aria-hidden="true" className="text-2xl font-mono leading-none select-none">
+        {'<'}
+      </span>
     </button>
   )
 }

@@ -64,8 +64,11 @@ export function TransactionStatusModal({
   const isApprovalSuccess = displayStatus === 'approvalSuccess';
   const isApprovalError = displayStatus === 'approvalError';
 
-  // Show copy buttons for failed states or when transaction is completed
-  const showCopyButtons = isErrorBlockchain || isBackendError || isApprovalError || isBackendSuccess;
+  // Detect user cancellation / rejection in wallet errors (e.g. MetaMask 4001 or textual reasons)
+  const isUserCancelled = isErrorBlockchain && /(user rejected|user denied|request has been rejected by the user|cancel|canceled|transaction cancelled|4001)/i.test(errorMessage ?? '');
+
+  // Show copy buttons for failed states or when transaction is completed, but skip for simple user cancellations
+  const showCopyButtons = (isErrorBlockchain && !isUserCancelled) || isBackendError || isApprovalError || isBackendSuccess;
 
   let title = "Transaction Status";
   let description = "";
@@ -108,10 +111,17 @@ export function TransactionStatusModal({
     icon = <Loader2 className="w-8 h-8 animate-spin text-purple-500" />;
     iconColor = "text-purple-500";
   } else if (isErrorBlockchain) {
-    title = "Transaction Failed";
-    description = errorMessage || "The blockchain transaction could not be completed.";
-    icon = <XCircle className="w-8 h-8 text-red-500" />;
-    iconColor = "text-red-500";
+    if (isUserCancelled) {
+      title = "Transaction Cancelled";
+      description = "You cancelled the transaction in your wallet.";
+      icon = <XCircle className="w-8 h-8 text-red-500" />;
+      iconColor = "text-red-500";
+    } else {
+      title = "Transaction Failed";
+      description = errorMessage || "The blockchain transaction could not be completed.";
+      icon = <XCircle className="w-8 h-8 text-red-500" />;
+      iconColor = "text-red-500";
+    }
   } else if (isSuccessBlockchainConfirmed) {
     title = "Blockchain Confirmed!";
     description = "Now processing with payment provider...";

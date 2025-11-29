@@ -399,123 +399,130 @@ export default function AirtimePage() {
 
   return (
     <div className="w-96 h-[812px] relative bg-white rounded-[60px] overflow-hidden">
-      <BackToDashboard />
-      <div className="left-[35px] top-[53px] absolute justify-start text-black text-2xl font-semibold font-['Montserrat_Alternates'] tracking-[3.60px]">
-        Crypto to <br/>Airtime Payment
+      <div className="absolute left-4 right-4 top-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/90 rounded-xl shadow-sm">
+        <BackToDashboard />
+        <div className="text-black text-lg font-medium font-['Montserrat_Alternates'] tracking-[1.5px]">
+          Crypto to Airtime Payment
+        </div>
       </div>
 
-      <div className="w-80 h-[643px] left-[25px] top-[140px] absolute bg-white/90 rounded-[45px] border-2 border-lime-400" />
+      <div className="w-80 h-[643px] left-[25px] top-[140px] absolute bg-white/90 rounded-[45px] border-2 border-lime-400 p-6 overflow-hidden">
+        <div className="flex flex-col gap-4 h-full">
 
-      {/* Pay With */}
-      <div className="left-[61px] top-[166px] absolute justify-start text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
+          {/* Pay With */}
+          <div className="text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
         Pay With
-      </div>
-      <div className="w-64 h-14 left-[55px] top-[204px] absolute bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
-        <div className="h-full flex items-center">
-          <Select value={selectedToken} onValueChange={setSelectedToken}>
-            <SelectTrigger id="token-select" className="w-full">
-              <SelectValue placeholder="Select crypto" />
-            </SelectTrigger>
-            <SelectContent>
-              {activeTokens.length === 0 ? (
-                <SelectItem value="" disabled>No ERC20 tokens available</SelectItem>
-              ) : (
-                activeTokens.map(token => (
-                  <SelectItem key={token.address} value={token.address}>
-                    {token.symbol} - {token.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+          </div>
+          <div className="w-full bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
+        <Select value={selectedToken} onValueChange={setSelectedToken}>
+          <SelectTrigger id="token-select" className="w-full">
+            <SelectValue placeholder="Select crypto" />
+          </SelectTrigger>
+          <SelectContent>
+            {activeTokens.length === 0 ? (
+          <SelectItem value="" disabled>No ERC20 tokens available</SelectItem>
+            ) : (
+          activeTokens.map(token => (
+            <SelectItem key={token.address} value={token.address}>
+              {token.symbol} - {token.name}
+            </SelectItem>
+          ))
+            )}
+          </SelectContent>
+        </Select>
+          </div>
 
-      {/* Network Provider */}
-      <div className="left-[55px] top-[290px] absolute justify-start text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
+          {/* Network Provider */}
+          <div className="text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
         Network Provider
-      </div>
-      <div className="w-64 h-14 left-[55px] top-[329px] absolute bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
-        <div className="h-full flex items-center">
-          <Select value={network} onValueChange={setNetwork}>
-            <SelectTrigger id="network-select" className="w-full">
-              <SelectValue placeholder="Select service provider" />
-            </SelectTrigger>
-            <SelectContent>
-              {NETWORKS.map(n => (
-                <SelectItem key={n.serviceID} value={n.serviceID}>
-                  {n.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+          </div>
+          <div className="w-full bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
+        <Select value={network} onValueChange={setNetwork}>
+          <SelectTrigger id="network-select" className="w-full">
+            <SelectValue placeholder="Select service provider" />
+          </SelectTrigger>
+          <SelectContent>
+            {NETWORKS.map(n => (
+          <SelectItem key={n.serviceID} value={n.serviceID}>
+            {n.name}
+          </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+          </div>
 
-      {/* Amount */}
-      <div className="left-[61px] top-[412px] absolute justify-start text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
+          {/* Amount input + live crypto preview */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between"></div>
+          <div className="text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]"></div>
+          <div className="text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
         Amount
-      </div>
-      <div className="w-64 h-14 left-[55px] top-[441px] absolute bg-white rounded-[20px] border border-black/20 p-2">
-        <div className="left-[79px] top-[457px] absolute justify-start text-black/30 text-base font-normal font-['Montserrat_Alternates'] tracking-widest pointer-events-none">
-          Enter Amount
-        </div>
-        <div className="h-full flex items-center">
+          </div>
+          <div className="w</div>-full bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black/20 p-2">
+        <div className="text-black/30 text-base font-normal font-['Montserrat_Alternates'] tracking-widest mb-1">
           <Input
             id="amount-input"
             type="number"
             placeholder="Enter amount (₦100 - ₦50,000)"
             value={amount}
             onChange={e => {
-              const val = e.target.value;
-              if (val === "" || val === "0") {
-                setAmount("");
-              } else {
-                const numVal = Math.max(0, parseInt(val));
-                setAmount(String(Math.min(numVal, 50000)));
-              }
+          const val = e.target.value;
+          if (val === "" || val === "0") {
+            setAmount("");
+          } else {
+            const numVal = Math.max(0, parseInt(val));
+            setAmount(String(Math.min(numVal, 50000)));
+          }
             }}
             min={100}
             max={50000}
             disabled={!selectedTokenObj}
-            className="w-full"
+            className="w-full placeholder:text-sm text-black font-semibold"
           />
+          <div className="text-sm text-black/70 font-['Montserrat_Alternates'] tracking-wide">
+              {amount
+                ? `${amount} ~${selectedTokenObj ? cryptoNeeded.toFixed(selectedTokenObj.decimals) : cryptoNeeded.toFixed(6)} ${selectedTokenObj?.symbol ?? ''}`
+                : ''}
+            </div>
+          </div>
         </div>
-      </div>
+          </div>
 
-      {/* Phone Number */}
-      <div className="left-[61px] top-[527px] absolute justify-start text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
+          {/* Phone Number */}
+          <div className="text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
         Phone Number
-      </div>
-      <div className="w-64 h-14 left-[55px] top-[557px] absolute bg-white rounded-[20px] border border-black/20 p-2">
-        <div className="left-[77px] top-[575px] absolute justify-start text-black/30 text-base font-medium font-['Montserrat_Alternates'] tracking-widest pointer-events-none">
-          Enter Number
-        </div>
-        <div className="h-full flex items-center">
-          <Input
-            id="phone-input"
-            type="tel"
-            placeholder="Enter phone number (11 digits)"
-            value={phone}
-            onChange={e => {
-              const v = e.target.value.replace(/\D/g, "");
-              setPhone(v.slice(0, 11));
-            }}
-            maxLength={11}
-            className="w-full"
-          />
-        </div>
-      </div>
+          </div>
+          <div className="w-full bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black/20 p-2">
+        <Input
+          id="phone-input"
+          type="tel"
+          placeholder="Enter phone number (11 digits)"
+          value={phone}
+          onChange={e => {
+            const v = e.target.value.replace(/\D/g, "");
+            setPhone(v.slice(0, 11));
+          }}
+          maxLength={11}
+          className="w-full"
+        />
+          </div>
 
-      {/* Proceed Button */}
-      <div className="w-64 h-14 left-[55px] top-[679px] absolute bg-gradient-to-r from-black/0 to-blue-700/50 rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)]">
+          {/* Proceed Button */}
+          <div className="mt-auto">
         <Button
           onClick={handlePurchase}
           disabled={isButtonDisabled}
-          className="w-full h-full bg-transparent rounded-[20px] flex items-center px-4"
+          className="w-full h-14 rounded-[20px] flex items-center px-4"
+          style={{
+          borderRadius: "20px",
+          background:
+            "linear-gradient(91deg, rgba(0, 0, 0, 0.00) 0.52%, rgba(20, 55, 255, 0.50) 90.44%), linear-gradient(85deg, rgba(212, 255, 22, 0.50) 1.75%, rgba(0, 0, 0, 0.50) 35.67%), #302F2F",
+          boxShadow: "0 2px 4px 0 rgba(0, 0, 0, 0.25)",
+          }}
         >
-          <div className="justify-start text-white text-2xl font-semibold font-['Montserrat_Alternates'] tracking-[3.60px]">
-            {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
+          {(() => {
+          const label =
+            txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
             txStatus === 'approving' ? "Approving Token..." :
             txStatus === 'approvalSuccess' ? "Starting Payment..." :
             txStatus === 'waitingForSignature' ? "Awaiting Payment..." :
@@ -527,40 +534,61 @@ export default function AirtimePage() {
             txStatus === 'error' ? "Transaction Failed - Try Again" :
             !isConnected ? "Wallet Not Connected" :
             canPay ? "Proceed" :
-            "Fill all details"}
-          </div>
-        </Button>
-      </div>
+            "Fill all details";
 
-      {/* Small info / pricing badge */}
-      <div className="absolute left-[55px] top-[600px] text-xs text-muted-foreground">
+          const primaryClass = "justify-start text-white text-2xl font-semibold font-['Montserrat_Alternates'] tracking-[3.60px]";
+          const secondaryClass = "justify-start text-white/90 text-lg font-medium font-['Montserrat_Alternates'] tracking-[2.5px]";
+
+          const isPrimaryLabel = label === "Proceed" || label === "Fill all details";
+
+          return (
+            <div className={isPrimaryLabel ? primaryClass : secondaryClass}>
+            {label}
+            </div>
+          );
+          })()}
+        </Button>
+          </div>
+
+          {/* Small info / pricing badge */}
+          <div className="w-full text-xs text-muted-foreground mt-3">
+        {/*
         {amountNGN > 0 && priceNGN && selectedTokenObj ? (
-          <div className="space-y-1">
+          <div className="space-y-1 bg-white/80 backdrop-blur-sm rounded-md p-2 border border-black/10">
             <div className="text-sm text-muted-foreground flex items-center justify-between">
-              <span>
-                You will pay: ~{cryptoNeeded.toFixed(selectedTokenObj!.decimals)} {selectedTokenObj!.symbol}
-              </span>
+          <span>
+            You will pay: ~{cryptoNeeded.toFixed(selectedTokenObj!.decimals)} {selectedTokenObj!.symbol}
+          </span>
             </div>
-            <div className="mt-1">
-              <Badge variant="secondary">
-                1 {selectedTokenObj!.symbol} = ₦{priceNGN?.toLocaleString()}
-              </Badge>
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Request ID: <div className="inline-block font-mono">{requestId ?? "—"}</div>
+            {/* <div className="mt-1">
+          <Badge variant="secondary">
+            1 {selectedTokenObj!.symbol} = ₦{priceNGN?.toLocaleString()}
+          </Badge>
+            </div> */}
+            {/* <div className="text-xs text-muted-foreground mt-1">
+          Request ID: <span className="inline-block font-mono">{requestId ?? "—"}</span>
             </div>
           </div>
         ) : null}
+        */} 
+
+        {/* Only show Request ID as requested */}
+        <div className="text-xs text-muted-foreground">
+          Request ID: <span className="inline-block font-mono">{requestId ?? "—"}</span>
+        </div>
+          </div>
+
+        </div>
       </div>
 
       <TransactionStatusModal
-        isOpen={showTransactionModal}
-        onClose={handleCloseModal}
-        txStatus={txStatus}
-        transactionHash={transactionHashForModal}
-        errorMessage={transactionError}
-        backendMessage={backendMessage}
-        requestId={requestId}
+      isOpen={showTransactionModal}
+      onClose={handleCloseModal}
+      txStatus={txStatus}
+      transactionHash={transactionHashForModal}
+      errorMessage={transactionError}
+      backendMessage={backendMessage}
+      requestId={requestId}
       />
     </div>
   )
