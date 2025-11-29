@@ -399,7 +399,7 @@ export default function AirtimePage() {
 
   return (
     <div className="w-96 h-[812px] relative bg-white rounded-[60px] overflow-hidden">
-       <BackToDashboard />
+      <BackToDashboard />
       <div className="left-[35px] top-[53px] absolute justify-start text-black text-2xl font-semibold font-['Montserrat_Alternates'] tracking-[3.60px]">
         Crypto to <br/>Airtime Payment
       </div>
@@ -411,9 +411,6 @@ export default function AirtimePage() {
         Pay With
       </div>
       <div className="w-64 h-14 left-[55px] top-[204px] absolute bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
-        {/* <div className="left-[79px] top-[221px] absolute justify-start text-black text-base font-normal font-['Montserrat_Alternates'] tracking-widest pointer-events-none">
-          Select Tokens
-        </div> */}
         <div className="h-full flex items-center">
           <Select value={selectedToken} onValueChange={setSelectedToken}>
             <SelectTrigger id="token-select" className="w-full">
@@ -439,9 +436,6 @@ export default function AirtimePage() {
         Network Provider
       </div>
       <div className="w-64 h-14 left-[55px] top-[329px] absolute bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
-        {/* <div className="left-[79px] top-[343px] absolute justify-start text-black text-base font-normal font-['Montserrat_Alternates'] tracking-widest pointer-events-none">
-          Select Network
-        </div> */}
         <div className="h-full flex items-center">
           <Select value={network} onValueChange={setNetwork}>
             <SelectTrigger id="network-select" className="w-full">
@@ -511,7 +505,9 @@ export default function AirtimePage() {
             className="w-full"
           />
         </div>
-      {/* Proceed Button - placed inside the gradient rectangle so text is within the box */}
+      </div>
+
+      {/* Proceed Button */}
       <div className="w-64 h-14 left-[55px] top-[679px] absolute bg-gradient-to-r from-black/0 to-blue-700/50 rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)]">
         <Button
           onClick={handlePurchase}
@@ -519,39 +515,40 @@ export default function AirtimePage() {
           className="w-full h-full bg-transparent rounded-[20px] flex items-center px-4"
         >
           <div className="justify-start text-white text-2xl font-semibold font-['Montserrat_Alternates'] tracking-[3.60px]">
-        {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
-        txStatus === 'approving' ? "Approving Token..." :
-        txStatus === 'approvalSuccess' ? "Starting Payment..." :
-        txStatus === 'waitingForSignature' ? "Awaiting Payment..." :
-        txStatus === 'confirming' ? "Confirming..." :
-        txStatus === 'success' ? "Payment Confirmed!" :
-        txStatus === 'backendProcessing' ? "Processing Order..." :
-        txStatus === 'backendSuccess' ? "Airtime Delivered!" :
-        txStatus === 'backendError' ? "Order Failed - Try Again" :
-        txStatus === 'error' ? "Transaction Failed - Try Again" :
-        !isConnected ? "Wallet Not Connected" :
-        canPay ? "Proceed" :
-        "Fill all details"}
+            {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
+            txStatus === 'approving' ? "Approving Token..." :
+            txStatus === 'approvalSuccess' ? "Starting Payment..." :
+            txStatus === 'waitingForSignature' ? "Awaiting Payment..." :
+            txStatus === 'confirming' ? "Confirming..." :
+            txStatus === 'success' ? "Payment Confirmed!" :
+            txStatus === 'backendProcessing' ? "Processing Order..." :
+            txStatus === 'backendSuccess' ? "Airtime Delivered!" :
+            txStatus === 'backendError' ? "Order Failed - Try Again" :
+            txStatus === 'error' ? "Transaction Failed - Try Again" :
+            !isConnected ? "Wallet Not Connected" :
+            canPay ? "Proceed" :
+            "Fill all details"}
           </div>
         </Button>
       </div>
-      {/* Small info / pricing badge - placed near inner card bottom */}
+
+      {/* Small info / pricing badge */}
       <div className="absolute left-[55px] top-[600px] text-xs text-muted-foreground">
         {amountNGN > 0 && priceNGN && selectedTokenObj ? (
           <div className="space-y-1">
-        <div className="text-sm text-muted-foreground flex items-center justify-between">
-          <span>
-            You will pay: ~{cryptoNeeded.toFixed(selectedTokenObj!.decimals)} {selectedTokenObj!.symbol}
-          </span>
-        </div>
-        <div className="mt-1">
-          <Badge variant="secondary">
-            1 {selectedTokenObj!.symbol} = ₦{priceNGN?.toLocaleString()}
-          </Badge>
-        </div>
-        <div className="text-xs text-muted-foreground mt-1">
-          Request ID: <div className="inline-block font-mono">{requestId ?? "—"}</div>
-        </div>
+            <div className="text-sm text-muted-foreground flex items-center justify-between">
+              <span>
+                You will pay: ~{cryptoNeeded.toFixed(selectedTokenObj!.decimals)} {selectedTokenObj!.symbol}
+              </span>
+            </div>
+            <div className="mt-1">
+              <Badge variant="secondary">
+                1 {selectedTokenObj!.symbol} = ₦{priceNGN?.toLocaleString()}
+              </Badge>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Request ID: <div className="inline-block font-mono">{requestId ?? "—"}</div>
+            </div>
           </div>
         ) : null}
       </div>
@@ -565,7 +562,6 @@ export default function AirtimePage() {
         backendMessage={backendMessage}
         requestId={requestId}
       />
-    </div>
     </div>
   )
 }
