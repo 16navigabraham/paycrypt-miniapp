@@ -399,8 +399,7 @@ export default function AirtimePage() {
 
   return (
     <div className="w-96 h-[812px] relative bg-white rounded-[60px] overflow-hidden">
-      <img className="w-4 h-4 left-[28px] top-[91px] absolute origin-top-left -rotate-180" src="https://placehold.co/18x18" alt="back" />
-
+       <BackToDashboard />
       <div className="left-[35px] top-[53px] absolute justify-start text-black text-2xl font-semibold font-['Montserrat_Alternates'] tracking-[3.60px]">
         Crypto to <br/>Airtime Payment
       </div>
@@ -412,13 +411,13 @@ export default function AirtimePage() {
         Pay With
       </div>
       <div className="w-64 h-14 left-[55px] top-[204px] absolute bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
-        <div className="left-[79px] top-[221px] absolute justify-start text-black text-base font-normal font-['Montserrat_Alternates'] tracking-widest pointer-events-none">
+        {/* <div className="left-[79px] top-[221px] absolute justify-start text-black text-base font-normal font-['Montserrat_Alternates'] tracking-widest pointer-events-none">
           Select Tokens
-        </div>
+        </div> */}
         <div className="h-full flex items-center">
           <Select value={selectedToken} onValueChange={setSelectedToken}>
             <SelectTrigger id="token-select" className="w-full">
-              <SelectValue placeholder="Select ERC20 token" />
+              <SelectValue placeholder="Select crypto" />
             </SelectTrigger>
             <SelectContent>
               {activeTokens.length === 0 ? (
@@ -440,13 +439,13 @@ export default function AirtimePage() {
         Network Provider
       </div>
       <div className="w-64 h-14 left-[55px] top-[329px] absolute bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
-        <div className="left-[79px] top-[343px] absolute justify-start text-black text-base font-normal font-['Montserrat_Alternates'] tracking-widest pointer-events-none">
+        {/* <div className="left-[79px] top-[343px] absolute justify-start text-black text-base font-normal font-['Montserrat_Alternates'] tracking-widest pointer-events-none">
           Select Network
-        </div>
+        </div> */}
         <div className="h-full flex items-center">
           <Select value={network} onValueChange={setNetwork}>
             <SelectTrigger id="network-select" className="w-full">
-              <SelectValue placeholder="Select network" />
+              <SelectValue placeholder="Select service provider" />
             </SelectTrigger>
             <SelectContent>
               {NETWORKS.map(n => (
