@@ -703,46 +703,61 @@ export default function TVPage() {
             {/* Customer details and plans (unchanged structure) */}
             {verificationSuccess && (
               <>
-                {customerName && (
-                  <div className="space-y-2">
-                    <Label>Customer Name</Label>
-                    <Input value={customerName} readOnly className="bg-green-50 text-black rounded-[12px]" />
-                  </div>
-                )}
-                {currentBouquet && (
-                  <div className="space-y-2">
-                    <Label>Current Bouquet</Label>
-                    <Input value={currentBouquet} readOnly className="bg-green-50 text-black rounded-[12px]" />
-                  </div>
-                )}
-                {dueDate && (
-                  <div className="space-y-2">
-                    <Label>Due Date</Label>
-                    <Input value={dueDate} readOnly className="bg-green-50 text-black rounded-[12px]" />
-                  </div>
-                )}
-                {renewalAmount && (
-                  <div className="space-y-2">
-                    <Label>Renewal Amount</Label>
-                    <Input value={`₦${Number(renewalAmount).toLocaleString()}`} readOnly className="bg-green-50 text-black rounded-[12px]" />
-                  </div>
-                )}
+              {customerName && (
+                <div className="space-y-2">
+                <Label>Customer Name</Label>
+                <Input value={customerName} readOnly className="bg-green-50 text-black rounded-[12px]" />
+                </div>
+              )}
+              {currentBouquet && (
+                <div className="space-y-2">
+                <Label>Current Bouquet</Label>
+                <Input value={currentBouquet} readOnly className="bg-green-50 text-black rounded-[12px]" />
+                </div>
+              )}
+              {dueDate && (
+                <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Input value={dueDate} readOnly className="bg-green-50 text-black rounded-[12px]" />
+                </div>
+              )}
+              {renewalAmount && (
+                <div className="space-y-2">
+                <Label>Renewal Amount</Label>
+                <Input value={`₦${Number(renewalAmount).toLocaleString()}`} readOnly className="bg-green-50 text-black rounded-[12px]" />
+                </div>
+              )}
               </>
             )}
 
             {verificationSuccess && (
               <div className="space-y-2">
-                <Label htmlFor="plan-select">Subscription Plan</Label>
-                <Select value={plan} onValueChange={setPlan} disabled={!provider || loadingPlans}>
-                  <SelectTrigger id="plan-select" className="rounded-[20px] border border-black/20 h-12 px-3">
-                    <SelectValue placeholder={loadingPlans ? "Loading..." : "Select plan"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {plans.map(p => (
-                      <SelectItem key={p.variation_code} value={p.variation_code}>{p.name} - ₦{Number(p.variation_amount).toLocaleString()}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <Label htmlFor="plan-select">Subscription Plan</Label>
+              <Select value={plan} onValueChange={setPlan} disabled={!provider || loadingPlans}>
+                <SelectTrigger id="plan-select" className="rounded-[20px] border border-black/20 h-12 px-3">
+                <SelectValue placeholder={loadingPlans ? "Loading..." : "Select plan"} />
+                </SelectTrigger>
+                <SelectContent>
+                {plans.map(p => (
+                  <SelectItem key={p.variation_code} value={p.variation_code}>{p.name} - ₦{Number(p.variation_amount).toLocaleString()}</SelectItem>
+                ))}
+                </SelectContent>
+              </Select>
+
+              {/* Amount display: NGN and approximated crypto */}
+              <div className="mt-2">
+                <div className="text-sm text-black/70 font-['Montserrat_Alternates'] tracking-wide">
+                {amountNGN > 0 ? (
+                  <>
+                  ₦{amountNGN.toLocaleString()} &nbsp; ~
+                  {selectedCrypto
+                    ? cryptoNeeded.toFixed(selectedCrypto.decimals)
+                    : cryptoNeeded.toFixed(6)
+                  } {selectedCrypto?.symbol ?? ''}
+                  </>
+                ) : null}
+                </div>
+              </div>
               </div>
             )}
 

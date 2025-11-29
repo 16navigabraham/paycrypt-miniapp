@@ -725,8 +725,8 @@ export default function ElectricityPage() {
             </div>
           )}
 
-          {/* Amount */}
-          <div className="space-y-2">
+            {/* Amount */}
+            <div className="space-y-2">
             <Label htmlFor="amount">Amount (NGN)</Label>
             <Input
               id="amount"
@@ -736,16 +736,22 @@ export default function ElectricityPage() {
               placeholder="Enter amount in Naira, minimum ₦500"
               value={amount}
               onChange={(e) => {
-                const val = e.target.value;
-                if (val === "" || val === "0") {
-                  setAmount("");
-                } else {
-                  setAmount(String(Math.max(0, parseInt(val))));
-                }
+              const val = e.target.value;
+              if (val === "" || val === "0") {
+                setAmount("");
+              } else {
+                setAmount(String(Math.max(0, parseInt(val))));
+              }
               }}
               className="rounded-[20px] border border-black/20 h-12 px-3"
             />
-          </div>
+
+            <div className="text-sm text-black/70 font-['Montserrat_Alternates'] tracking-wide">
+              {amountNGN > 0
+              ? `${amountNGN} ~${selectedTokenObj ? cryptoNeeded.toFixed(selectedTokenObj.decimals) : cryptoNeeded.toFixed(6)} ${selectedTokenObj?.symbol ?? ''}`
+              : ''}
+            </div>
+            </div>
 
           {/* Phone Number */}
           <div className="space-y-2">
