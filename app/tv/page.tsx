@@ -610,276 +610,188 @@ export default function TVPage() {
   );
 
   return (
-    <div className="container py-10 max-w-xl mx-auto">
-      <BackToDashboard />
-      {/* <h1 className="text-3xl font-bold mb-4">Pay TV Subscription</h1>
-      <p className="text-muted-foreground mb-8">
-        Pay for your TV subscription using supported ERC20 cryptocurrencies on Base chain.
-      </p> */}
-
-      {/* Connection Status */}
-      {address && (
-        <div className="text-sm p-3 bg-green-50 border border-green-200 rounded-lg mb-6">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <Wifi className="w-4 h-4 text-green-500" />
-            <span className="text-green-700">
-              Wallet Connected: {address.slice(0, 6)}...{address.slice(-4)}
-              {isOnBaseChain && <span className="ml-2 text-xs">(Base Chain ✓)</span>}
-            </span>
-          </div>
+    <div className="w-96 h-[1026px] relative bg-white rounded-[60px] overflow-hidden">
+      <div className="absolute left-4 right-4 top-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/90 rounded-xl shadow-sm">
+        <BackToDashboard />
+        <div className="text-black text-2xl font-semibold font-['Montserrat_Alternates'] tracking-[3.60px]">
+          Crypto to TV Subscription
         </div>
-      )}
+      </div>
 
-      {!address && (
-        <div className="text-sm p-3 bg-orange-50 border border-orange-200 rounded-lg mb-6">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-orange-500" />
-            <span className="text-orange-700">
-              No wallet connected. Please ensure you're accessing this through the mini app.
-            </span>
-          </div>
-        </div>
-      )}
+   {/* inner panel */}
+      <div className="absolute left-[25px] top-[140px] w-80 h-[849px] bg-white/90 rounded-[45px] border-2 border-lime-400 p-6 overflow-auto">
+        <div className="flex flex-col gap-4 h-full">
+                                    {/* Pay With */}
+                              <div className="text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
+                                      Pay With
+                              <div className="w-full bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
+                                  <Select value={selectedTokenAddress} onValueChange={setSelectedTokenAddress}>
+                                      <SelectTrigger>
+                                          <SelectValue placeholder="Select ERC20 token" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                          {activeTokens.length === 0 ? (
+                                              <SelectItem value="" disabled>No ERC20 tokens available</SelectItem>
+                                          ) : (
+                                              activeTokens.map((c) => (
+                                                  <SelectItem key={c.address} value={c.address}>
+                                                      {c.symbol} - {c.name}
+                                                  </SelectItem>
+                                              ))
+                                          )}
+                                      </SelectContent>
+                                  </Select>
+                              </div>
+                              </div>
 
-      {/* Base Chain Warning */}
-      {address && !isOnBaseChain && (
-        <div className="text-sm p-3 bg-red-50 border border-red-200 rounded-lg mb-6">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500" />
-            <span className="text-red-700">
-              Please switch to Base network to continue. Transactions will auto-switch when needed.
-            </span>
-          </div>
-        </div>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Crypto to TV Subscription</CardTitle>
-          <CardDescription>
-            Preview and calculate your TV subscription payment with crypto
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-
-          {/* crypto selection */}
-          <div className="space-y-2">
-            <Label htmlFor="crypto-select">Pay With</Label>
-            <Select value={selectedTokenAddress} onValueChange={setSelectedTokenAddress}>
-              <SelectTrigger id="crypto-select">
-                <SelectValue placeholder="Select ERC20 token" />
-              </SelectTrigger>
-              <SelectContent>
-                {activeTokens.length === 0 ? (
-                  <SelectItem value="" disabled>No ERC20 tokens available</SelectItem>
-                ) : (
-                  activeTokens.map(c => (
-                    <SelectItem key={c.address} value={c.address}>
-                      {c.symbol} - {c.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            {activeTokens.length === 0 && !loading && (
-              <p className="text-sm text-yellow-600">
-                No active ERC20 tokens found from contract.
-              </p>
-            )}
-          </div>
-
-          {/* TV provider selection */}
-          <div className="space-y-2">
-            <Label htmlFor="provider-select">TV Provider</Label>
-            <Select value={provider} onValueChange={setProvider} disabled={loadingProviders}>
-              <SelectTrigger id="provider-select">
-                <SelectValue placeholder={loadingProviders ? "Loading..." : "Select provider"} />
-              </SelectTrigger>
-              <SelectContent>
-                {providers.map(p => (
-                  <SelectItem key={p.serviceID} value={p.serviceID}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Smart card input and verification status */}
-          <div className="space-y-2">
-            <Label htmlFor="smart-card-input">Smart Card / IUC Number</Label>
-            <Input
-              id="smart-card-input"
-              placeholder={provider ? `Enter ${getSmartCardLength(provider).join(" or ")}-digit card number` : "Select a TV Provider first"}
-              value={smartCardNumber}
-              onChange={(e) => {
-                const v = e.target.value.replace(/\D/g, "")
-                setSmartCardNumber(v)
-                setVerificationError("")
-                setVerificationSuccess(false)
-                setCustomerName("")
-                setCurrentBouquet("")
-                setDueDate("")
-                setRenewalAmount("")
-              }}
-              maxLength={12}
-              disabled={!provider}
-            />
-            {verifyingCard && (
-              <div className="flex items-center space-x-2 text-sm text-blue-600 mt-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Verifying card…</span>
-              </div>
-            )}
-            {verificationSuccess && (
-              <div className="flex items-center space-x-2 text-sm text-green-600 mt-2">
-                <CheckCircle className="w-4 h-4" />
-                <span>Card verified</span>
-              </div>
-            )}
-            {verificationError && (
-              <div className="flex items-center space-x-2 text-sm text-red-600 mt-2">
-                <AlertCircle className="w-4 h-4" />
-                <span>{verificationError}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Customer details - conditionally rendered after verification */}
-          {verificationSuccess && (
-            <>
-              {customerName && (
-                <div className="space-y-2">
-                  <Label>Customer Name</Label>
-                  <Input value={customerName} readOnly className="bg-green-50 text-black" />
-                </div>
-              )}
-              {currentBouquet && (
-                <div className="space-y-2">
-                  <Label>Current Bouquet</Label>
-                  <Input value={currentBouquet} readOnly className="bg-green-50 text-black" />
-                </div>
-              )}
-              {dueDate && (
-                <div className="space-y-2">
-                  <Label>Due Date</Label>
-                  <Input value={dueDate} readOnly className="bg-green-50 text-black" />
-                </div>
-              )}
-              {renewalAmount && (
-                <div className="space-y-2">
-                  <Label>Renewal Amount</Label>
-                  <Input value={`₦${Number(renewalAmount).toLocaleString()}`} readOnly className="bg-green-50 text-black" />
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Subscription plan selection - only visible after successful verification */}
-          {verificationSuccess && (
+            {/* TV provider selection */}
             <div className="space-y-2">
-              <Label htmlFor="plan-select">Subscription Plan</Label>
-              <Select value={plan} onValueChange={setPlan} disabled={!provider || loadingPlans}>
-                <SelectTrigger id="plan-select">
-                  <SelectValue placeholder={loadingPlans ? "Loading..." : "Select plan"} />
+              <Label htmlFor="provider-select">TV Provider</Label>
+              <Select value={provider} onValueChange={setProvider} disabled={loadingProviders}>
+                <SelectTrigger id="provider-select" className="rounded-[20px] border border-black/20 h-12 px-3">
+                  <SelectValue placeholder={loadingProviders ? "Loading..." : "Select provider"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {plans.map(p => (
-                    <SelectItem key={p.variation_code} value={p.variation_code}>
-                      {p.name} - ₦{Number(p.variation_amount).toLocaleString()}
-                    </SelectItem>
+                  {providers.map(p => (
+                    <SelectItem key={p.serviceID} value={p.serviceID}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          )}
 
-          {/* Compulsory token approval info */}
-          {selectedCrypto && (
-            <div className="text-sm p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-blue-500" />
-                <span className="text-blue-700">
-                  Token approval required for all ERC20 transactions
-                </span>
-              </div>
+            {/* Smart card input and verification status */}
+            <div className="space-y-2">
+              <Label htmlFor="smart-card-input">Smart Card / IUC Number</Label>
+              <Input
+                id="smart-card-input"
+                placeholder={provider ? `Enter ${getSmartCardLength(provider).join(" or ")}-digit card number` : "Select a TV Provider first"}
+                value={smartCardNumber}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/\D/g, "")
+                  setSmartCardNumber(v)
+                  setVerificationError("")
+                  setVerificationSuccess(false)
+                  setCustomerName("")
+                  setCurrentBouquet("")
+                  setDueDate("")
+                  setRenewalAmount("")
+                }}
+                maxLength={12}
+                disabled={!provider}
+                className="rounded-[20px] border border-black/20 shadow-[0_2px_4px_rgba(0,0,0,0.25)] h-12 px-3"
+              />
+              {verifyingCard && (
+                <div className="flex items-center space-x-2 text-sm text-blue-600 mt-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Verifying card…</span>
+                </div>
+              )}
+              {verificationSuccess && (
+                <div className="flex items-center space-x-2 text-sm text-green-600 mt-2">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Card verified</span>
+                </div>
+              )}
+              {verificationError && (
+                <div className="flex items-center space-x-2 text-sm text-red-600 mt-2">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>{verificationError}</span>
+                </div>
+              )}
             </div>
-          )}
 
-          {/* Summary section */}
-          <div className="border-t pt-4 space-y-2 text-sm">
-            {requestId && (
-              <div className="flex justify-between">
-                <span>Request ID:</span>
-                <span className="font-mono text-xs">{requestId}</span>
+            {/* Customer details and plans (unchanged structure) */}
+            {verificationSuccess && (
+              <>
+                {customerName && (
+                  <div className="space-y-2">
+                    <Label>Customer Name</Label>
+                    <Input value={customerName} readOnly className="bg-green-50 text-black rounded-[12px]" />
+                  </div>
+                )}
+                {currentBouquet && (
+                  <div className="space-y-2">
+                    <Label>Current Bouquet</Label>
+                    <Input value={currentBouquet} readOnly className="bg-green-50 text-black rounded-[12px]" />
+                  </div>
+                )}
+                {dueDate && (
+                  <div className="space-y-2">
+                    <Label>Due Date</Label>
+                    <Input value={dueDate} readOnly className="bg-green-50 text-black rounded-[12px]" />
+                  </div>
+                )}
+                {renewalAmount && (
+                  <div className="space-y-2">
+                    <Label>Renewal Amount</Label>
+                    <Input value={`₦${Number(renewalAmount).toLocaleString()}`} readOnly className="bg-green-50 text-black rounded-[12px]" />
+                  </div>
+                )}
+              </>
+            )}
+
+            {verificationSuccess && (
+              <div className="space-y-2">
+                <Label htmlFor="plan-select">Subscription Plan</Label>
+                <Select value={plan} onValueChange={setPlan} disabled={!provider || loadingPlans}>
+                  <SelectTrigger id="plan-select" className="rounded-[20px] border border-black/20 h-12 px-3">
+                    <SelectValue placeholder={loadingPlans ? "Loading..." : "Select plan"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {plans.map(p => (
+                      <SelectItem key={p.variation_code} value={p.variation_code}>{p.name} - ₦{Number(p.variation_amount).toLocaleString()}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
-            <div className="flex justify-between">
-              <span>Conversion Rate:</span>
-              <span>
-                {selectedCrypto && priceNGN
-                  ? `₦${priceNGN.toLocaleString()} / 1 ${selectedCrypto.symbol}`
-                  : "--"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Subscription Amount:</span>
-              <span>₦{amountNGN.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>You will pay:</span>
-              <span>
-                {selectedCrypto && selectedPlan && priceNGN ? (
-                  <Badge variant="outline">
-                    {cryptoNeeded.toFixed(selectedCrypto?.decimals || 6)} {selectedCrypto.symbol}
-                  </Badge>
-                ) : (
-                  "--"
-                )}
-              </span>
-            </div>
-          </div>
-          
-          <Button
-            className="w-full"
-            onClick={handlePurchase}
-            disabled={isButtonDisabled}
-          >
-            {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
-            txStatus === 'approving' ? "Approving Token..." :
-            txStatus === 'approvalSuccess' ? "Starting Payment..." :
-            txStatus === 'waitingForSignature' ? "Awaiting Payment..." :
-            txStatus === 'confirming' ? "Confirming..." :
-            txStatus === 'success' ? "Payment Confirmed!" :
-            txStatus === 'backendProcessing' ? "Processing Order..." :
-            txStatus === 'backendSuccess' ? "TV Subscription Successful!" :
-            txStatus === 'backendError' ? "Payment Failed - Try Again" :
-            txStatus === 'error' ? "Transaction Failed - Try Again" :
-            !isConnected ? "Wallet Not Connected" :
-            canPay ? "Pay TV Subscription" :
-            "Complete form and verify card"}
-          </Button>
 
-          {/* Active tokens info */}
-          {activeTokens.length > 0 && (
-            <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
-              <p className="font-medium mb-1">Active ERC20 Tokens ({activeTokens.length}):</p>
-              <p>{activeTokens.map(t => t.symbol).join(", ")}</p>
+
+            <div className="mt-auto">
+              <Button
+                onClick={handlePurchase}
+                disabled={isButtonDisabled}
+                className="w-full h-14 rounded-[20px] flex items-center px-4"
+                style={{
+                  borderRadius: "20px",
+                  background: "linear-gradient(91deg, rgba(0,0,0,0.00) 0.52%, rgba(20,55,255,0.50) 90.44%), linear-gradient(85deg, rgba(212,255,22,0.50) 1.75%, rgba(0,0,0,0.50) 35.67%), #302F2F",
+                  boxShadow: "0 2px 4px 0 rgba(0,0,0,0.25)",
+                }}
+              >
+                {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
+                 txStatus === 'approving' ? "Approving Token..." :
+                 txStatus === 'approvalSuccess' ? "Starting Payment..." :
+                 txStatus === 'waitingForSignature' ? "Awaiting Payment..." :
+                 txStatus === 'confirming' ? "Confirming..." :
+                 txStatus === 'success' ? "Payment Confirmed!" :
+                 txStatus === 'backendProcessing' ? "Processing Order..." :
+                 txStatus === 'backendSuccess' ? "TV Subscription Successful!" :
+                 txStatus === 'backendError' ? "Payment Failed - Try Again" :
+                 txStatus === 'error' ? "Transaction Failed - Try Again" :
+                 !isConnected ? "Wallet Not Connected" :
+                 canPay ? "Purchase TV Subscription" :
+                 "Complete form and verify card"}
+              </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
-      
-      <TransactionStatusModal
-        isOpen={showTransactionModal}
-        onClose={handleCloseModal}
-        txStatus={txStatus}
-        transactionHash={transactionHashForModal}
-        errorMessage={transactionError}
-        backendMessage={backendMessage}
-        requestId={requestId}
-      />
+
+             {/* Only show Request ID as requested */}
+                    <div className="w-full flex justify-center items-center text-xs text-muted-foreground">
+                      Request ID: <span className="inline-block font-mono">{requestId ?? "—"}</span>
+                    </div>
+
+
+        <TransactionStatusModal
+          isOpen={showTransactionModal}
+          onClose={handleCloseModal}
+          txStatus={txStatus}
+          transactionHash={transactionHashForModal}
+          errorMessage={transactionError}
+          backendMessage={backendMessage}
+          requestId={requestId}
+        />
+
+      </div>
     </div>
-  );
+    </div>
+  )
 }

@@ -533,13 +533,13 @@ export default function AirtimePage() {
             txStatus === 'backendError' ? "Order Failed - Try Again" :
             txStatus === 'error' ? "Transaction Failed - Try Again" :
             !isConnected ? "Wallet Not Connected" :
-            canPay ? "Proceed" :
+            canPay ? "Purchase Airtime" :
             "Fill all details";
 
           const primaryClass = "justify-start text-white text-2xl font-semibold font-['Montserrat_Alternates'] tracking-[3.60px]";
           const secondaryClass = "justify-start text-white/90 text-lg font-medium font-['Montserrat_Alternates'] tracking-[2.5px]";
 
-          const isPrimaryLabel = label === "Proceed" || label === "Fill all details";
+          const isPrimaryLabel = label === "Purchase Airtime" || label === "Fill all details";
 
           return (
             <div className={isPrimaryLabel ? primaryClass : secondaryClass}>

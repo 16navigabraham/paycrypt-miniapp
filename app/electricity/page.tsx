@@ -784,7 +784,7 @@ export default function ElectricityPage() {
               txStatus === 'backendError' ? "Payment Failed - Try Again" :
               txStatus === 'error' ? "Transaction Failed - Try Again" :
               !isConnected ? "Wallet Not Connected" :
-              canPay ? "Pay Electricity Bill" :
+              canPay ? "Purchase Electricity Bill" :
               "Fill all details and verify meter"}
           </Button>
 
