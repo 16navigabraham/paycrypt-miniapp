@@ -479,61 +479,21 @@ export default function InternetPage() {
     }
 
     return (
-        <div className="container py-10 max-w-xl mx-auto">
-            <BackToDashboard />
-            {/* <h1 className="text-3xl font-bold mb-4">Buy Internet Data</h1>
-            <p className="text-muted-foreground mb-8">
-                Purchase internet data bundles using supported ERC20 cryptocurrencies on Base chain.
-            </p> */}
-
-            {/* Connection Status */}
-            {address && (
-                <div className="text-sm p-3 bg-green-50 border border-green-200 rounded-lg mb-6">
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <Wifi className="w-4 h-4 text-green-500" />
-                        <span className="text-green-700">
-                            Wallet Connected: {address.slice(0, 6)}...{address.slice(-4)}
-                            {isOnBaseChain && <span className="ml-2 text-xs">(Base Chain ✓)</span>}
-                        </span>
-                    </div>
+        <div className="w-96 h-[812px] relative bg-white rounded-[60px] overflow-hidden">
+            <div className="absolute left-4 right-4 top-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/90 rounded-xl shadow-sm">
+                <BackToDashboard />
+                <div className="text-black text-lg font-medium font-['Montserrat_Alternates'] tracking-[1.5px]">
+                    Crypto to Data Payment
                 </div>
-            )}
+            </div>
 
-            {!address && (
-                <div className="text-sm p-3 bg-orange-50 border border-orange-200 rounded-lg mb-6">
-                    <div className="flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-orange-500" />
-                        <span className="text-orange-700">
-                            No wallet connected. Please ensure you're accessing this through the mini app.
-                        </span>
-                    </div>
-                </div>
-            )}
-
-            {/* Base Chain Warning */}
-            {address && !isOnBaseChain && (
-                <div className="text-sm p-3 bg-red-50 border border-red-200 rounded-lg mb-6">
-                    <div className="flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-red-500" />
-                        <span className="text-red-700">
-                            Please switch to Base network to continue. Transactions will auto-switch when needed.
-                        </span>
-                    </div>
-                </div>
-            )}
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Crypto to Internet Data</CardTitle>
-                    <CardDescription>
-                        Preview and calculate your internet data purchase with crypto
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {/* Pay With Token Selection */}
-                    <div className="space-y-2">
-                        <Label htmlFor="crypto">Pay With</Label>
+            {/* Only show Request ID as requested */}
+             <div className="w-80 h-[643px] left-[25px] top-[140px] absolute bg-white/90 rounded-[45px] border-2 border-lime-400 p-6 overflow-hidden">
+        <div className="flex flex-col gap-4 h-full">
+                          {/* Pay With */}
+                    <div className="text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">
+                            Pay With
+                    <div className="w-full bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
                         <Select value={selectedTokenAddress} onValueChange={setSelectedTokenAddress}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select ERC20 token" />
@@ -550,16 +510,11 @@ export default function InternetPage() {
                                 )}
                             </SelectContent>
                         </Select>
-                        {activeTokens.length === 0 && !loading && (
-                            <p className="text-sm text-yellow-600">
-                                No active ERC20 tokens found from contract.
-                            </p>
-                        )}
                     </div>
-                    
-                    {/* Internet Provider Selection */}
-                    <div className="space-y-2">
-                        <Label htmlFor="provider">Internet Provider</Label>
+                    </div>
+
+                    <div className="text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">Network Provider</div>
+                    <div className="w-full bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
                         <Select value={provider} onValueChange={setProvider}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select provider" />
@@ -573,10 +528,9 @@ export default function InternetPage() {
                             </SelectContent>
                         </Select>
                     </div>
-                    
-                    {/* Data Plan Selection */}
-                    <div className="space-y-2">
-                        <Label htmlFor="plan">Data Plan</Label>
+
+                    <div className="text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">Data Plan</div>
+                    <div className="w-full bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] border border-black p-2">
                         <Select value={plan} onValueChange={setPlan} disabled={!provider || loadingPlans}>
                             <SelectTrigger>
                                 <SelectValue placeholder={loadingPlans ? "Loading plans..." : "Select data plan"} />
@@ -598,10 +552,15 @@ export default function InternetPage() {
                             </SelectContent>
                         </Select>
                     </div>
-                    
-                    {/* Customer ID / Phone Number */}
-                    <div className="space-y-2">
-                        <Label htmlFor="customerID">Customer ID / Phone Number</Label>
+
+                    <div className="text-sm text-black/70 font-['Montserrat_Alternates'] tracking-wide">
+                      {amountNGN > 0
+                        ? `${amountNGN} ~${selectedCrypto ? cryptoNeeded.toFixed(selectedCrypto.decimals) : cryptoNeeded.toFixed(6)} ${selectedCrypto?.symbol ?? ''}`
+                        : ''}
+                    </div>
+
+                    <div className="text-black text-xl font-medium font-['Montserrat_Alternates'] tracking-[3px]">Phone Number</div>
+                    <div className="w-full bg-white rounded-[20px] border border-black/20 p-2">
                         <Input
                             id="customerID"
                             type="text"
@@ -609,82 +568,47 @@ export default function InternetPage() {
                             value={customerID}
                             maxLength={11}
                             onChange={(e) => setCustomerID(e.target.value)}
+                            className="w-full"
                         />
                     </div>
-                    
-                    {/* Compulsory token approval info */}
-                    {selectedCrypto && (
-                      <div className="text-sm p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4 text-blue-500" />
-                          <span className="text-blue-700">
-                            Token approval required for all ERC20 transactions
-                          </span>
-                        </div>
-                      </div>
-                    )}
 
-                    {requestId && (
-                        <div className="border-t pt-4 space-y-2">
-                            <div className="flex justify-between text-sm">
-                                <span>Conversion Rate:</span>
-                                <span>
-                                    {selectedCrypto && priceNGN
-                                        ? `₦${priceNGN.toLocaleString()} / 1 ${selectedCrypto.symbol}`
-                                        : "--"}
-                                </span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span>Plan Amount:</span>
-                                <span>
-                                    {selectedPlan ? `₦${Number(selectedPlan.variation_amount).toLocaleString()}` : "--"}
-                                </span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span>You will pay:</span>
-                                <span>
-                                    {cryptoNeeded > 0 && selectedCrypto ? (
-                                        <Badge variant="outline">
-                                            {cryptoNeeded.toFixed(selectedCrypto.decimals)}{" "} {selectedCrypto.symbol}
-                                        </Badge>
-                                    ) : (
-                                        "--"
-                                    )}
-                                </span>
-                            </div>
-                        </div>
-                    )}
-                    
-                    <Button
-                        className="w-full"
-                        onClick={handlePurchase}
-                        disabled={isButtonDisabled}
-                    >
-                        {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
-                        txStatus === 'approving' ? "Approving Token..." :
-                        txStatus === 'approvalSuccess' ? "Starting Payment..." :
-                        txStatus === 'waitingForSignature' ? "Awaiting Payment..." :
-                        txStatus === 'confirming' ? "Confirming..." :
-                        txStatus === 'success' ? "Payment Confirmed!" :
-                        txStatus === 'backendProcessing' ? "Processing Order..." :
-                        txStatus === 'backendSuccess' ? "Data Delivered!" :
-                        txStatus === 'backendError' ? "Order Failed - Try Again" :
-                        txStatus === 'error' ? "Transaction Failed - Try Again" :
-                        !isConnected ? "Wallet Not Connected" :
-                        isFormValid ? "Purchase Internet Data" :
-                        "Fill all details"}
-                    </Button>
+                    <div className="mt-auto">
+                        <Button
+                            onClick={handlePurchase}
+                            disabled={isButtonDisabled}
+                            className="w-full h-14 rounded-[20px] flex items-center px-4"
+                            style={{
+                                borderRadius: "20px",
+                                background:
+                                    "linear-gradient(91deg, rgba(0, 0, 0, 0.00) 0.52%, rgba(20, 55, 255, 0.50) 90.44%), linear-gradient(85deg, rgba(212, 255, 22, 0.50) 1.75%, rgba(0, 0, 0, 0.50) 35.67%), #302F2F",
+                                boxShadow: "0 2px 4px 0 rgba(0, 0, 0, 0.25)",
+                            }}
+                        >
+                            <span className="text-white font-semibold">
+                                {txStatus === 'waitingForApprovalSignature' ? "Awaiting Approval..." :
+                                txStatus === 'approving' ? "Approving Token..." :
+                                txStatus === 'approvalSuccess' ? "Starting Payment..." :
+                                txStatus === 'waitingForSignature' ? "Awaiting Payment..." :
+                                txStatus === 'confirming' ? "Confirming..." :
+                                txStatus === 'success' ? "Payment Confirmed!" :
+                                txStatus === 'backendProcessing' ? "Processing Order..." :
+                                txStatus === 'backendSuccess' ? "Data Delivered!" :
+                                txStatus === 'backendError' ? "Order Failed - Try Again" :
+                                txStatus === 'error' ? "Transaction Failed - Try Again" :
+                                !isConnected ? "Wallet Not Connected" :
+                                isFormValid ? "Purchase Internet Data" :
+                                "Fill all details"}
+                            </span>
+                        </Button>
+                    </div>
 
-                    {/* Active tokens info */}
-                    {activeTokens.length > 0 && (
-                        <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
-                            <p className="font-medium mb-1">Active ERC20 Tokens ({activeTokens.length}):</p>
-                            <p>{activeTokens.map(t => t.symbol).join(", ")}</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-            
+                    {/* Only show Request ID as requested */}
+                    <div className="text-xs text-muted-foreground">
+                      Request ID: <span className="inline-block font-mono">{requestId ?? "—"}</span>
+                    </div>
+                  </div>
+      </div>
+
             <TransactionStatusModal
                 isOpen={showTransactionModal}
                 onClose={handleCloseModal}
