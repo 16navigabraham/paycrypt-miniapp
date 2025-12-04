@@ -16,7 +16,7 @@ const wagmiConfig = createConfig({
   ],
   transports: {
     [base.id]: http(),
-    [lisk.id]: http(),
+    [lisk.id]: http('https://rpc.api.lisk.com'),
     [celo.id]: http(),
     [baseSepolia.id]: http(),
   },

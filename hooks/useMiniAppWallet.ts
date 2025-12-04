@@ -34,7 +34,7 @@ export function useMiniAppWallet() {
   const { address, isConnected, isConnecting, chainId } = useAccount();
   const { connect, connectors, isPending: isConnectPending } = useConnect();
   const { disconnect } = useDisconnect();
-  const { switchChain } = useSwitchChain();
+  const { switchChain, isPending: isSwitchingChain } = useSwitchChain();
   const { context } = useMiniKit();
   
   // Transaction hooks
@@ -255,6 +255,7 @@ export function useMiniAppWallet() {
     switchToLiskChain: () => switchChain({ chainId: LISK_CHAIN_ID }),
     switchToCeloChain: () => switchChain({ chainId: CELO_CHAIN_ID }),
     switchToChain: (targetChainId: number) => switchChain({ chainId: targetChainId }),
+    isSwitchingChain,
     
     // Context
     miniAppContext: getMiniAppContext(),

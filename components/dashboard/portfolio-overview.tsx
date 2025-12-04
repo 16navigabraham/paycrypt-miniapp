@@ -196,22 +196,24 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 	};
 
 	// Handle network switch
-	const handleNetworkSwitch = (network: 'base' | 'lisk' | 'celo') => {
+	const handleNetworkSwitch = async (network: 'base' | 'lisk' | 'celo') => {
 		try {
+			console.log(`Attempting to switch to ${network} network...`);
 			switch (network) {
 				case 'base':
-					switchToBaseChain();
-					toast.success("Switching to Base network...");
+					await switchToBaseChain();
+					toast.success("Switched to Base network");
 					break;
 				case 'lisk':
-					switchToLiskChain();
-					toast.success("Switching to Lisk network...");
+					await switchToLiskChain();
+					toast.success("Switched to Lisk network");
 					break;
 				case 'celo':
-					switchToCeloChain();
-					toast.success("Switching to Celo network...");
+					await switchToCeloChain();
+					toast.success("Switched to Celo network");
 					break;
 			}
+			console.log(`Successfully switched to ${network}`);
 		} catch (error) {
 			toast.error("Failed to switch network. Please try again.");
 			console.error("Network switch error:", error);
@@ -230,11 +232,11 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 		const walletAddress = address || wallet?.address;
 
 		if (!walletAddress || !chainIdNumber) {
-			console.log('No wallet address or chain available');
+			console.log('No wallet address or chain available', { address: walletAddress, chainIdNumber });
 			return;
 		}
 
-		console.log(`Loading portfolio for address: ${walletAddress} on chain: ${chainIdNumber}`);
+		console.log(`Loading portfolio for address: ${walletAddress} on chain: ${chainIdNumber} (${getChainName()})`);
 		setLoading(true);
 		setError(null);
 
@@ -242,6 +244,8 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 		const chainTokens = getTokensForChain(chainIdNumber);
 		const tokenContracts = chainTokens.map(t => t.address);
 		const allCoingeckoIds = chainTokens.map(t => t.coingeckoId);
+		
+		console.log(`Chain ${chainIdNumber} tokens:`, chainTokens.map(t => t.symbol));
 
 		Promise.all([
 			fetchNativeBalance(walletAddress, chainIdNumber),
