@@ -3,12 +3,15 @@
 
 import { useAccount, useConnect, useDisconnect, useSendTransaction, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi';
 import { useMiniKit } from '@coinbase/onchainkit/minikit';
-import { base } from 'wagmi/chains';
+import { base, lisk, celo } from 'wagmi/chains';
 import { parseEther, type Address, type Hash } from 'viem';
 import { useCallback, useEffect } from 'react';
 
-// Base chain ID
+// Supported chain IDs
 const BASE_CHAIN_ID = 8453;
+const LISK_CHAIN_ID = 1135;
+const CELO_CHAIN_ID = 42220;
+const SUPPORTED_CHAIN_IDS = [BASE_CHAIN_ID, LISK_CHAIN_ID, CELO_CHAIN_ID];
 
 interface SendTransactionParams {
   to: Address;
@@ -16,6 +19,7 @@ interface SendTransactionParams {
   data?: `0x${string}`;
   gas?: bigint;
   gasPrice?: bigint;
+  chainId?: number; // Optional chainId, defaults to current chain
 }
 
 interface TransactionResult {
@@ -55,32 +59,43 @@ export function useMiniAppWallet() {
     disconnect();
   }, [disconnect]);
 
-  // Ensure we're on Base chain
-  const ensureBaseChain = useCallback(async (): Promise<boolean> => {
+  // Ensure we're on a specific chain (defaults to Base)
+  const ensureChain = useCallback(async (targetChainId: number = BASE_CHAIN_ID): Promise<boolean> => {
     if (!isConnected) {
       throw new Error('Wallet not connected');
     }
 
-    if (chainId !== BASE_CHAIN_ID) {
+    if (!SUPPORTED_CHAIN_IDS.includes(targetChainId)) {
+      throw new Error('Unsupported chain ID');
+    }
+
+    if (chainId !== targetChainId) {
       try {
         // switchChain returns void, so we need to handle it differently
-        switchChain({ chainId: BASE_CHAIN_ID });
+        switchChain({ chainId: targetChainId });
         // Give it a moment to switch
         await new Promise(resolve => setTimeout(resolve, 1000));
         return true;
       } catch (error) {
-        console.error('Failed to switch to Base chain:', error);
-        throw new Error('Please switch to Base chain to continue');
+        const chainName = targetChainId === BASE_CHAIN_ID ? 'Base' : targetChainId === LISK_CHAIN_ID ? 'Lisk' : 'Celo';
+        console.error(`Failed to switch to ${chainName} chain:`, error);
+        throw new Error(`Please switch to ${chainName} chain to continue`);
       }
     }
     return true;
   }, [chainId, isConnected, switchChain]);
 
-  // Send transaction function with Base chain enforcement
+  // Keep backward compatibility
+  const ensureBaseChain = useCallback(() => ensureChain(BASE_CHAIN_ID), [ensureChain]);
+
+  // Send transaction function with chain support
   const sendTransaction = useCallback(async (params: SendTransactionParams): Promise<Hash> => {
     try {
-      // Ensure we're on Base chain first
-      await ensureBaseChain();
+      // Use provided chainId or current chainId
+      const targetChainId = params.chainId || chainId || BASE_CHAIN_ID;
+      
+      // Ensure we're on the target chain first
+      await ensureChain(targetChainId);
 
       // Reset any previous transaction state
       resetSendTransaction();
@@ -88,7 +103,7 @@ export function useMiniAppWallet() {
       // Prepare transaction parameters
       const txParams: any = {
         to: params.to,
-        chainId: BASE_CHAIN_ID,
+        chainId: targetChainId,
       };
 
       // Add value if provided
@@ -193,10 +208,10 @@ export function useMiniAppWallet() {
     };
   }, []);
 
-  // Auto-switch to Base chain when connected
+  // Auto-switch to supported chain when connected (only if on unsupported chain)
   useEffect(() => {
-    if (isConnected && chainId && chainId !== BASE_CHAIN_ID) {
-      console.log(`Connected to chain ${chainId}, switching to Base chain (${BASE_CHAIN_ID})`);
+    if (isConnected && chainId && !SUPPORTED_CHAIN_IDS.includes(chainId)) {
+      console.log(`Connected to unsupported chain ${chainId}, switching to Base chain (${BASE_CHAIN_ID})`);
       try {
         switchChain({ chainId: BASE_CHAIN_ID });
       } catch (error) {
@@ -211,7 +226,11 @@ export function useMiniAppWallet() {
     isConnected,
     isLoading: isConnecting || isConnectPending,
     chainId: chainId?.toString() || BASE_CHAIN_ID.toString(),
+    chainIdNumber: chainId || BASE_CHAIN_ID,
     isOnBaseChain: chainId === BASE_CHAIN_ID,
+    isOnLiskChain: chainId === LISK_CHAIN_ID,
+    isOnCeloChain: chainId === CELO_CHAIN_ID,
+    isOnSupportedChain: chainId ? SUPPORTED_CHAIN_IDS.includes(chainId) : false,
     
     // Actions
     connectWallet,
@@ -229,9 +248,13 @@ export function useMiniAppWallet() {
     sendTransactionError,
     resetSendTransaction,
     
-    // Base chain utilities
-    ensureBaseChain,
+    // Chain utilities
+    ensureChain,
+    ensureBaseChain, // Backward compatibility
     switchToBaseChain: () => switchChain({ chainId: BASE_CHAIN_ID }),
+    switchToLiskChain: () => switchChain({ chainId: LISK_CHAIN_ID }),
+    switchToCeloChain: () => switchChain({ chainId: CELO_CHAIN_ID }),
+    switchToChain: (targetChainId: number) => switchChain({ chainId: targetChainId }),
     
     // Context
     miniAppContext: getMiniAppContext(),
@@ -243,6 +266,9 @@ export function useMiniAppWallet() {
     
     // Constants
     BASE_CHAIN_ID,
+    LISK_CHAIN_ID,
+    CELO_CHAIN_ID,
+    SUPPORTED_CHAIN_IDS,
   };
 }
 

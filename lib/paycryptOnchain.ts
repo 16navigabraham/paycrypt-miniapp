@@ -1,5 +1,5 @@
 // lib/paycryptOnchain.ts
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
+import { CONTRACT_ABI, getContractAddress } from "@/config/contract";
 import { ERC20_ABI } from "@/config/erc20Abi";
 import { createPublicClient, createWalletClient, http, getContract } from "viem";
 
@@ -10,6 +10,7 @@ export async function paycryptOnchain({
   requestId,
   walletClient,
   publicClient,
+  chainId,
 }: {
   userAddress: string;
   tokenAddress: string;
@@ -17,13 +18,17 @@ export async function paycryptOnchain({
   requestId: string | number;
   walletClient: any;
   publicClient: any;
+  chainId: number;
 }) {
   // amount is already typed as bigint, use directly
   const safeAmount: bigint = amount;
 
+  // Get contract address for the current chain
+  const contractAddress = getContractAddress(chainId);
+
   // 1. Get contract instances using viem
   const contract = getContract({
-    address: CONTRACT_ADDRESS,
+    address: contractAddress as `0x${string}`,
     abi: CONTRACT_ABI,
     client: publicClient,
   });
@@ -42,9 +47,9 @@ export async function paycryptOnchain({
   if (balance < safeAmount) throw new Error("Insufficient balance");
 
   // 5. Check allowance
-  const allowance = await (erc20 as any).allowance([userAddress, CONTRACT_ADDRESS]);
+  const allowance = await (erc20 as any).allowance([userAddress, contractAddress]);
   if (allowance < safeAmount) {
-    const approveTx = await (erc20 as any).approve([CONTRACT_ADDRESS, safeAmount]);
+    const approveTx = await (erc20 as any).approve([contractAddress, safeAmount]);
     await publicClient.waitForTransactionReceipt({ hash: approveTx });
   }
 

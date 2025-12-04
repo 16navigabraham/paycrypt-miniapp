@@ -12,7 +12,7 @@ import BackToDashboard from '@/components/BackToDashboard'
 import { Loader2, AlertCircle, Wifi } from "lucide-react"
 
 import { useMiniAppWallet, useTransactionWait } from '@/hooks/useMiniAppWallet';
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
+import { getContractAddress, CONTRACT_ABI } from "@/config/contract";
 import { ERC20_ABI } from "@/config/erc20Abi";
 import { parseUnits, toBytes, toHex, Hex, encodeFunctionData } from 'viem';
 import { toast } from 'sonner';
@@ -117,8 +117,8 @@ export default function InternetPage() {
         isConnected, 
         isLoading: walletLoading,
         sendTransaction,
-        isOnBaseChain,
-        ensureBaseChain
+        chainIdNumber,
+        isOnSupportedChain
     } = useMiniAppWallet();
 
     // Transaction waiting hooks
@@ -316,7 +316,7 @@ export default function InternetPage() {
             });
 
             const orderTx = await sendTransaction({
-                to: CONTRACT_ADDRESS,
+                to: getContractAddress(chainIdNumber) as Hex,
                 data: orderData,
             });
 
@@ -376,11 +376,9 @@ export default function InternetPage() {
             return;
         }
 
-        // Ensure we're on Base chain
-        try {
-            await ensureBaseChain();
-        } catch (error: any) {
-            toast.error(error.message);
+        // Ensure we're on a supported chain
+        if (!isOnSupportedChain) {
+            toast.error("Please switch to a supported chain (Base, Lisk, or Celo)");
             setTxStatus('error');
             return;
         }
@@ -389,7 +387,7 @@ export default function InternetPage() {
         console.log("RequestId:", requestId);
         console.log("Token:", selectedCrypto.symbol);
         console.log("Amount:", cryptoNeeded);
-        console.log("Base Chain:", isOnBaseChain);
+        console.log("Chain ID:", chainIdNumber);
 
         try {
             // Step 1: Token Approval
@@ -404,7 +402,7 @@ export default function InternetPage() {
             const approvalData = encodeFunctionData({
                 abi: ERC20_ABI,
                 functionName: 'approve',
-                args: [CONTRACT_ADDRESS, requiredApproval],
+                args: [getContractAddress(chainIdNumber), requiredApproval],
             });
 
             const approvalTx = await sendTransaction({

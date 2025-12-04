@@ -4,6 +4,8 @@ import { Loader2, CheckCircle, XCircle, Clock, KeyRound, Printer, Copy, Check, M
 import Link from "next/link";
 import { Hex } from 'viem';
 import { useState, useEffect } from 'react';
+import { getExplorerUrl } from "@/config/contract";
+import { useMiniAppWallet } from "@/hooks/useMiniAppWallet";
 
 interface TransactionStatusModalProps {
   isOpen: boolean;
@@ -13,7 +15,8 @@ interface TransactionStatusModalProps {
             'backendProcessing' | 'backendSuccess' | 'backendError';
   transactionHash?: Hex;
   errorMessage?: string | null;
-  explorerUrl?: string;
+  explorerUrl?: string; // Optional - if not provided, will use chain-specific URL
+  chainId?: number; // Optional - if not provided, will use current chain
   backendMessage?: string | null;
   requestId?: string;
   backendDetails?: {
@@ -29,11 +32,19 @@ export function TransactionStatusModal({
   txStatus,
   transactionHash,
   errorMessage,
-  explorerUrl = "https://basescan.org",
+  explorerUrl: providedExplorerUrl,
+  chainId: providedChainId,
   backendMessage,
   requestId,
   backendDetails,
 }: TransactionStatusModalProps) {
+  const { chainIdNumber } = useMiniAppWallet();
+  
+  // Use provided chainId or fall back to current chain
+  const activeChainId = providedChainId || chainIdNumber;
+  
+  // Use provided explorerUrl or generate from chainId
+  const explorerUrl = providedExplorerUrl || getExplorerUrl(activeChainId);
   const [copiedHash, setCopiedHash] = useState(false);
   const [copiedRequestId, setCopiedRequestId] = useState(false);
   const [lockedStatus, setLockedStatus] = useState<string | null>(null);

@@ -3,19 +3,21 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { base, baseSepolia } from 'wagmi/chains';
+import { base, baseSepolia, celo, lisk } from 'wagmi/chains';
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { MiniKitProvider } from '@coinbase/onchainkit/minikit';
 
-// Create wagmi config with Farcaster Mini App connector
+// Create wagmi config with Farcaster Mini App connector and multi-chain support
 const wagmiConfig = createConfig({
-  chains: [base, baseSepolia],
+  chains: [base, lisk, celo, baseSepolia],
   connectors: [
     miniAppConnector(), // This handles both Farcaster and Base App automatically
   ],
   transports: {
     [base.id]: http(),
+    [lisk.id]: http(),
+    [celo.id]: http(),
     [baseSepolia.id]: http(),
   },
   ssr: false, // Important for mini apps

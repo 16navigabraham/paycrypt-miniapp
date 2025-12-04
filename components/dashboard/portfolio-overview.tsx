@@ -2,30 +2,37 @@
 
 import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import { DollarSign, Eye, EyeOff, TrendingUp } from "lucide-react"
+import { DollarSign, Eye, EyeOff, TrendingUp, Network } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useMiniAppWallet } from "@/hooks/useMiniAppWallet"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { toast } from "sonner"
+import { getTokensForChain } from "@/lib/tokenlist"
 
-// Base chain contract addresses (update if needed)
-const USDT_CONTRACT = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
-const USDC_CONTRACT = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+// RPC endpoints for different chains
+const getRpcUrl = (chainId: number): string => {
+	const apiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY;
+	switch (chainId) {
+		case 8453: // Base
+			return `https://base-mainnet.g.alchemy.com/v2/${apiKey}`;
+		case 1135: // Lisk
+			return 'https://rpc.api.lisk.com';
+		case 42220: // Celo
+			return `https://celo-mainnet.g.alchemy.com/v2/${apiKey}`;
+		default:
+			return `https://base-mainnet.g.alchemy.com/v2/${apiKey}`;
+	}
+};
 
-const supportedTokens = [
-	{ symbol: "ETH", name: "Ethereum", coingeckoId: "ethereum", color: "from-blue-500 to-purple-600" },
-	{ symbol: "USDT", name: "Tether", coingeckoId: "tether", color: "from-green-500 to-emerald-600", contract: USDT_CONTRACT, decimals: 6 },
-	{ symbol: "USDC", name: "USD Coin", coingeckoId: "usd-coin", color: "from-blue-400 to-cyan-600", contract: USDC_CONTRACT, decimals: 6 },
-]
-
-// Use Alchemy for Base chain (chainId 8453)
-async function fetchEthBalance(address: string) {
+// Fetch native token balance (ETH for Base, ETH for Lisk, CELO for Celo)
+async function fetchNativeBalance(address: string, chainId: number) {
 	try {
-		const apiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY;
-		if (!apiKey) {
-			console.warn('No Alchemy API key found, using fallback data');
-			return 0;
-		}
-		// Alchemy Base mainnet endpoint
-		const url = `https://base-mainnet.g.alchemy.com/v2/${apiKey}`;
+		const url = getRpcUrl(chainId);
 		const res = await fetch(url, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -37,63 +44,93 @@ async function fetchEthBalance(address: string) {
 			}),
 		});
 		if (!res.ok) {
-			console.error('Alchemy API error:', res.status, res.statusText);
+			console.error(`RPC error for chain ${chainId}:`, res.status, res.statusText);
 			return 0;
 		}
 		const data = await res.json();
 		if (data.result) {
 			return parseInt(data.result, 16) / 1e18;
 		}
-		console.warn('Invalid ETH balance response:', data);
+		console.warn(`Invalid balance response for chain ${chainId}:`, data);
 		return 0;
 	} catch (error) {
-		console.error('Error fetching ETH balance:', error);
+		console.error(`Error fetching native balance for chain ${chainId}:`, error);
 		return 0;
 	}
 }
 
-async function fetchErc20Balance(address: string, contract: string, decimals: number) {
+// Fetch token balances for a specific chain
+async function fetchTokenBalances(address: string, chainId: number, contractAddresses: string[]) {
 	try {
-		const apiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY;
-		if (!apiKey) {
-			console.warn('No Alchemy API key found, using fallback data');
-			return 0;
+		const url = getRpcUrl(chainId);
+		
+		// Use Alchemy's alchemy_getTokenBalances for Alchemy-supported chains (Base, Celo)
+		if (chainId === 8453 || chainId === 42220) {
+			const res = await fetch(url, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					jsonrpc: '2.0',
+					id: 1,
+					method: 'alchemy_getTokenBalances',
+					params: [address, contractAddresses],
+				}),
+			});
+			
+			if (!res.ok) {
+				console.error(`Token API error for chain ${chainId}:`, res.status);
+				return {};
+			}
+			
+			const data = await res.json();
+			const balances: Record<string, number> = {};
+			
+			if (data.result?.tokenBalances) {
+				data.result.tokenBalances.forEach((tb: any) => {
+					const addr = tb.contractAddress.toLowerCase();
+					balances[addr] = tb.tokenBalance ? parseInt(tb.tokenBalance, 16) : 0;
+				});
+			}
+			return balances;
 		}
-		// Alchemy Base mainnet endpoint
-		const url = `https://base-mainnet.g.alchemy.com/v2/${apiKey}`;
-		const res = await fetch(url, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				jsonrpc: '2.0',
-				id: 1,
-				method: 'alchemy_getTokenBalances',
-				params: [address, [contract]],
-			}),
-		});
-		if (!res.ok) {
-			console.error('Alchemy token API error:', res.status, res.statusText);
-			return 0;
-		}
-		const data = await res.json();
-		// Alchemy returns balances in hex string
-		if (data.result && data.result.tokenBalances && data.result.tokenBalances.length > 0) {
-			const hexBalance = data.result.tokenBalances[0].tokenBalance;
-			if (hexBalance) {
-				return parseInt(hexBalance, 16) / Math.pow(10, decimals);
+		
+		// For Lisk and other chains, use standard eth_call with balanceOf
+		const balances: Record<string, number> = {};
+		for (const contract of contractAddresses) {
+			try {
+				const data = `0x70a08231000000000000000000000000${address.slice(2)}`; // balanceOf(address)
+				const res = await fetch(url, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						jsonrpc: '2.0',
+						id: 1,
+						method: 'eth_call',
+						params: [{ to: contract, data }, 'latest'],
+					}),
+				});
+				
+				if (res.ok) {
+					const result = await res.json();
+					if (result.result) {
+						balances[contract.toLowerCase()] = parseInt(result.result, 16);
+					}
+				}
+			} catch (err) {
+				console.error(`Error fetching balance for ${contract}:`, err);
 			}
 		}
-		console.warn('Invalid token balance response:', data);
-		return 0;
+		return balances;
 	} catch (error) {
-		console.error('Error fetching token balance:', error);
-		return 0;
+		console.error(`Error fetching token balances for chain ${chainId}:`, error);
+		return {};
 	}
 }
 
-async function fetchPrices() {
+// Fetch prices for all tokens
+async function fetchPrices(coingeckoIds: string[]) {
 	try {
-		const ids = supportedTokens.map((t) => t.coingeckoId).join(",")
+		const ids = [...new Set(coingeckoIds)].join(","); // Remove duplicates
 		const res = await fetch(
 			`https://paycrypt-margin-price.onrender.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd,ngn`,
 			{
@@ -129,8 +166,57 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 	const [showBalance, setShowBalance] = useState(true);
 	const [currencyDisplay, setCurrencyDisplay] = useState<'usd' | 'ngn'>('usd');
 
-	// Use simple mini app wallet hook
-	const { address } = useMiniAppWallet();
+	// Use simple mini app wallet hook with chain info
+	const { 
+		address, 
+		chainIdNumber, 
+		isOnBaseChain, 
+		isOnLiskChain, 
+		isOnCeloChain,
+		switchToBaseChain,
+		switchToLiskChain,
+		switchToCeloChain,
+		isSwitchingChain 
+	} = useMiniAppWallet();
+
+	// Get current chain name for display
+	const getChainName = () => {
+		if (isOnBaseChain) return "Base";
+		if (isOnLiskChain) return "Lisk";
+		if (isOnCeloChain) return "Celo";
+		return "Unknown";
+	};
+
+	// Get chain color for the indicator
+	const getChainColor = () => {
+		if (isOnBaseChain) return "#0052FF"; // Base blue
+		if (isOnLiskChain) return "#4070F4"; // Lisk blue
+		if (isOnCeloChain) return "#FCFF52"; // Celo yellow
+		return "#1687FF"; // Default
+	};
+
+	// Handle network switch
+	const handleNetworkSwitch = (network: 'base' | 'lisk' | 'celo') => {
+		try {
+			switch (network) {
+				case 'base':
+					switchToBaseChain();
+					toast.success("Switching to Base network...");
+					break;
+				case 'lisk':
+					switchToLiskChain();
+					toast.success("Switching to Lisk network...");
+					break;
+				case 'celo':
+					switchToCeloChain();
+					toast.success("Switching to Celo network...");
+					break;
+			}
+		} catch (error) {
+			toast.error("Failed to switch network. Please try again.");
+			console.error("Network switch error:", error);
+		}
+	};
 
 	// Set mounted
 	useEffect(() => {
@@ -143,51 +229,59 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 		// Use address from mini app hook or wallet prop
 		const walletAddress = address || wallet?.address;
 
-		if (!walletAddress) {
-			console.log('No wallet address available');
+		if (!walletAddress || !chainIdNumber) {
+			console.log('No wallet address or chain available');
 			return;
 		}
 
-		console.log('Loading portfolio for address:', walletAddress);
+		console.log(`Loading portfolio for address: ${walletAddress} on chain: ${chainIdNumber}`);
 		setLoading(true);
 		setError(null);
 
-		// Fetch all ERC-20 balances in one call
-		const apiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY;
-		const url = `https://base-mainnet.g.alchemy.com/v2/${apiKey}`;
+		// Get tokens for the current chain
+		const chainTokens = getTokensForChain(chainIdNumber);
+		const tokenContracts = chainTokens.map(t => t.address);
+		const allCoingeckoIds = chainTokens.map(t => t.coingeckoId);
 
 		Promise.all([
-			fetchEthBalance(walletAddress),
-			fetch(url, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					jsonrpc: '2.0',
-					id: 1,
-					method: 'alchemy_getTokenBalances',
-					params: [walletAddress, [USDT_CONTRACT, USDC_CONTRACT]],
-				}),
-			}).then(res => res.json()),
-			fetchPrices(),
-		]).then(([eth, tokenData, priceData]) => {
-			// tokenData.result.tokenBalances is an array
-			let usdtBalance = 0;
-			let usdcBalance = 0;
-			if (tokenData.result && Array.isArray(tokenData.result.tokenBalances)) {
-				tokenData.result.tokenBalances.forEach((tb: any) => {
-					if (tb.contractAddress.toLowerCase() === USDT_CONTRACT.toLowerCase()) {
-						usdtBalance = tb.tokenBalance ? parseInt(tb.tokenBalance, 16) / 1e6 : 0;
-					}
-					if (tb.contractAddress.toLowerCase() === USDC_CONTRACT.toLowerCase()) {
-						usdcBalance = tb.tokenBalance ? parseInt(tb.tokenBalance, 16) / 1e6 : 0;
-					}
-				});
+			fetchNativeBalance(walletAddress, chainIdNumber),
+			fetchTokenBalances(walletAddress, chainIdNumber, tokenContracts),
+			fetchPrices(allCoingeckoIds),
+		]).then(([nativeBalance, tokenBalancesMap, priceData]) => {
+			// Build balances array
+			const newBalances: any[] = [];
+
+			// Add native token based on chain
+			let nativeSymbol = "ETH";
+			let nativeCoingeckoId = "ethereum";
+			if (chainIdNumber === 42220) {
+				nativeSymbol = "CELO";
+				nativeCoingeckoId = "celo";
 			}
-			setBalances([
-				{ symbol: "ETH", name: "Ethereum", balance: eth, color: "from-blue-500 to-purple-600" },
-				{ symbol: "USDT", name: "Tether", balance: usdtBalance, color: "from-green-500 to-emerald-600" },
-				{ symbol: "USDC", name: "USD Coin", balance: usdcBalance, color: "from-blue-400 to-cyan-600" },
-			]);
+			
+			newBalances.push({
+				symbol: nativeSymbol,
+				name: nativeSymbol === "CELO" ? "Celo" : "Ethereum",
+				balance: nativeBalance,
+				coingeckoId: nativeCoingeckoId,
+				color: "from-blue-500 to-purple-600"
+			});
+
+			// Add ERC20 tokens
+			chainTokens.forEach(token => {
+				const rawBalance = tokenBalancesMap[token.address.toLowerCase()] || 0;
+				const balance = rawBalance / Math.pow(10, token.decimals);
+				
+				newBalances.push({
+					symbol: token.symbol,
+					name: token.name,
+					balance,
+					coingeckoId: token.coingeckoId,
+					color: getTokenColor(token.symbol),
+				});
+			});
+
+			setBalances(newBalances);
 			setPrices(priceData);
 		}).catch(error => {
 			console.error('Error loading portfolio data:', error);
@@ -195,20 +289,30 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 		}).finally(() => {
 			setLoading(false);
 		});
-	}, [mounted, address, wallet]);
+	}, [mounted, address, wallet, chainIdNumber]);
+
+	// Helper to get token color
+	const getTokenColor = (symbol: string) => {
+		const colorMap: Record<string, string> = {
+			'USDT': 'from-green-500 to-emerald-600',
+			'USDC': 'from-blue-400 to-cyan-600',
+			'SEND': 'from-purple-500 to-pink-600',
+			'cUSD': 'from-yellow-400 to-orange-500',
+			'CELO': 'from-green-400 to-teal-500',
+		};
+		return colorMap[symbol] || 'from-gray-400 to-gray-600';
+	};
 
 	 // Calculate total value in USD
     const totalValueUSD = balances.reduce((sum, b) => {
-        const token = supportedTokens.find((t) => t.symbol === b.symbol)
-        const price = token && prices[token.coingeckoId]?.usd ? prices[token.coingeckoId].usd : 0
-        return sum + (b.balance * price)
+        const price = prices[b.coingeckoId]?.usd || 0;
+        return sum + (b.balance * price);
     }, 0)
 
     // Calculate total value in NGN
     const totalValueNGN = balances.reduce((sum, b) => {
-        const token = supportedTokens.find((t) => t.symbol === b.symbol)
-        const price = token && prices[token.coingeckoId]?.ngn ? prices[token.coingeckoId].ngn : 0
-        return sum + (b.balance * price)
+        const price = prices[b.coingeckoId]?.ngn || 0;
+        return sum + (b.balance * price);
     }, 0)
     
     // Helper function to format the value based on visibility and selected currency
@@ -283,21 +387,81 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 
 			{/* Main balance card */}
 			<div className="relative z-10 flex flex-col items-center justify-center w-full pt-6 pb-4">
-				{/* Wallet address badge (Figma style) */}
-				{wallet?.address && (
-					<div className="flex items-center justify-center mb-2">
-						<div className="w-[76px] h-[20px] flex items-center justify-center gap-2 rounded-[10px] border border-[#1687FF] bg-white px-2" role="group" aria-label="Wallet address">
-							{/* Status dot (blurred green) */}
-							{/* Use a lightweight PNG for the status dot (blur applied via CSS) */}
-							<img
-								src="/Ellipse 8.png"
-								alt=""
+				{/* Wallet address badge with network switcher (Figma style) */}
+				{(wallet?.address || address) && (
+					<div className="flex items-center justify-center mb-2 gap-2">
+						{/* Wallet address badge */}
+						<div className="h-[20px] flex items-center justify-center gap-2 rounded-[10px] border bg-white px-2" 
+							style={{ borderColor: getChainColor() }}
+							role="group" 
+							aria-label="Wallet address">
+							{/* Status dot with chain color */}
+							<div
+								style={{ 
+									width: 8, 
+									height: 8, 
+									borderRadius: '50%',
+									backgroundColor: getChainColor(),
+									filter: 'blur(2.5px)',
+									boxShadow: `0 0 6px ${getChainColor()}`
+								}}
 								aria-hidden="true"
-								style={{ width: 8, height: 8, objectFit: 'cover', filter: 'blur(2.5px)' }}
 							/>
 							{/* Masked address */}
-							<span className="font-['Montserrat_Alternates:Medium',sans-serif] text-[12px] text-black truncate" style={{ width: 48, textAlign: 'center' }}>{maskAddress(wallet.address)}</span>
+							<span className="font-['Montserrat_Alternates:Medium',sans-serif] text-[12px] text-black truncate px-1">
+								{maskAddress(address || wallet?.address)}
+							</span>
 						</div>
+
+						{/* Network Switcher Dropdown */}
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<button
+									className="h-[20px] w-[20px] flex items-center justify-center rounded-full border bg-white hover:bg-gray-50 transition-colors"
+									style={{ borderColor: getChainColor() }}
+									aria-label="Switch network"
+									disabled={isSwitchingChain}
+								>
+									{isSwitchingChain ? (
+										<div className="animate-spin h-3 w-3 border border-gray-400 border-t-transparent rounded-full" />
+									) : (
+										<Network className="h-3 w-3" style={{ color: getChainColor() }} />
+									)}
+								</button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="center" className="w-32">
+								<DropdownMenuItem 
+									onClick={() => handleNetworkSwitch('base')}
+									className="cursor-pointer"
+									disabled={isOnBaseChain}
+								>
+									<div className="flex items-center gap-2">
+										<div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#0052FF' }} />
+										<span className={isOnBaseChain ? 'font-semibold' : ''}>Base</span>
+									</div>
+								</DropdownMenuItem>
+								<DropdownMenuItem 
+									onClick={() => handleNetworkSwitch('lisk')}
+									className="cursor-pointer"
+									disabled={isOnLiskChain}
+								>
+									<div className="flex items-center gap-2">
+										<div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4070F4' }} />
+										<span className={isOnLiskChain ? 'font-semibold' : ''}>Lisk</span>
+									</div>
+								</DropdownMenuItem>
+								<DropdownMenuItem 
+									onClick={() => handleNetworkSwitch('celo')}
+									className="cursor-pointer"
+									disabled={isOnCeloChain}
+								>
+									<div className="flex items-center gap-2">
+										<div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#FCFF52' }} />
+										<span className={isOnCeloChain ? 'font-semibold' : ''}>Celo</span>
+									</div>
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					</div>
 				)}
 

@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useMiniAppWallet } from "@/hooks/useMiniAppWallet"
+import { getExplorerAddressUrl } from "@/lib/explorer"
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -29,7 +30,8 @@ export function Header({ onMenuClick }: HeaderProps) {
     isConnected, 
     disconnectWallet, 
     miniAppContext, 
-    connectorName 
+    connectorName,
+    chainIdNumber 
   } = useMiniAppWallet()
 
   const handleSignOut = async () => {
@@ -136,8 +138,11 @@ export function Header({ onMenuClick }: HeaderProps) {
                   <DropdownMenuItem onClick={() => navigator.clipboard.writeText(address || '')}>
                     Copy Address
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => window.open(`https://basescan.org/address/${address}`, '_blank')}>
-                    View on BaseScan
+                  <DropdownMenuItem onClick={() => {
+                    const explorerUrl = getExplorerAddressUrl(chainIdNumber, address || '');
+                    window.open(explorerUrl, '_blank');
+                  }}>
+                    View on Explorer
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push("/wallet")}>
                     Wallet Details

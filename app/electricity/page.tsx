@@ -20,7 +20,7 @@ import { payElectricityBill, verifyMeter } from "@/lib/api";
 import { TokenConfig } from "@/lib/tokenlist";
 import { fetchActiveTokensWithMetadata } from "@/lib/tokenUtils";
 
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
+import { getContractAddress, CONTRACT_ABI } from "@/config/contract";
 
 // Dynamic ERC20 token list from contract
 const ELECTRICITY_PROVIDERS = [
@@ -150,8 +150,8 @@ export default function ElectricityPage() {
     isConnected, 
     isLoading: walletLoading,
     sendTransaction,
-    isOnBaseChain,
-    ensureBaseChain
+    chainIdNumber,
+    isOnSupportedChain
   } = useMiniAppWallet();
 
   // Transaction waiting hooks
@@ -429,7 +429,7 @@ export default function ElectricityPage() {
       });
 
       const orderTx = await sendTransaction({
-        to: CONTRACT_ADDRESS,
+        to: getContractAddress(chainIdNumber) as Hex,
         data: orderData,
       });
 
@@ -497,11 +497,9 @@ export default function ElectricityPage() {
       return;
     }
 
-    // Ensure we're on Base chain
-    try {
-      await ensureBaseChain();
-    } catch (error: any) {
-      toast.error(error.message);
+    // Ensure we're on a supported chain
+    if (!isOnSupportedChain) {
+      toast.error("Please switch to a supported chain (Base, Lisk, or Celo)");
       setTxStatus('error');
       return;
     }
@@ -510,7 +508,7 @@ export default function ElectricityPage() {
     console.log("RequestId:", requestId);
     console.log("Token:", selectedTokenObj.symbol);
     console.log("Amount:", cryptoNeeded);
-    console.log("Base Chain:", isOnBaseChain);
+    console.log("Chain ID:", chainIdNumber);
 
     try {
       // Step 1: Token Approval - Only approve required amount
@@ -523,12 +521,10 @@ export default function ElectricityPage() {
       console.log("Approving the required amount for this transaction:", requiredApproval.toString());
 
       const approvalData = encodeFunctionData({
-      abi: ERC20_ABI,
-      functionName: 'approve',
-      args: [CONTRACT_ADDRESS, requiredApproval],
-      });
-
-      const approvalTx = await sendTransaction({
+        abi: ERC20_ABI,
+        functionName: 'approve',
+        args: [getContractAddress(chainIdNumber), requiredApproval],
+      });      const approvalTx = await sendTransaction({
       to: selectedTokenObj.address as Hex,
       data: approvalData,
       });
