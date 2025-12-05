@@ -19,8 +19,7 @@ import { toast } from 'sonner';
 import { TransactionStatusModal } from "@/components/TransactionStatusModal";
 
 import { buyinternet } from "@/lib/api";
-import { TokenConfig } from "@/lib/tokenlist";
-import { fetchActiveTokensWithMetadata } from "@/lib/tokenUtils";
+import { TokenConfig, getTokensForChain } from "@/lib/tokenlist";
 
 async function fetchPrices(tokenList: TokenConfig[]): Promise<Record<string, any>> {
   const ids = tokenList.map((c: TokenConfig) => c.coingeckoId).join(",");
@@ -136,11 +135,8 @@ export default function InternetPage() {
         async function loadTokensAndPricesAndProviders() {
             setLoading(true);
             try {
-                const tokens = await fetchActiveTokensWithMetadata();
-                // Filter tokens for current chain only (exclude ETH tokenType 0)
-                const chainTokens = tokens.filter(token => 
-                    token.chainId === chainIdNumber && token.tokenType !== 0
-                );
+                // Use static token list from tokenlist.ts for current chain
+                const chainTokens = getTokensForChain(chainIdNumber);
                 setActiveTokens(chainTokens);
                 const prices = await fetchPrices(chainTokens);
                 setPrices(prices);

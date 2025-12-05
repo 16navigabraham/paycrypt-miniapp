@@ -18,8 +18,7 @@ import { toast } from 'sonner';
 import { TransactionStatusModal } from "@/components/TransactionStatusModal";
 
 import { payTVSubscription, verifySmartCard } from "@/lib/api";
-import { TokenConfig } from "@/lib/tokenlist";
-import { fetchActiveTokensWithMetadata } from "@/lib/tokenUtils";
+import { TokenConfig, getTokensForChain } from "@/lib/tokenlist";
 
 interface TVProvider {
   serviceID: string
@@ -214,12 +213,9 @@ export default function TVPage() {
     (async () => {
       setLoading(true);
       try {
-        const tokens = await fetchActiveTokensWithMetadata();
+        // Use static token list from tokenlist.ts for current chain
+        const chainTokens = getTokensForChain(chainIdNumber);
         if (!isMounted) return;
-        // Filter tokens for current chain only
-        const chainTokens = tokens.filter(token => 
-          token.chainId === chainIdNumber && token.tokenType !== 0
-        );
         setActiveTokens(chainTokens);
         const prices = await fetchPrices(chainTokens);
         if (!isMounted) return;
