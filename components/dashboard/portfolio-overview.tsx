@@ -166,6 +166,9 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 	const [showBalance, setShowBalance] = useState(true);
 	const [currencyDisplay, setCurrencyDisplay] = useState<'usd' | 'ngn'>('usd');
 
+	// Detect if running inside Farcaster
+	const [isFarcaster, setIsFarcaster] = useState(false);
+
 	// Use simple mini app wallet hook with chain info
 	const { 
 		address, 
@@ -220,9 +223,16 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 		}
 	};
 
-	// Set mounted
+	// Set mounted and detect Farcaster
 	useEffect(() => {
 		setMounted(true);
+		// Detect if running inside Farcaster frame
+		const isInFarcaster = typeof window !== 'undefined' && 
+			(window.location.hostname.includes('farcaster') || 
+			 window.location.hostname.includes('warpcast') ||
+			 document.referrer.includes('farcaster') ||
+			 document.referrer.includes('warpcast'));
+		setIsFarcaster(isInFarcaster);
 	}, []);
 
 	useEffect(() => {
@@ -417,55 +427,57 @@ export function PortfolioOverview({ wallet, className }: { wallet: any; classNam
 							</span>
 						</div>
 
-						{/* Network Switcher Dropdown */}
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<button
-									className="h-[20px] w-[20px] flex items-center justify-center rounded-full border bg-white hover:bg-gray-50 transition-colors"
-									style={{ borderColor: getChainColor() }}
-									aria-label="Switch network"
-									disabled={isSwitchingChain}
-								>
-									{isSwitchingChain ? (
-										<div className="animate-spin h-3 w-3 border border-gray-400 border-t-transparent rounded-full" />
-									) : (
-										<Network className="h-3 w-3" style={{ color: getChainColor() }} />
-									)}
-								</button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="center" className="w-32">
-								<DropdownMenuItem 
-									onClick={() => handleNetworkSwitch('base')}
-									className="cursor-pointer"
-									disabled={isOnBaseChain}
-								>
-									<div className="flex items-center gap-2">
-										<div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#0052FF' }} />
-										<span className={isOnBaseChain ? 'font-semibold' : ''}>Base</span>
-									</div>
-								</DropdownMenuItem>
-								<DropdownMenuItem 
-									onClick={() => handleNetworkSwitch('lisk')}
-									className="cursor-pointer"
-									disabled={isOnLiskChain}
-								>
-									<div className="flex items-center gap-2">
-										<div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4070F4' }} />
-										<span className={isOnLiskChain ? 'font-semibold' : ''}>Lisk</span>
-									</div>
-								</DropdownMenuItem>
-								<DropdownMenuItem 
-									onClick={() => handleNetworkSwitch('celo')}
-									className="cursor-pointer"
-									disabled={isOnCeloChain}
-								>
-									<div className="flex items-center gap-2">
-										<div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#FCFF52' }} />
-										<span className={isOnCeloChain ? 'font-semibold' : ''}>Celo</span>
-									</div>
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
+						{/* Network Switcher Dropdown - Hidden in Farcaster */}
+						{!isFarcaster && (
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<button
+										className="h-[20px] w-[20px] flex items-center justify-center rounded-full border bg-white hover:bg-gray-50 transition-colors"
+										style={{ borderColor: getChainColor() }}
+										aria-label="Switch network"
+										disabled={isSwitchingChain}
+									>
+										{isSwitchingChain ? (
+											<div className="animate-spin h-3 w-3 border border-gray-400 border-t-transparent rounded-full" />
+										) : (
+											<Network className="h-3 w-3" style={{ color: getChainColor() }} />
+										)}
+									</button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="center" className="w-32">
+									<DropdownMenuItem 
+										onClick={() => handleNetworkSwitch('base')}
+										className="cursor-pointer"
+										disabled={isOnBaseChain}
+									>
+										<div className="flex items-center gap-2">
+											<div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#0052FF' }} />
+											<span className={isOnBaseChain ? 'font-semibold' : ''}>Base</span>
+										</div>
+									</DropdownMenuItem>
+									<DropdownMenuItem 
+										onClick={() => handleNetworkSwitch('lisk')}
+										className="cursor-pointer"
+										disabled={isOnLiskChain}
+									>
+										<div className="flex items-center gap-2">
+											<div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4070F4' }} />
+											<span className={isOnLiskChain ? 'font-semibold' : ''}>Lisk</span>
+										</div>
+									</DropdownMenuItem>
+									<DropdownMenuItem 
+										onClick={() => handleNetworkSwitch('celo')}
+										className="cursor-pointer"
+										disabled={isOnCeloChain}
+									>
+										<div className="flex items-center gap-2">
+											<div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#FCFF52' }} />
+											<span className={isOnCeloChain ? 'font-semibold' : ''}>Celo</span>
+										</div>
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						)}
 					</div>
 				)}
 
