@@ -206,7 +206,7 @@ export default function TVPage() {
   const tokenAmountForOrder: bigint = selectedCrypto ? parseUnits(cryptoNeeded.toFixed(selectedCrypto.decimals), selectedCrypto.decimals) : BigInt(0);
   const bytes32RequestId: Hex = toHex(toBytes(requestId || ""), { size: 32 });
 
-  /* initial load */
+  /* initial load - reload when chain changes */
   useEffect(() => {
     if (!mounted) return;
     
@@ -216,13 +216,18 @@ export default function TVPage() {
       try {
         const tokens = await fetchActiveTokensWithMetadata();
         if (!isMounted) return;
-        setActiveTokens(tokens.filter(token => token.tokenType !== 0)); // Filter out ETH
-        const prices = await fetchPrices(tokens);
+        // Filter tokens for current chain only
+        const chainTokens = tokens.filter(token => 
+          token.chainId === chainIdNumber && token.tokenType !== 0
+        );
+        setActiveTokens(chainTokens);
+        const prices = await fetchPrices(chainTokens);
         if (!isMounted) return;
         setPrices(prices);
         const prov = await fetchTVProviders();
         if (!isMounted) return;
         setProviders(prov);
+        console.log(`Loaded ${chainTokens.length} tokens for chain ${chainIdNumber}`);
       } catch (error) {
         console.error("Error loading tokens, prices, or providers:", error);
         toast.error("Failed to load essential data. Please try again.");
@@ -232,7 +237,7 @@ export default function TVPage() {
       }
     })();
     return () => { isMounted = false; };
-  }, [mounted]);
+  }, [mounted, chainIdNumber]);
 
   /* plans when provider changes */
   useEffect(() => {

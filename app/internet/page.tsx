@@ -129,7 +129,7 @@ export default function InternetPage() {
         setMounted(true);
     }, []);
 
-    // Load tokens and prices on initial mount
+    // Load tokens and prices on initial mount - reload when chain changes
     useEffect(() => {
         if (!mounted) return;
         
@@ -137,12 +137,16 @@ export default function InternetPage() {
             setLoading(true);
             try {
                 const tokens = await fetchActiveTokensWithMetadata();
-                // Filter out ETH (tokenType 0) - only ERC20 tokens supported
-                setActiveTokens(tokens.filter(token => token.tokenType !== 0));
-                const prices = await fetchPrices(tokens);
+                // Filter tokens for current chain only (exclude ETH tokenType 0)
+                const chainTokens = tokens.filter(token => 
+                    token.chainId === chainIdNumber && token.tokenType !== 0
+                );
+                setActiveTokens(chainTokens);
+                const prices = await fetchPrices(chainTokens);
                 setPrices(prices);
                 const serviceData = await fetchDataServices();
                 setAvailableProviders(serviceData);
+                console.log(`Loaded ${chainTokens.length} tokens for chain ${chainIdNumber}`);
 
             } catch (error) {
                 console.error("Error loading tokens, prices, or providers:", error);
@@ -152,7 +156,7 @@ export default function InternetPage() {
             }
         }
         loadTokensAndPricesAndProviders();
-    }, [mounted]);
+    }, [mounted, chainIdNumber]);
 
     // Effect to fetch plans when provider changes
     useEffect(() => {

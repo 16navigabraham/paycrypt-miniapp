@@ -90,7 +90,7 @@ export default function AirtimePage() {
     setMounted(true);
   }, []);
 
-  // Load tokens and prices
+  // Load tokens and prices - reload when chain changes
   useEffect(() => {
     if (!mounted) return;
     
@@ -98,11 +98,16 @@ export default function AirtimePage() {
       setLoading(true);
       try {
         const tokens = await fetchActiveTokensWithMetadata();
-        const erc20Tokens = tokens.filter(token => token.tokenType !== 0);
-        setActiveTokens(erc20Tokens);
+        // Filter tokens for current chain only
+        const chainTokens = tokens.filter(token => 
+          token.chainId === chainIdNumber && token.tokenType !== 0
+        );
+        setActiveTokens(chainTokens);
         
-        const prices = await fetchPrices(tokens);
+        const prices = await fetchPrices(chainTokens);
         setPrices(prices);
+        
+        console.log(`Loaded ${chainTokens.length} tokens for chain ${chainIdNumber}`);
       } catch (error) {
         console.error("Error loading tokens and prices:", error);
         toast.error("Failed to load token data. Please refresh and try again.");
@@ -112,7 +117,7 @@ export default function AirtimePage() {
     }
     
     loadTokensAndPrices();
-  }, [mounted]);
+  }, [mounted, chainIdNumber]);
 
   // Generate requestId when form has data
   useEffect(() => {

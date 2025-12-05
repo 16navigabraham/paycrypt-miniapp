@@ -204,11 +204,14 @@ export default function ElectricityPage() {
       setLoading(true);
       try {
         const tokens = await fetchActiveTokensWithMetadata();
-        // Filter out ETH (tokenType 0) as per requirement - ERC20 only
-        const erc20Tokens = tokens.filter(token => token.tokenType !== 0);
-        setActiveTokens(erc20Tokens);
-        const prices = await fetchPrices(erc20Tokens);
+        // Filter tokens for current chain only (exclude ETH tokenType 0)
+        const chainTokens = tokens.filter(token => 
+          token.chainId === chainIdNumber && token.tokenType !== 0
+        );
+        setActiveTokens(chainTokens);
+        const prices = await fetchPrices(chainTokens);
         setPrices(prices);
+        console.log(`Loaded ${chainTokens.length} tokens for chain ${chainIdNumber}`);
       } catch (error) {
         console.error("Error loading tokens and prices:", error);
         toast.error("Failed to load token data. Please try again.");
@@ -217,7 +220,7 @@ export default function ElectricityPage() {
       }
     }
     loadTokensAndPrices();
-  }, [mounted]);
+  }, [mounted, chainIdNumber]);
 
   /* plans when provider changes */
   useEffect(() => {
