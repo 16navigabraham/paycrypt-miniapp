@@ -17,6 +17,7 @@ interface TransactionStatusModalProps {
   errorMessage?: string | null;
   explorerUrl?: string; // Optional - if not provided, will use chain-specific URL
   chainId?: number; // Optional - if not provided, will use current chain
+  chainName?: string; // Optional - blockchain name (Base, Lisk, Celo)
   backendMessage?: string | null;
   requestId?: string;
   backendDetails?: {
@@ -34,6 +35,7 @@ export function TransactionStatusModal({
   errorMessage,
   explorerUrl: providedExplorerUrl,
   chainId: providedChainId,
+  chainName,
   backendMessage,
   requestId,
   backendDetails,

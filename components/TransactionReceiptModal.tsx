@@ -38,7 +38,9 @@ interface ReceiptProps {
     prepaid_token: string;
     units: string;
     customer_name: string;
-    customer_address: string
+    customer_address: string;
+    chainId?: number;
+    chainName?: string;
   } | null;
 }
 
@@ -264,6 +266,14 @@ Status: ${formatStatus(order.vtpassStatus)}
                     <span className="text-gray-600 text-xs">Request ID</span>
                     <span className="font-mono text-xs text-gray-700 truncate ml-2 max-w-[50%]">{order.requestId}</span>
                   </div>
+
+                  {/* Chain Information */}
+                  {order.chainName && (
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-gray-600 text-xs">Blockchain</span>
+                      <span className="text-xs font-medium text-gray-700">{order.chainName}</span>
+                    </div>
+                  )}
                   
                   {/* Add Token Details Section */}
                   {order.prepaid_token && (

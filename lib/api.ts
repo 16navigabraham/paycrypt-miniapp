@@ -9,6 +9,8 @@ export const buyAirtime = async (data: {
   cryptoSymbol: string;
   transactionHash: string;
   userAddress: string;
+  chainId: number;
+  chainName: string;
 }) => {
   const res = await fetch(`${BASE_URL}/api/airtime`, {
     method: "POST",
@@ -31,6 +33,8 @@ export const buyinternet = async (data: {
   cryptoSymbol: string;
   transactionHash: string;
   userAddress: string;
+  chainId: number;
+  chainName: string;
 }) => {
   const res = await fetch(`${BASE_URL}/api/internet`, {
     method: "POST",
@@ -54,6 +58,8 @@ export const payElectricityBill = async (data: {
   cryptoSymbol: string;
   transactionHash: string;
   userAddress: string;
+  chainId: number;
+  chainName: string;
 }) => {
   const res = await fetch(`${BASE_URL}/api/electricity`, {
     method: "POST",
@@ -77,6 +83,8 @@ export const payTVSubscription = async (data: {
   cryptoSymbol: string;
   transactionHash: string;
   userAddress: string;
+  chainId: number;
+  chainName: string;
 }) => {
   const res = await fetch(`${BASE_URL}/api/tv`, {
     method: "POST",

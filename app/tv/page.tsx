@@ -153,6 +153,16 @@ export default function TVPage() {
     isOnSupportedChain
   } = useMiniAppWallet();
 
+  // Get chain name based on chainId
+  const getChainName = (): string => {
+    switch(chainIdNumber) {
+      case 8453: return "Base";
+      case 1135: return "Lisk";
+      case 42220: return "Celo";
+      default: return "Unknown";
+    }
+  };
+
   // Transaction waiting hooks
   const approvalReceipt = useTransactionWait(approvalHash);
   const orderReceipt = useTransactionWait(orderHash);
@@ -375,7 +385,9 @@ export default function TVPage() {
         cryptoUsed: parseFloat(cryptoNeeded.toFixed(selectedCrypto?.decimals || 6)),
         cryptoSymbol: selectedCrypto?.symbol!,
         transactionHash,
-        userAddress: address!
+        userAddress: address!,
+        chainId: chainIdNumber,
+        chainName: getChainName()
       });
 
       console.log('Backend success response:', response);
@@ -794,17 +806,17 @@ export default function TVPage() {
                     </div>
 
 
-        <TransactionStatusModal
-          isOpen={showTransactionModal}
-          onClose={handleCloseModal}
-          txStatus={txStatus}
-          transactionHash={transactionHashForModal}
-          errorMessage={transactionError}
-          backendMessage={backendMessage}
-          requestId={requestId}
-        />
-
-      </div>
+      <TransactionStatusModal
+      isOpen={showTransactionModal}
+      onClose={handleCloseModal}
+      txStatus={txStatus}
+      transactionHash={transactionHashForModal}
+      errorMessage={transactionError}
+      backendMessage={backendMessage}
+      requestId={requestId}
+      chainId={chainIdNumber}
+      chainName={getChainName()}
+      />      </div>
     </div>
     </div>
   )

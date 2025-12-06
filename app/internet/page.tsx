@@ -110,17 +110,25 @@ export default function InternetPage() {
 
     const backendRequestSentRef = useRef<Hex | null>(null);
 
-    // Updated wallet hook usage - destructure the functions
-    const { 
-        address, 
-        isConnected, 
-        isLoading: walletLoading,
-        sendTransaction,
-        chainIdNumber,
-        isOnSupportedChain
-    } = useMiniAppWallet();
+  // Updated wallet hook usage - destructure the functions
+  const { 
+    address, 
+    isConnected, 
+    isLoading: walletLoading,
+    sendTransaction,
+    chainIdNumber,
+    isOnSupportedChain
+  } = useMiniAppWallet();
 
-    // Transaction waiting hooks
+  // Get chain name based on chainId
+  const getChainName = (): string => {
+    switch(chainIdNumber) {
+      case 8453: return "Base";
+      case 1135: return "Lisk";
+      case 42220: return "Celo";
+      default: return "Unknown";
+    }
+  };    // Transaction waiting hooks
     const approvalReceipt = useTransactionWait(approvalHash);
     const orderReceipt = useTransactionWait(orderHash);
 
@@ -259,7 +267,9 @@ export default function InternetPage() {
                 cryptoUsed: parseFloat(cryptoNeeded.toFixed(selectedCrypto?.decimals || 6)),
                 cryptoSymbol: selectedCrypto?.symbol!,
                 transactionHash,
-                userAddress: address!
+                userAddress: address!,
+                chainId: chainIdNumber,
+                chainName: getChainName()
             });
 
             console.log('Backend success response:', response);
@@ -615,6 +625,8 @@ export default function InternetPage() {
                 errorMessage={transactionError}
                 backendMessage={backendMessage}
                 requestId={requestId}
+                chainId={chainIdNumber}
+                chainName={getChainName()}
             />
         </div>
     );
