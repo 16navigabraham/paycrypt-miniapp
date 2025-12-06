@@ -61,6 +61,7 @@ export default function AirtimePage() {
   const [prices, setPrices] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [requestId, setRequestId] = useState<string | undefined>(undefined);
+  const [lastLoadedChainId, setLastLoadedChainId] = useState<number | null>(null);
 
   const [txStatus, setTxStatus] = useState<'idle' | 'waitingForApprovalSignature' | 'approving' | 'approvalSuccess' | 'waitingForSignature' | 'sending' | 'confirming' | 'success' | 'backendProcessing' | 'backendSuccess' | 'backendError' | 'error'>('idle');
   const [transactionError, setTransactionError] = useState<string | null>(null);
@@ -103,12 +104,19 @@ export default function AirtimePage() {
   useEffect(() => {
     if (!mounted) return;
     
+    // Skip loading if we just loaded tokens for this chain
+    if (lastLoadedChainId === chainIdNumber) {
+      console.log(`Tokens already loaded for chain ${chainIdNumber}, skipping reload`);
+      return;
+    }
+    
     async function loadTokensAndPrices() {
       setLoading(true);
       try {
         // Use static token list from tokenlist.ts for current chain
         const chainTokens = getTokensForChain(chainIdNumber);
         setActiveTokens(chainTokens);
+        setLastLoadedChainId(chainIdNumber);
         
         const prices = await fetchPrices(chainTokens);
         setPrices(prices);
@@ -123,7 +131,7 @@ export default function AirtimePage() {
     }
     
     loadTokensAndPrices();
-  }, [mounted, chainIdNumber]);
+  }, [mounted, chainIdNumber, lastLoadedChainId]);
 
   // Generate requestId when form has data
   useEffect(() => {

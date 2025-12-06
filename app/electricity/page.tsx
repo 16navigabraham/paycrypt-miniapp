@@ -132,6 +132,7 @@ export default function ElectricityPage() {
   const [verificationSuccess, setVerificationSuccess] = useState(false);
   const [requestId, setRequestId] = useState<string | undefined>(undefined);
   const [phone, setPhone] = useState("");
+  const [lastLoadedChainId, setLastLoadedChainId] = useState<number | null>(null);
 
   const [txStatus, setTxStatus] = useState<'idle' | 'waitingForApprovalSignature' | 'approving' | 'approvalSuccess' | 'waitingForSignature' | 'sending' | 'confirming' | 'success' | 'backendProcessing' | 'backendSuccess' | 'backendError' | 'error'>('idle');
   const [transactionError, setTransactionError] = useState<string | null>(null);
@@ -209,12 +210,19 @@ export default function ElectricityPage() {
   useEffect(() => {
     if (!mounted) return;
     
+    // Skip loading if we just loaded tokens for this chain
+    if (lastLoadedChainId === chainIdNumber) {
+      console.log(`Tokens already loaded for chain ${chainIdNumber}, skipping reload`);
+      return;
+    }
+    
     async function loadTokensAndPrices() {
       setLoading(true);
       try {
         // Use static token list from tokenlist.ts for current chain
         const chainTokens = getTokensForChain(chainIdNumber);
         setActiveTokens(chainTokens);
+        setLastLoadedChainId(chainIdNumber);
         const prices = await fetchPrices(chainTokens);
         setPrices(prices);
         console.log(`Loaded ${chainTokens.length} tokens for chain ${chainIdNumber}`);
@@ -226,7 +234,7 @@ export default function ElectricityPage() {
       }
     }
     loadTokensAndPrices();
-  }, [mounted, chainIdNumber]);
+  }, [mounted, chainIdNumber, lastLoadedChainId]);
 
   /* plans when provider changes */
   useEffect(() => {

@@ -99,6 +99,7 @@ export default function InternetPage() {
     const [loadingPlans, setLoadingPlans] = useState(false);
     const [availableProviders, setAvailableProviders] = useState<any[]>([]);
     const [requestId, setRequestId] = useState<string | undefined>(undefined);
+    const [lastLoadedChainId, setLastLoadedChainId] = useState<number | null>(null);
 
     const [txStatus, setTxStatus] = useState<'idle' | 'waitingForApprovalSignature' | 'approving' | 'approvalSuccess' | 'waitingForSignature' | 'sending' | 'confirming' | 'success' | 'backendProcessing' | 'backendSuccess' | 'backendError' | 'error'>('idle');
     const [transactionError, setTransactionError] = useState<string | null>(null);
@@ -140,12 +141,19 @@ export default function InternetPage() {
     useEffect(() => {
         if (!mounted) return;
         
+        // Skip loading if we just loaded tokens for this chain
+        if (lastLoadedChainId === chainIdNumber) {
+          console.log(`Tokens already loaded for chain ${chainIdNumber}, skipping reload`);
+          return;
+        }
+        
         async function loadTokensAndPricesAndProviders() {
             setLoading(true);
             try {
                 // Use static token list from tokenlist.ts for current chain
                 const chainTokens = getTokensForChain(chainIdNumber);
                 setActiveTokens(chainTokens);
+                setLastLoadedChainId(chainIdNumber);
                 const prices = await fetchPrices(chainTokens);
                 setPrices(prices);
                 const serviceData = await fetchDataServices();
@@ -160,7 +168,7 @@ export default function InternetPage() {
             }
         }
         loadTokensAndPricesAndProviders();
-    }, [mounted, chainIdNumber]);
+    }, [mounted, chainIdNumber, lastLoadedChainId]);
 
     // Effect to fetch plans when provider changes
     useEffect(() => {

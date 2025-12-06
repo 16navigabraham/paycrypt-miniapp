@@ -130,6 +130,7 @@ export default function TVPage() {
   const [verificationError, setVerificationError] = useState("");
   const [verificationSuccess, setVerificationSuccess] = useState(false);
   const [requestId, setRequestId] = useState<string | undefined>(undefined);
+  const [lastLoadedChainId, setLastLoadedChainId] = useState<number | null>(null);
 
   const [activeTokens, setActiveTokens] = useState<TokenConfig[]>([]);
 
@@ -219,6 +220,12 @@ export default function TVPage() {
   useEffect(() => {
     if (!mounted) return;
     
+    // Skip loading if we just loaded tokens for this chain
+    if (lastLoadedChainId === chainIdNumber) {
+      console.log(`Tokens already loaded for chain ${chainIdNumber}, skipping reload`);
+      return;
+    }
+
     let isMounted = true;
     (async () => {
       setLoading(true);
@@ -227,6 +234,7 @@ export default function TVPage() {
         const chainTokens = getTokensForChain(chainIdNumber);
         if (!isMounted) return;
         setActiveTokens(chainTokens);
+        setLastLoadedChainId(chainIdNumber);
         const prices = await fetchPrices(chainTokens);
         if (!isMounted) return;
         setPrices(prices);
@@ -243,7 +251,7 @@ export default function TVPage() {
       }
     })();
     return () => { isMounted = false; };
-  }, [mounted, chainIdNumber]);
+  }, [mounted, chainIdNumber, lastLoadedChainId]);
 
   /* plans when provider changes */
   useEffect(() => {
