@@ -11,7 +11,7 @@ import BackToDashboard from "@/components/BackToDashboard"
 import { Input } from "@/components/ui/input"
 
 import { useMiniAppWallet, useTransactionWait } from '@/hooks/useMiniAppWallet';
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
+import { getContractAddress, CONTRACT_ABI } from "@/config/contract";
 import { ERC20_ABI } from "@/config/erc20Abi";
 import { parseUnits, toBytes, toHex, Hex, encodeFunctionData } from 'viem';
 import { toast } from 'sonner';
@@ -341,7 +341,7 @@ export default function AirtimePage() {
       const approvalData = encodeFunctionData({
         abi: ERC20_ABI,
         functionName: 'approve',
-        args: [getContractAddress(chainIdNumber), requiredApproval],
+        args: [getContractAddress(chainIdNumber) as Hex, requiredApproval],
       });
 
       const approvalTx = await sendTransaction({
