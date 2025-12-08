@@ -13,20 +13,11 @@ const actions = [
 	{ name: "Electricity", icon: "/electricity.png", href: "/electricity" },
 ]
 
-const imgPngtreeWhiteGridCartoonPngMaterial46759121 = "https://www.figma.com/api/mcp/asset/0cd7906c-bcfd-4b4f-8a51-de6de026a2fc"
-
 export function QuickActions({ wallet }: { wallet: any }) {
 	 return (
 	 	<div className="relative space-y-6">
 	 		{/* Figma-style grid layout - 3 columns */}
 			<div className="grid grid-cols-4 gap-3 relative">
-				{/* Grid overlay (Figma asset) */}
-				<img
-					src={imgPngtreeWhiteGridCartoonPngMaterial46759121}
-					alt="grid overlay"
-					className="absolute left-0 top-0 w-full h-full object-cover opacity-20 pointer-events-none z-0 rounded-lg"
-				/>
-
 				{actions.map((action) => (
 					<Button
 						key={action.name}
