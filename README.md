@@ -1,119 +1,192 @@
-# 🔋 Crypto to Airtime Application
+# 💰 PayCrypt Mini App
 
 **Status:** 🚧 *In Active Development*
 
-A full-featured platform that enables users to seamlessly convert cryptocurrency into airtime, pay utility bills, and manage digital assets — all through a secure and intuitive interface. Built with scalability, compliance, and user experience at its core.
+A mobile-friendly Web3 application that makes it easy to convert cryptocurrency into everyday services. Buy airtime, pay electricity bills, subscribe to TV channels, and purchase data — all with crypto, directly from your wallet.
 
 ---
 
-## 📌 Project Overview
+## 📌 What is PayCrypt?
 
-This application bridges the gap between decentralized finance and everyday utility needs for users in Africa, starting with Nigeria. It enables:
+PayCrypt is a bridge between cryptocurrency and real-world services. Instead of selling your crypto to fiat currency, you can directly use it to purchase:
 
-- Crypto-to-airtime conversions
-- Utility payments (TV, electricity, data)
-- Real-time wallet management
-- A secure, modern frontend experience
+- **📱 Airtime** - Top up phone credit with major carriers (MTN, Airtel, Glo, 9mobile)
+- **⚡ Electricity Bills** - Pay power companies in Nigeria
+- **📺 TV Subscriptions** - Subscribe to DSTV, Startimes, and other TV services
+- **🌐 Internet Data** - Purchase data plans from various providers
+- **💱 Crypto Conversion** - Convert between cryptocurrencies and fiat values
+
+All from a single, user-friendly dashboard.
 
 ---
 
-## 🏗️ Architecture Summary
+## 🎯 Key Features
 
-### 🔧 Backend (Microservices)
+### 💳 Seamless Payments
+- Connect your crypto wallet in seconds
+- No complicated registration process
+- Real-time price conversion and fee breakdown
+- Support for multiple blockchains (Base, Lisk, Celo)
 
-- **Authentication Service**: JWT, 2FA, KYC/AML
-- **Crypto Payment Engine**: Multi-chain, smart contracts, real-time rates
-- **Utility Gateway**: MTN, Airtel, Glo, 9mobile + DSTV, Startimes, etc.
-- **Database Stack**: MongoDB
-- **Security**: PCI DSS, encryption, audit logs
+### 🔒 Security First
+- Non-custodial wallet integration — you control your assets
+- Secure transaction verification
+- Transaction history and receipts
+- Protected personal information
 
-### 🖥️ Frontend Stack
+### 📊 User Dashboard
+- View your wallet balance and transaction history
+- Real-time portfolio overview
+- Quick access to all services
+- Download transaction receipts
 
-- **Framework**: React 18 + TypeScript
+### 🌍 Multi-Chain Support
+- **Base** - Ethereum L2 solution, low fees and fast transactions
+- **Lisk** - Specialized blockchain for scalability
+- **Celo** - Mobile-first blockchain for accessibility
+
+### 📱 Farcaster Integration
+- Run as a mini app inside Farcaster frames
+- One-click wallet connection
+- Seamless experience for Farcaster users
+
+---
+
+## 🚀 Getting Started
+
+### For Users
+1. Open Farcaster or Base app (which already have built-in wallets)
+2. Access the PayCrypt mini app
+3. Your wallet is automatically connected
+4. Fund it with cryptocurrency on supported chains
+5. Select your service (airtime, electricity, etc.)
+6. Confirm the transaction
+7. Done! Service is activated
+
+### For Developers
+This is a **Next.js + React** application. To run locally:
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm dev
+
+# Open in browser
+# http://localhost:3000
+```
+
+---
+
+## 💻 Technology Stack
+
+- **Frontend**: Next.js 15, React 18, TypeScript
 - **Styling**: Tailwind CSS
-- **Mobile**: React Native (shared business logic)
-- **State Management**: Redux Toolkit + RTK Query
-- **Build Tool**: Vite
-- **Charting**: Chart.js for crypto trends
+- **Web3**: wagmi v2, viem for blockchain interactions
+- **Wallet**: Privy for authentication
+- **UI Components**: Custom component library
+- **Backend API**: Integration with utility providers
 
 ---
 
-## 📦 File Structure Preview
+## 📖 How It Works
 
-\`\`\`
+### Payment Flow
+1. **User connects wallet** → Your assets remain in your control
+2. **Select service** → Choose airtime, electricity, TV, or data
+3. **Enter details** → Phone number, meter ID, etc.
+4. **Review & confirm** → See total cost and fees
+5. **Sign transaction** → Approve with your wallet
+6. **Service activated** → Usually within minutes
 
-src/
-├── components/
-│   ├── layout/       # Header, Sidebar, Footer
-│   ├── ui/           # Reusable UI elements
-│   └── features/     # Feature-specific components
-
-\`\`\`
-
----
-
-## ⚙️ Key Features (Frontend)
-
-- 🔐 Wallet connection (MetaMask, WalletConnect)
-- 💱 Real-time crypto to fiat exchange
-- 📱 Utility bill & airtime payments
-- 📊 Conversion calculator with fee breakdown
-- 📡 WebSocket-powered updates
-- 🌗 Dark/light theme & mobile responsiveness
-- 🧪 Full test suite (Unit, E2E, UAT in progress)
+### Supported Cryptocurrencies (by chain)
+- **Base**: USDC, USDT, SEND
+- **Lisk**: USDC, USDT
+- **Celo**: cUSD, CELO, USDC, USDT
 
 ---
 
-## 🔐 Security
+## 🎨 User Experience
 
-- Secure token handling with httpOnly cookies
-- Real-time fraud detection & biometric auth
-- Transaction limits and confirmation flows
-
----
-
-## 🚀 Deployment & DevOps
-
-- CI/CD via GitHub Actions
-- Environment configs for staging & production
-- CDN delivery and monitoring via Sentry, Vitals
+- **Clean Interface** - Intuitive design that doesn't require crypto knowledge
+- **Mobile Optimized** - Works perfectly on phones and tablets
+- **Dark Mode** - Easy on the eyes in any lighting
+- **Fast Transactions** - Most services activate within minutes
+- **No Hidden Fees** - Complete fee breakdown before you pay
 
 ---
 
-## 📈 What's Next?
+## 📈 Roadmap
 
-> This project is actively being built. Upcoming milestones:
+### Completed ✅
+- Multi-chain support (Base, Lisk, Celo)
+- Airtime purchases
+- Electricity bill payments
+- TV subscriptions
+- Data purchases
+- Transaction history
+- Receipt downloads
+- Farcaster mini app integration
 
-- [ ] Integrate crypto wallet transactions
-- [ ] Airtime purchase live testing (MTN/Airtel)
-- [ ] Real-time rate locking mechanism
-- [ ] Production-grade API deployments
-- [ ] Cross-platform mobile support
+### Coming Soon 🔜
+- More utility providers
+- Scheduled payments
+- Bill reminders
+- Referral program
+- Enhanced analytics
+- Mobile app version
 
 ---
 
-## 🧪 Testing Strategy
+## 🔐 Security & Privacy
 
-- Component tests (React Testing Library)
-- Integration flows
-- E2E tests via Cypress
-- Accessibility + performance audits
+- Your private keys never leave your wallet
+- All transactions are cryptographically signed by you
+- No storage of sensitive payment information
+- Compliance with blockchain security standards
+- Regular security audits
 
 ---
 
-## 👨‍💻 Author
+## ❓ FAQ
 
-**Qasim Rokeeb**  
-Frontend Engineer | React & Web3  
-[GitHub](https://github.com/Qasim-Rokeeb)
+**Q: Is my crypto safe?**  
+A: Yes. You control your wallet and sign all transactions. PayCrypt never has access to your funds.
+
+**Q: Which countries are supported?**  
+A: Currently focused on Nigeria, with plans to expand across Africa.
+
+**Q: What happens if my transaction fails?**  
+A: Your crypto is returned to your wallet. No funds are lost.
+
+**Q: Can I use this on mobile?**  
+A: Yes! The app is fully mobile-optimized and works as a Farcaster mini app.
+
+**Q: What if I need help?**  
+A: Check our support page or reach out through the app.
+
+---
+
+## 👥 Meet the Team
 
 **Abraham Navigator**  
-Blockchain Developer | React & Solidity  
+Blockchain Developer & Co-Founder  
 [GitHub](https://github.com/16navigabraham/)
 
+**Qasim Rokeeb**  
+Frontend Engineer & Co-Founder  
+[GitHub](https://github.com/Qasim-Rokeeb)
 
 ---
 
-> ⚠️ This is a **work-in-progress** project. Contributions and feedback are welcome once the initial beta is released.
+## 📞 Support & Feedback
 
-\`\`\`
+- **Questions?** Visit our support page in the app
+- **Bug report?** Please create an issue on GitHub
+- **Feature request?** We'd love to hear your ideas!
+
+---
+
+> 🚀 **PayCrypt is making crypto useful for everyday people.**  
+> Join us as we make financial services more accessible across Africa.
